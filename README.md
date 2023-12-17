@@ -17,8 +17,8 @@ Current version of node.js in the docs: **20.10.0**
 
 Just check out the different folders or download directly:
 
-- [pdf]()
-- [epub]()
+- [pdf](https://github.com/Elijah57/node-js-manual/blob/main/pdf/nodejs-manual-1.pdf)
+- [epub](https://github.com/Elijah57/node-js-manual/blob/main/epub/nodejs-manual.epub)
 
 
 ## Create your own files
