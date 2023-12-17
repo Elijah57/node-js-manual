@@ -1,0 +1,1885 @@
+\section{DNS}\label{dns}
+
+\begin{quote}
+Stability: 2 - Stable
+\end{quote}
+
+The \texttt{node:dns} module enables name resolution. For example, use
+it to look up IP addresses of host names.
+
+Although named for the
+\href{https://en.wikipedia.org/wiki/Domain_Name_System}{Domain Name
+System (DNS)}, it does not always use the DNS protocol for lookups.
+\hyperref[dnslookuphostname-options-callback]{\texttt{dns.lookup()}}
+uses the operating system facilities to perform name resolution. It may
+not need to perform any network communication. To perform name
+resolution the way other applications on the same system do, use
+\hyperref[dnslookuphostname-options-callback]{\texttt{dns.lookup()}}.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ dns }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:dns\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+
+\NormalTok{dns}\OperatorTok{.}\FunctionTok{lookup}\NormalTok{(}\StringTok{\textquotesingle{}example.org\textquotesingle{}}\OperatorTok{,}\NormalTok{ (err}\OperatorTok{,}\NormalTok{ address}\OperatorTok{,}\NormalTok{ family) }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+  \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\StringTok{\textquotesingle{}address: \%j family: IPv\%s\textquotesingle{}}\OperatorTok{,}\NormalTok{ address}\OperatorTok{,}\NormalTok{ family)}\OperatorTok{;}
+\NormalTok{\})}\OperatorTok{;}
+\CommentTok{// address: "93.184.216.34" family: IPv4}
+\end{Highlighting}
+\end{Shaded}
+
+All other functions in the \texttt{node:dns} module connect to an actual
+DNS server to perform name resolution. They will always use the network
+to perform DNS queries. These functions do not use the same set of
+configuration files used by
+\hyperref[dnslookuphostname-options-callback]{\texttt{dns.lookup()}}
+(e.g.~\texttt{/etc/hosts}). Use these functions to always perform DNS
+queries, bypassing other name-resolution facilities.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ dns }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:dns\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+
+\NormalTok{dns}\OperatorTok{.}\FunctionTok{resolve4}\NormalTok{(}\StringTok{\textquotesingle{}archive.org\textquotesingle{}}\OperatorTok{,}\NormalTok{ (err}\OperatorTok{,}\NormalTok{ addresses) }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+  \ControlFlowTok{if}\NormalTok{ (err) }\ControlFlowTok{throw}\NormalTok{ err}\OperatorTok{;}
+
+  \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\VerbatimStringTok{\textasciigrave{}addresses: }\SpecialCharTok{$\{}\BuiltInTok{JSON}\OperatorTok{.}\FunctionTok{stringify}\NormalTok{(addresses)}\SpecialCharTok{\}}\VerbatimStringTok{\textasciigrave{}}\NormalTok{)}\OperatorTok{;}
+
+\NormalTok{  addresses}\OperatorTok{.}\FunctionTok{forEach}\NormalTok{((a) }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+\NormalTok{    dns}\OperatorTok{.}\FunctionTok{reverse}\NormalTok{(a}\OperatorTok{,}\NormalTok{ (err}\OperatorTok{,}\NormalTok{ hostnames) }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+      \ControlFlowTok{if}\NormalTok{ (err) \{}
+        \ControlFlowTok{throw}\NormalTok{ err}\OperatorTok{;}
+\NormalTok{      \}}
+      \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\VerbatimStringTok{\textasciigrave{}reverse for }\SpecialCharTok{$\{}\NormalTok{a}\SpecialCharTok{\}}\VerbatimStringTok{: }\SpecialCharTok{$\{}\BuiltInTok{JSON}\OperatorTok{.}\FunctionTok{stringify}\NormalTok{(hostnames)}\SpecialCharTok{\}}\VerbatimStringTok{\textasciigrave{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{    \})}\OperatorTok{;}
+\NormalTok{  \})}\OperatorTok{;}
+\NormalTok{\})}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+See the \hyperref[implementation-considerations]{Implementation
+considerations section} for more information.
+
+\subsection{\texorpdfstring{Class:
+\texttt{dns.Resolver}}{Class: dns.Resolver}}\label{class-dns.resolver}
+
+An independent resolver for DNS requests.
+
+Creating a new resolver uses the default server settings. Setting the
+servers used for a resolver using
+\hyperref[dnssetserversservers]{\texttt{resolver.setServers()}} does not
+affect other resolvers:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ \{ Resolver \} }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:dns\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\KeywordTok{const}\NormalTok{ resolver }\OperatorTok{=} \KeywordTok{new} \FunctionTok{Resolver}\NormalTok{()}\OperatorTok{;}
+\NormalTok{resolver}\OperatorTok{.}\FunctionTok{setServers}\NormalTok{([}\StringTok{\textquotesingle{}4.4.4.4\textquotesingle{}}\NormalTok{])}\OperatorTok{;}
+
+\CommentTok{// This request will use the server at 4.4.4.4, independent of global settings.}
+\NormalTok{resolver}\OperatorTok{.}\FunctionTok{resolve4}\NormalTok{(}\StringTok{\textquotesingle{}example.org\textquotesingle{}}\OperatorTok{,}\NormalTok{ (err}\OperatorTok{,}\NormalTok{ addresses) }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+  \CommentTok{// ...}
+\NormalTok{\})}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+The following methods from the \texttt{node:dns} module are available:
+
+\begin{itemize}
+\tightlist
+\item
+  \hyperref[dnsgetservers]{\texttt{resolver.getServers()}}
+\item
+  \hyperref[dnsresolvehostname-rrtype-callback]{\texttt{resolver.resolve()}}
+\item
+  \hyperref[dnsresolve4hostname-options-callback]{\texttt{resolver.resolve4()}}
+\item
+  \hyperref[dnsresolve6hostname-options-callback]{\texttt{resolver.resolve6()}}
+\item
+  \hyperref[dnsresolveanyhostname-callback]{\texttt{resolver.resolveAny()}}
+\item
+  \hyperref[dnsresolvecaahostname-callback]{\texttt{resolver.resolveCaa()}}
+\item
+  \hyperref[dnsresolvecnamehostname-callback]{\texttt{resolver.resolveCname()}}
+\item
+  \hyperref[dnsresolvemxhostname-callback]{\texttt{resolver.resolveMx()}}
+\item
+  \hyperref[dnsresolvenaptrhostname-callback]{\texttt{resolver.resolveNaptr()}}
+\item
+  \hyperref[dnsresolvenshostname-callback]{\texttt{resolver.resolveNs()}}
+\item
+  \hyperref[dnsresolveptrhostname-callback]{\texttt{resolver.resolvePtr()}}
+\item
+  \hyperref[dnsresolvesoahostname-callback]{\texttt{resolver.resolveSoa()}}
+\item
+  \hyperref[dnsresolvesrvhostname-callback]{\texttt{resolver.resolveSrv()}}
+\item
+  \hyperref[dnsresolvetxthostname-callback]{\texttt{resolver.resolveTxt()}}
+\item
+  \hyperref[dnsreverseip-callback]{\texttt{resolver.reverse()}}
+\item
+  \hyperref[dnssetserversservers]{\texttt{resolver.setServers()}}
+\end{itemize}
+
+\subsubsection{\texorpdfstring{\texttt{Resolver({[}options{]})}}{Resolver({[}options{]})}}\label{resolveroptions}
+
+Create a new resolver.
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{options} \{Object\}
+
+  \begin{itemize}
+  \tightlist
+  \item
+    \texttt{timeout} \{integer\} Query timeout in milliseconds, or
+    \texttt{-1} to use the default timeout.
+  \item
+    \texttt{tries} \{integer\} The number of tries the resolver will try
+    contacting each name server before giving up. \textbf{Default:}
+    \texttt{4}
+  \end{itemize}
+\end{itemize}
+
+\subsubsection{\texorpdfstring{\texttt{resolver.cancel()}}{resolver.cancel()}}\label{resolver.cancel}
+
+Cancel all outstanding DNS queries made by this resolver. The
+corresponding callbacks will be called with an error with code
+\texttt{ECANCELLED}.
+
+\subsubsection{\texorpdfstring{\texttt{resolver.setLocalAddress({[}ipv4{]}{[},\ ipv6{]})}}{resolver.setLocalAddress({[}ipv4{]}{[}, ipv6{]})}}\label{resolver.setlocaladdressipv4-ipv6}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{ipv4} \{string\} A string representation of an IPv4 address.
+  \textbf{Default:} \texttt{\textquotesingle{}0.0.0.0\textquotesingle{}}
+\item
+  \texttt{ipv6} \{string\} A string representation of an IPv6 address.
+  \textbf{Default:} \texttt{\textquotesingle{}::0\textquotesingle{}}
+\end{itemize}
+
+The resolver instance will send its requests from the specified IP
+address. This allows programs to specify outbound interfaces when used
+on multi-homed systems.
+
+If a v4 or v6 address is not specified, it is set to the default and the
+operating system will choose a local address automatically.
+
+The resolver will use the v4 local address when making requests to IPv4
+DNS servers, and the v6 local address when making requests to IPv6 DNS
+servers. The \texttt{rrtype} of resolution requests has no impact on the
+local address used.
+
+\subsection{\texorpdfstring{\texttt{dns.getServers()}}{dns.getServers()}}\label{dns.getservers}
+
+\begin{itemize}
+\tightlist
+\item
+  Returns: \{string{[}{]}\}
+\end{itemize}
+
+Returns an array of IP address strings, formatted according to
+\href{https://tools.ietf.org/html/rfc5952\#section-6}{RFC 5952}, that
+are currently configured for DNS resolution. A string will include a
+port section if a custom port is used.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{[}
+  \StringTok{\textquotesingle{}4.4.4.4\textquotesingle{}}\OperatorTok{,}
+  \StringTok{\textquotesingle{}2001:4860:4860::8888\textquotesingle{}}\OperatorTok{,}
+  \StringTok{\textquotesingle{}4.4.4.4:1053\textquotesingle{}}\OperatorTok{,}
+  \StringTok{\textquotesingle{}[2001:4860:4860::8888]:1053\textquotesingle{}}\OperatorTok{,}
+\NormalTok{]}
+\end{Highlighting}
+\end{Shaded}
+
+\subsection{\texorpdfstring{\texttt{dns.lookup(hostname{[},\ options{]},\ callback)}}{dns.lookup(hostname{[}, options{]}, callback)}}\label{dns.lookuphostname-options-callback}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{hostname} \{string\}
+\item
+  \texttt{options} \{integer \textbar{} Object\}
+
+  \begin{itemize}
+  \tightlist
+  \item
+    \texttt{family} \{integer\textbar string\} The record family. Must
+    be \texttt{4}, \texttt{6}, or \texttt{0}. For backward compatibility
+    reasons,\texttt{\textquotesingle{}IPv4\textquotesingle{}} and
+    \texttt{\textquotesingle{}IPv6\textquotesingle{}} are interpreted as
+    \texttt{4} and \texttt{6} respectively. The value \texttt{0}
+    indicates that IPv4 and IPv6 addresses are both returned.
+    \textbf{Default:} \texttt{0}.
+  \item
+    \texttt{hints} \{number\} One or more
+    \hyperref[supported-getaddrinfo-flags]{supported
+    \texttt{getaddrinfo} flags}. Multiple flags may be passed by bitwise
+    \texttt{OR}ing their values.
+  \item
+    \texttt{all} \{boolean\} When \texttt{true}, the callback returns
+    all resolved addresses in an array. Otherwise, returns a single
+    address. \textbf{Default:} \texttt{false}.
+  \item
+    \texttt{verbatim} \{boolean\} When \texttt{true}, the callback
+    receives IPv4 and IPv6 addresses in the order the DNS resolver
+    returned them. When \texttt{false}, IPv4 addresses are placed before
+    IPv6 addresses. \textbf{Default:} \texttt{true} (addresses are not
+    reordered). Default value is configurable using
+    \hyperref[dnssetdefaultresultorderorder]{\texttt{dns.setDefaultResultOrder()}}
+    or
+    \href{cli.md\#--dns-result-orderorder}{\texttt{-\/-dns-result-order}}.
+  \end{itemize}
+\item
+  \texttt{callback} \{Function\}
+
+  \begin{itemize}
+  \tightlist
+  \item
+    \texttt{err} \{Error\}
+  \item
+    \texttt{address} \{string\} A string representation of an IPv4 or
+    IPv6 address.
+  \item
+    \texttt{family} \{integer\} \texttt{4} or \texttt{6}, denoting the
+    family of \texttt{address}, or \texttt{0} if the address is not an
+    IPv4 or IPv6 address. \texttt{0} is a likely indicator of a bug in
+    the name resolution service used by the operating system.
+  \end{itemize}
+\end{itemize}
+
+Resolves a host name
+(e.g.~\texttt{\textquotesingle{}nodejs.org\textquotesingle{}}) into the
+first found A (IPv4) or AAAA (IPv6) record. All \texttt{option}
+properties are optional. If \texttt{options} is an integer, then it must
+be \texttt{4} or \texttt{6} -- if \texttt{options} is \texttt{0} or not
+provided, then IPv4 and IPv6 addresses are both returned if found.
+
+With the \texttt{all} option set to \texttt{true}, the arguments for
+\texttt{callback} change to \texttt{(err,\ addresses)}, with
+\texttt{addresses} being an array of objects with the properties
+\texttt{address} and \texttt{family}.
+
+On error, \texttt{err} is an
+\href{errors.md\#class-error}{\texttt{Error}} object, where
+\texttt{err.code} is the error code. Keep in mind that \texttt{err.code}
+will be set to \texttt{\textquotesingle{}ENOTFOUND\textquotesingle{}}
+not only when the host name does not exist but also when the lookup
+fails in other ways such as no available file descriptors.
+
+\texttt{dns.lookup()} does not necessarily have anything to do with the
+DNS protocol. The implementation uses an operating system facility that
+can associate names with addresses and vice versa. This implementation
+can have subtle but important consequences on the behavior of any
+Node.js program. Please take some time to consult the
+\hyperref[implementation-considerations]{Implementation considerations
+section} before using \texttt{dns.lookup()}.
+
+Example usage:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ dns }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:dns\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\KeywordTok{const}\NormalTok{ options }\OperatorTok{=}\NormalTok{ \{}
+  \DataTypeTok{family}\OperatorTok{:} \DecValTok{6}\OperatorTok{,}
+  \DataTypeTok{hints}\OperatorTok{:}\NormalTok{ dns}\OperatorTok{.}\AttributeTok{ADDRCONFIG} \OperatorTok{|}\NormalTok{ dns}\OperatorTok{.}\AttributeTok{V4MAPPED}\OperatorTok{,}
+\NormalTok{\}}\OperatorTok{;}
+\NormalTok{dns}\OperatorTok{.}\FunctionTok{lookup}\NormalTok{(}\StringTok{\textquotesingle{}example.com\textquotesingle{}}\OperatorTok{,}\NormalTok{ options}\OperatorTok{,}\NormalTok{ (err}\OperatorTok{,}\NormalTok{ address}\OperatorTok{,}\NormalTok{ family) }\KeywordTok{=\textgreater{}}
+  \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\StringTok{\textquotesingle{}address: \%j family: IPv\%s\textquotesingle{}}\OperatorTok{,}\NormalTok{ address}\OperatorTok{,}\NormalTok{ family))}\OperatorTok{;}
+\CommentTok{// address: "2606:2800:220:1:248:1893:25c8:1946" family: IPv6}
+
+\CommentTok{// When options.all is true, the result will be an Array.}
+\NormalTok{options}\OperatorTok{.}\AttributeTok{all} \OperatorTok{=} \KeywordTok{true}\OperatorTok{;}
+\NormalTok{dns}\OperatorTok{.}\FunctionTok{lookup}\NormalTok{(}\StringTok{\textquotesingle{}example.com\textquotesingle{}}\OperatorTok{,}\NormalTok{ options}\OperatorTok{,}\NormalTok{ (err}\OperatorTok{,}\NormalTok{ addresses) }\KeywordTok{=\textgreater{}}
+  \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\StringTok{\textquotesingle{}addresses: \%j\textquotesingle{}}\OperatorTok{,}\NormalTok{ addresses))}\OperatorTok{;}
+\CommentTok{// addresses: [\{"address":"2606:2800:220:1:248:1893:25c8:1946","family":6\}]}
+\end{Highlighting}
+\end{Shaded}
+
+If this method is invoked as its
+\href{util.md\#utilpromisifyoriginal}{\texttt{util.promisify()}}ed
+version, and \texttt{all} is not set to \texttt{true}, it returns a
+\texttt{Promise} for an \texttt{Object} with \texttt{address} and
+\texttt{family} properties.
+
+\subsubsection{Supported getaddrinfo
+flags}\label{supported-getaddrinfo-flags}
+
+The following flags can be passed as hints to
+\hyperref[dnslookuphostname-options-callback]{\texttt{dns.lookup()}}.
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{dns.ADDRCONFIG}: Limits returned address types to the types of
+  non-loopback addresses configured on the system. For example, IPv4
+  addresses are only returned if the current system has at least one
+  IPv4 address configured.
+\item
+  \texttt{dns.V4MAPPED}: If the IPv6 family was specified, but no IPv6
+  addresses were found, then return IPv4 mapped IPv6 addresses. It is
+  not supported on some operating systems (e.g.~FreeBSD 10.1).
+\item
+  \texttt{dns.ALL}: If \texttt{dns.V4MAPPED} is specified, return
+  resolved IPv6 addresses as well as IPv4 mapped IPv6 addresses.
+\end{itemize}
+
+\subsection{\texorpdfstring{\texttt{dns.lookupService(address,\ port,\ callback)}}{dns.lookupService(address, port, callback)}}\label{dns.lookupserviceaddress-port-callback}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{address} \{string\}
+\item
+  \texttt{port} \{number\}
+\item
+  \texttt{callback} \{Function\}
+
+  \begin{itemize}
+  \tightlist
+  \item
+    \texttt{err} \{Error\}
+  \item
+    \texttt{hostname} \{string\} e.g.~\texttt{example.com}
+  \item
+    \texttt{service} \{string\} e.g.~\texttt{http}
+  \end{itemize}
+\end{itemize}
+
+Resolves the given \texttt{address} and \texttt{port} into a host name
+and service using the operating system's underlying \texttt{getnameinfo}
+implementation.
+
+If \texttt{address} is not a valid IP address, a \texttt{TypeError} will
+be thrown. The \texttt{port} will be coerced to a number. If it is not a
+legal port, a \texttt{TypeError} will be thrown.
+
+On an error, \texttt{err} is an
+\href{errors.md\#class-error}{\texttt{Error}} object, where
+\texttt{err.code} is the error code.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ dns }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:dns\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{dns}\OperatorTok{.}\FunctionTok{lookupService}\NormalTok{(}\StringTok{\textquotesingle{}127.0.0.1\textquotesingle{}}\OperatorTok{,} \DecValTok{22}\OperatorTok{,}\NormalTok{ (err}\OperatorTok{,}\NormalTok{ hostname}\OperatorTok{,}\NormalTok{ service) }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+  \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(hostname}\OperatorTok{,}\NormalTok{ service)}\OperatorTok{;}
+  \CommentTok{// Prints: localhost ssh}
+\NormalTok{\})}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+If this method is invoked as its
+\href{util.md\#utilpromisifyoriginal}{\texttt{util.promisify()}}ed
+version, it returns a \texttt{Promise} for an \texttt{Object} with
+\texttt{hostname} and \texttt{service} properties.
+
+\subsection{\texorpdfstring{\texttt{dns.resolve(hostname{[},\ rrtype{]},\ callback)}}{dns.resolve(hostname{[}, rrtype{]}, callback)}}\label{dns.resolvehostname-rrtype-callback}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{hostname} \{string\} Host name to resolve.
+\item
+  \texttt{rrtype} \{string\} Resource record type. \textbf{Default:}
+  \texttt{\textquotesingle{}A\textquotesingle{}}.
+\item
+  \texttt{callback} \{Function\}
+
+  \begin{itemize}
+  \tightlist
+  \item
+    \texttt{err} \{Error\}
+  \item
+    \texttt{records} \{string{[}{]} \textbar{} Object{[}{]} \textbar{}
+    Object\}
+  \end{itemize}
+\end{itemize}
+
+Uses the DNS protocol to resolve a host name
+(e.g.~\texttt{\textquotesingle{}nodejs.org\textquotesingle{}}) into an
+array of the resource records. The \texttt{callback} function has
+arguments \texttt{(err,\ records)}. When successful, \texttt{records}
+will be an array of resource records. The type and structure of
+individual results varies based on \texttt{rrtype}:
+
+\begin{longtable}[]{@{}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 6\tabcolsep) * \real{0.1216}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 6\tabcolsep) * \real{0.4054}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 6\tabcolsep) * \real{0.1486}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 6\tabcolsep) * \real{0.3243}}@{}}
+\toprule\noalign{}
+\begin{minipage}[b]{\linewidth}\raggedright
+\texttt{rrtype}
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+\texttt{records} contains
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Result type
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Shorthand method
+\end{minipage} \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+\texttt{\textquotesingle{}A\textquotesingle{}} & IPv4 addresses
+(default) & \{string\} &
+\hyperref[dnsresolve4hostname-options-callback]{\texttt{dns.resolve4()}} \\
+\texttt{\textquotesingle{}AAAA\textquotesingle{}} & IPv6 addresses &
+\{string\} &
+\hyperref[dnsresolve6hostname-options-callback]{\texttt{dns.resolve6()}} \\
+\texttt{\textquotesingle{}ANY\textquotesingle{}} & any records &
+\{Object\} &
+\hyperref[dnsresolveanyhostname-callback]{\texttt{dns.resolveAny()}} \\
+\texttt{\textquotesingle{}CAA\textquotesingle{}} & CA authorization
+records & \{Object\} &
+\hyperref[dnsresolvecaahostname-callback]{\texttt{dns.resolveCaa()}} \\
+\texttt{\textquotesingle{}CNAME\textquotesingle{}} & canonical name
+records & \{string\} &
+\hyperref[dnsresolvecnamehostname-callback]{\texttt{dns.resolveCname()}} \\
+\texttt{\textquotesingle{}MX\textquotesingle{}} & mail exchange records
+& \{Object\} &
+\hyperref[dnsresolvemxhostname-callback]{\texttt{dns.resolveMx()}} \\
+\texttt{\textquotesingle{}NAPTR\textquotesingle{}} & name authority
+pointer records & \{Object\} &
+\hyperref[dnsresolvenaptrhostname-callback]{\texttt{dns.resolveNaptr()}} \\
+\texttt{\textquotesingle{}NS\textquotesingle{}} & name server records &
+\{string\} &
+\hyperref[dnsresolvenshostname-callback]{\texttt{dns.resolveNs()}} \\
+\texttt{\textquotesingle{}PTR\textquotesingle{}} & pointer records &
+\{string\} &
+\hyperref[dnsresolveptrhostname-callback]{\texttt{dns.resolvePtr()}} \\
+\texttt{\textquotesingle{}SOA\textquotesingle{}} & start of authority
+records & \{Object\} &
+\hyperref[dnsresolvesoahostname-callback]{\texttt{dns.resolveSoa()}} \\
+\texttt{\textquotesingle{}SRV\textquotesingle{}} & service records &
+\{Object\} &
+\hyperref[dnsresolvesrvhostname-callback]{\texttt{dns.resolveSrv()}} \\
+\texttt{\textquotesingle{}TXT\textquotesingle{}} & text records &
+\{string{[}{]}\} &
+\hyperref[dnsresolvetxthostname-callback]{\texttt{dns.resolveTxt()}} \\
+\end{longtable}
+
+On error, \texttt{err} is an
+\href{errors.md\#class-error}{\texttt{Error}} object, where
+\texttt{err.code} is one of the \hyperref[error-codes]{DNS error codes}.
+
+\subsection{\texorpdfstring{\texttt{dns.resolve4(hostname{[},\ options{]},\ callback)}}{dns.resolve4(hostname{[}, options{]}, callback)}}\label{dns.resolve4hostname-options-callback}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{hostname} \{string\} Host name to resolve.
+\item
+  \texttt{options} \{Object\}
+
+  \begin{itemize}
+  \tightlist
+  \item
+    \texttt{ttl} \{boolean\} Retrieves the Time-To-Live value (TTL) of
+    each record. When \texttt{true}, the callback receives an array of
+    \texttt{\{\ address:\ \textquotesingle{}1.2.3.4\textquotesingle{},\ ttl:\ 60\ \}}
+    objects rather than an array of strings, with the TTL expressed in
+    seconds.
+  \end{itemize}
+\item
+  \texttt{callback} \{Function\}
+
+  \begin{itemize}
+  \tightlist
+  \item
+    \texttt{err} \{Error\}
+  \item
+    \texttt{addresses} \{string{[}{]} \textbar{} Object{[}{]}\}
+  \end{itemize}
+\end{itemize}
+
+Uses the DNS protocol to resolve a IPv4 addresses (\texttt{A} records)
+for the \texttt{hostname}. The \texttt{addresses} argument passed to the
+\texttt{callback} function will contain an array of IPv4 addresses (e.g.
+\texttt{{[}\textquotesingle{}74.125.79.104\textquotesingle{},\ \textquotesingle{}74.125.79.105\textquotesingle{},\ \textquotesingle{}74.125.79.106\textquotesingle{}{]}}).
+
+\subsection{\texorpdfstring{\texttt{dns.resolve6(hostname{[},\ options{]},\ callback)}}{dns.resolve6(hostname{[}, options{]}, callback)}}\label{dns.resolve6hostname-options-callback}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{hostname} \{string\} Host name to resolve.
+\item
+  \texttt{options} \{Object\}
+
+  \begin{itemize}
+  \tightlist
+  \item
+    \texttt{ttl} \{boolean\} Retrieve the Time-To-Live value (TTL) of
+    each record. When \texttt{true}, the callback receives an array of
+    \texttt{\{\ address:\ \textquotesingle{}0:1:2:3:4:5:6:7\textquotesingle{},\ ttl:\ 60\ \}}
+    objects rather than an array of strings, with the TTL expressed in
+    seconds.
+  \end{itemize}
+\item
+  \texttt{callback} \{Function\}
+
+  \begin{itemize}
+  \tightlist
+  \item
+    \texttt{err} \{Error\}
+  \item
+    \texttt{addresses} \{string{[}{]} \textbar{} Object{[}{]}\}
+  \end{itemize}
+\end{itemize}
+
+Uses the DNS protocol to resolve IPv6 addresses (\texttt{AAAA} records)
+for the \texttt{hostname}. The \texttt{addresses} argument passed to the
+\texttt{callback} function will contain an array of IPv6 addresses.
+
+\subsection{\texorpdfstring{\texttt{dns.resolveAny(hostname,\ callback)}}{dns.resolveAny(hostname, callback)}}\label{dns.resolveanyhostname-callback}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{hostname} \{string\}
+\item
+  \texttt{callback} \{Function\}
+
+  \begin{itemize}
+  \tightlist
+  \item
+    \texttt{err} \{Error\}
+  \item
+    \texttt{ret} \{Object{[}{]}\}
+  \end{itemize}
+\end{itemize}
+
+Uses the DNS protocol to resolve all records (also known as \texttt{ANY}
+or \texttt{*} query). The \texttt{ret} argument passed to the
+\texttt{callback} function will be an array containing various types of
+records. Each object has a property \texttt{type} that indicates the
+type of the current record. And depending on the \texttt{type},
+additional properties will be present on the object:
+
+\begin{longtable}[]{@{}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 2\tabcolsep) * \real{0.0588}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 2\tabcolsep) * \real{0.9412}}@{}}
+\toprule\noalign{}
+\begin{minipage}[b]{\linewidth}\raggedright
+Type
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Properties
+\end{minipage} \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+\texttt{\textquotesingle{}A\textquotesingle{}} &
+\texttt{address}/\texttt{ttl} \\
+\texttt{\textquotesingle{}AAAA\textquotesingle{}} &
+\texttt{address}/\texttt{ttl} \\
+\texttt{\textquotesingle{}CNAME\textquotesingle{}} & \texttt{value} \\
+\texttt{\textquotesingle{}MX\textquotesingle{}} & Refer to
+\hyperref[dnsresolvemxhostname-callback]{\texttt{dns.resolveMx()}} \\
+\texttt{\textquotesingle{}NAPTR\textquotesingle{}} & Refer to
+\hyperref[dnsresolvenaptrhostname-callback]{\texttt{dns.resolveNaptr()}} \\
+\texttt{\textquotesingle{}NS\textquotesingle{}} & \texttt{value} \\
+\texttt{\textquotesingle{}PTR\textquotesingle{}} & \texttt{value} \\
+\texttt{\textquotesingle{}SOA\textquotesingle{}} & Refer to
+\hyperref[dnsresolvesoahostname-callback]{\texttt{dns.resolveSoa()}} \\
+\texttt{\textquotesingle{}SRV\textquotesingle{}} & Refer to
+\hyperref[dnsresolvesrvhostname-callback]{\texttt{dns.resolveSrv()}} \\
+\texttt{\textquotesingle{}TXT\textquotesingle{}} & This type of record
+contains an array property called \texttt{entries} which refers to
+\hyperref[dnsresolvetxthostname-callback]{\texttt{dns.resolveTxt()}},
+e.g.~\texttt{\{\ entries:\ {[}\textquotesingle{}...\textquotesingle{}{]},\ type:\ \textquotesingle{}TXT\textquotesingle{}\ \}} \\
+\end{longtable}
+
+Here is an example of the \texttt{ret} object passed to the callback:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{[ \{ }\DataTypeTok{type}\OperatorTok{:} \StringTok{\textquotesingle{}A\textquotesingle{}}\OperatorTok{,} \DataTypeTok{address}\OperatorTok{:} \StringTok{\textquotesingle{}127.0.0.1\textquotesingle{}}\OperatorTok{,} \DataTypeTok{ttl}\OperatorTok{:} \DecValTok{299}\NormalTok{ \}}\OperatorTok{,}
+\NormalTok{  \{ }\DataTypeTok{type}\OperatorTok{:} \StringTok{\textquotesingle{}CNAME\textquotesingle{}}\OperatorTok{,} \DataTypeTok{value}\OperatorTok{:} \StringTok{\textquotesingle{}example.com\textquotesingle{}}\NormalTok{ \}}\OperatorTok{,}
+\NormalTok{  \{ }\DataTypeTok{type}\OperatorTok{:} \StringTok{\textquotesingle{}MX\textquotesingle{}}\OperatorTok{,} \DataTypeTok{exchange}\OperatorTok{:} \StringTok{\textquotesingle{}alt4.aspmx.l.example.com\textquotesingle{}}\OperatorTok{,} \DataTypeTok{priority}\OperatorTok{:} \DecValTok{50}\NormalTok{ \}}\OperatorTok{,}
+\NormalTok{  \{ }\DataTypeTok{type}\OperatorTok{:} \StringTok{\textquotesingle{}NS\textquotesingle{}}\OperatorTok{,} \DataTypeTok{value}\OperatorTok{:} \StringTok{\textquotesingle{}ns1.example.com\textquotesingle{}}\NormalTok{ \}}\OperatorTok{,}
+\NormalTok{  \{ }\DataTypeTok{type}\OperatorTok{:} \StringTok{\textquotesingle{}TXT\textquotesingle{}}\OperatorTok{,} \DataTypeTok{entries}\OperatorTok{:}\NormalTok{ [ }\StringTok{\textquotesingle{}v=spf1 include:\_spf.example.com \textasciitilde{}all\textquotesingle{}}\NormalTok{ ] \}}\OperatorTok{,}
+\NormalTok{  \{ }\DataTypeTok{type}\OperatorTok{:} \StringTok{\textquotesingle{}SOA\textquotesingle{}}\OperatorTok{,}
+    \DataTypeTok{nsname}\OperatorTok{:} \StringTok{\textquotesingle{}ns1.example.com\textquotesingle{}}\OperatorTok{,}
+    \DataTypeTok{hostmaster}\OperatorTok{:} \StringTok{\textquotesingle{}admin.example.com\textquotesingle{}}\OperatorTok{,}
+    \DataTypeTok{serial}\OperatorTok{:} \DecValTok{156696742}\OperatorTok{,}
+    \DataTypeTok{refresh}\OperatorTok{:} \DecValTok{900}\OperatorTok{,}
+    \DataTypeTok{retry}\OperatorTok{:} \DecValTok{900}\OperatorTok{,}
+    \DataTypeTok{expire}\OperatorTok{:} \DecValTok{1800}\OperatorTok{,}
+    \DataTypeTok{minttl}\OperatorTok{:} \DecValTok{60}\NormalTok{ \} ]}
+\end{Highlighting}
+\end{Shaded}
+
+DNS server operators may choose not to respond to \texttt{ANY} queries.
+It may be better to call individual methods like
+\hyperref[dnsresolve4hostname-options-callback]{\texttt{dns.resolve4()}},
+\hyperref[dnsresolvemxhostname-callback]{\texttt{dns.resolveMx()}}, and
+so on. For more details, see
+\href{https://tools.ietf.org/html/rfc8482}{RFC 8482}.
+
+\subsection{\texorpdfstring{\texttt{dns.resolveCname(hostname,\ callback)}}{dns.resolveCname(hostname, callback)}}\label{dns.resolvecnamehostname-callback}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{hostname} \{string\}
+\item
+  \texttt{callback} \{Function\}
+
+  \begin{itemize}
+  \tightlist
+  \item
+    \texttt{err} \{Error\}
+  \item
+    \texttt{addresses} \{string{[}{]}\}
+  \end{itemize}
+\end{itemize}
+
+Uses the DNS protocol to resolve \texttt{CNAME} records for the
+\texttt{hostname}. The \texttt{addresses} argument passed to the
+\texttt{callback} function will contain an array of canonical name
+records available for the \texttt{hostname}
+(e.g.~\texttt{{[}\textquotesingle{}bar.example.com\textquotesingle{}{]}}).
+
+\subsection{\texorpdfstring{\texttt{dns.resolveCaa(hostname,\ callback)}}{dns.resolveCaa(hostname, callback)}}\label{dns.resolvecaahostname-callback}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{hostname} \{string\}
+\item
+  \texttt{callback} \{Function\}
+
+  \begin{itemize}
+  \tightlist
+  \item
+    \texttt{err} \{Error\}
+  \item
+    \texttt{records} \{Object{[}{]}\}
+  \end{itemize}
+\end{itemize}
+
+Uses the DNS protocol to resolve \texttt{CAA} records for the
+\texttt{hostname}. The \texttt{addresses} argument passed to the
+\texttt{callback} function will contain an array of certification
+authority authorization records available for the \texttt{hostname}
+(e.g.~\texttt{{[}\{critical:\ 0,\ iodef:\ \textquotesingle{}mailto:pki@example.com\textquotesingle{}\},\ \{critical:\ 128,\ issue:\ \textquotesingle{}pki.example.com\textquotesingle{}\}{]}}).
+
+\subsection{\texorpdfstring{\texttt{dns.resolveMx(hostname,\ callback)}}{dns.resolveMx(hostname, callback)}}\label{dns.resolvemxhostname-callback}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{hostname} \{string\}
+\item
+  \texttt{callback} \{Function\}
+
+  \begin{itemize}
+  \tightlist
+  \item
+    \texttt{err} \{Error\}
+  \item
+    \texttt{addresses} \{Object{[}{]}\}
+  \end{itemize}
+\end{itemize}
+
+Uses the DNS protocol to resolve mail exchange records (\texttt{MX}
+records) for the \texttt{hostname}. The \texttt{addresses} argument
+passed to the \texttt{callback} function will contain an array of
+objects containing both a \texttt{priority} and \texttt{exchange}
+property
+(e.g.~\texttt{{[}\{priority:\ 10,\ exchange:\ \textquotesingle{}mx.example.com\textquotesingle{}\},\ ...{]}}).
+
+\subsection{\texorpdfstring{\texttt{dns.resolveNaptr(hostname,\ callback)}}{dns.resolveNaptr(hostname, callback)}}\label{dns.resolvenaptrhostname-callback}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{hostname} \{string\}
+\item
+  \texttt{callback} \{Function\}
+
+  \begin{itemize}
+  \tightlist
+  \item
+    \texttt{err} \{Error\}
+  \item
+    \texttt{addresses} \{Object{[}{]}\}
+  \end{itemize}
+\end{itemize}
+
+Uses the DNS protocol to resolve regular expression-based records
+(\texttt{NAPTR} records) for the \texttt{hostname}. The
+\texttt{addresses} argument passed to the \texttt{callback} function
+will contain an array of objects with the following properties:
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{flags}
+\item
+  \texttt{service}
+\item
+  \texttt{regexp}
+\item
+  \texttt{replacement}
+\item
+  \texttt{order}
+\item
+  \texttt{preference}
+\end{itemize}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{\{}
+  \DataTypeTok{flags}\OperatorTok{:} \StringTok{\textquotesingle{}s\textquotesingle{}}\OperatorTok{,}
+  \DataTypeTok{service}\OperatorTok{:} \StringTok{\textquotesingle{}SIP+D2U\textquotesingle{}}\OperatorTok{,}
+  \DataTypeTok{regexp}\OperatorTok{:} \StringTok{\textquotesingle{}\textquotesingle{}}\OperatorTok{,}
+  \DataTypeTok{replacement}\OperatorTok{:} \StringTok{\textquotesingle{}\_sip.\_udp.example.com\textquotesingle{}}\OperatorTok{,}
+  \DataTypeTok{order}\OperatorTok{:} \DecValTok{30}\OperatorTok{,}
+  \DataTypeTok{preference}\OperatorTok{:} \DecValTok{100}
+\NormalTok{\}}
+\end{Highlighting}
+\end{Shaded}
+
+\subsection{\texorpdfstring{\texttt{dns.resolveNs(hostname,\ callback)}}{dns.resolveNs(hostname, callback)}}\label{dns.resolvenshostname-callback}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{hostname} \{string\}
+\item
+  \texttt{callback} \{Function\}
+
+  \begin{itemize}
+  \tightlist
+  \item
+    \texttt{err} \{Error\}
+  \item
+    \texttt{addresses} \{string{[}{]}\}
+  \end{itemize}
+\end{itemize}
+
+Uses the DNS protocol to resolve name server records (\texttt{NS}
+records) for the \texttt{hostname}. The \texttt{addresses} argument
+passed to the \texttt{callback} function will contain an array of name
+server records available for \texttt{hostname}
+(e.g.~\texttt{{[}\textquotesingle{}ns1.example.com\textquotesingle{},\ \textquotesingle{}ns2.example.com\textquotesingle{}{]}}).
+
+\subsection{\texorpdfstring{\texttt{dns.resolvePtr(hostname,\ callback)}}{dns.resolvePtr(hostname, callback)}}\label{dns.resolveptrhostname-callback}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{hostname} \{string\}
+\item
+  \texttt{callback} \{Function\}
+
+  \begin{itemize}
+  \tightlist
+  \item
+    \texttt{err} \{Error\}
+  \item
+    \texttt{addresses} \{string{[}{]}\}
+  \end{itemize}
+\end{itemize}
+
+Uses the DNS protocol to resolve pointer records (\texttt{PTR} records)
+for the \texttt{hostname}. The \texttt{addresses} argument passed to the
+\texttt{callback} function will be an array of strings containing the
+reply records.
+
+\subsection{\texorpdfstring{\texttt{dns.resolveSoa(hostname,\ callback)}}{dns.resolveSoa(hostname, callback)}}\label{dns.resolvesoahostname-callback}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{hostname} \{string\}
+\item
+  \texttt{callback} \{Function\}
+
+  \begin{itemize}
+  \tightlist
+  \item
+    \texttt{err} \{Error\}
+  \item
+    \texttt{address} \{Object\}
+  \end{itemize}
+\end{itemize}
+
+Uses the DNS protocol to resolve a start of authority record
+(\texttt{SOA} record) for the \texttt{hostname}. The \texttt{address}
+argument passed to the \texttt{callback} function will be an object with
+the following properties:
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{nsname}
+\item
+  \texttt{hostmaster}
+\item
+  \texttt{serial}
+\item
+  \texttt{refresh}
+\item
+  \texttt{retry}
+\item
+  \texttt{expire}
+\item
+  \texttt{minttl}
+\end{itemize}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{\{}
+  \DataTypeTok{nsname}\OperatorTok{:} \StringTok{\textquotesingle{}ns.example.com\textquotesingle{}}\OperatorTok{,}
+  \DataTypeTok{hostmaster}\OperatorTok{:} \StringTok{\textquotesingle{}root.example.com\textquotesingle{}}\OperatorTok{,}
+  \DataTypeTok{serial}\OperatorTok{:} \DecValTok{2013101809}\OperatorTok{,}
+  \DataTypeTok{refresh}\OperatorTok{:} \DecValTok{10000}\OperatorTok{,}
+  \DataTypeTok{retry}\OperatorTok{:} \DecValTok{2400}\OperatorTok{,}
+  \DataTypeTok{expire}\OperatorTok{:} \DecValTok{604800}\OperatorTok{,}
+  \DataTypeTok{minttl}\OperatorTok{:} \DecValTok{3600}
+\NormalTok{\}}
+\end{Highlighting}
+\end{Shaded}
+
+\subsection{\texorpdfstring{\texttt{dns.resolveSrv(hostname,\ callback)}}{dns.resolveSrv(hostname, callback)}}\label{dns.resolvesrvhostname-callback}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{hostname} \{string\}
+\item
+  \texttt{callback} \{Function\}
+
+  \begin{itemize}
+  \tightlist
+  \item
+    \texttt{err} \{Error\}
+  \item
+    \texttt{addresses} \{Object{[}{]}\}
+  \end{itemize}
+\end{itemize}
+
+Uses the DNS protocol to resolve service records (\texttt{SRV} records)
+for the \texttt{hostname}. The \texttt{addresses} argument passed to the
+\texttt{callback} function will be an array of objects with the
+following properties:
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{priority}
+\item
+  \texttt{weight}
+\item
+  \texttt{port}
+\item
+  \texttt{name}
+\end{itemize}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{\{}
+  \DataTypeTok{priority}\OperatorTok{:} \DecValTok{10}\OperatorTok{,}
+  \DataTypeTok{weight}\OperatorTok{:} \DecValTok{5}\OperatorTok{,}
+  \DataTypeTok{port}\OperatorTok{:} \DecValTok{21223}\OperatorTok{,}
+  \DataTypeTok{name}\OperatorTok{:} \StringTok{\textquotesingle{}service.example.com\textquotesingle{}}
+\NormalTok{\}}
+\end{Highlighting}
+\end{Shaded}
+
+\subsection{\texorpdfstring{\texttt{dns.resolveTxt(hostname,\ callback)}}{dns.resolveTxt(hostname, callback)}}\label{dns.resolvetxthostname-callback}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{hostname} \{string\}
+\item
+  \texttt{callback} \{Function\}
+
+  \begin{itemize}
+  \tightlist
+  \item
+    \texttt{err} \{Error\}
+  \item
+    \texttt{records} \textless string{[}{]}{[}{]}\textgreater{}
+  \end{itemize}
+\end{itemize}
+
+Uses the DNS protocol to resolve text queries (\texttt{TXT} records) for
+the \texttt{hostname}. The \texttt{records} argument passed to the
+\texttt{callback} function is a two-dimensional array of the text
+records available for \texttt{hostname} (e.g.
+\texttt{{[}\ {[}\textquotesingle{}v=spf1\ ip4:0.0.0.0\ \textquotesingle{},\ \textquotesingle{}\textasciitilde{}all\textquotesingle{}\ {]}\ {]}}).
+Each sub-array contains TXT chunks of one record. Depending on the use
+case, these could be either joined together or treated separately.
+
+\subsection{\texorpdfstring{\texttt{dns.reverse(ip,\ callback)}}{dns.reverse(ip, callback)}}\label{dns.reverseip-callback}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{ip} \{string\}
+\item
+  \texttt{callback} \{Function\}
+
+  \begin{itemize}
+  \tightlist
+  \item
+    \texttt{err} \{Error\}
+  \item
+    \texttt{hostnames} \{string{[}{]}\}
+  \end{itemize}
+\end{itemize}
+
+Performs a reverse DNS query that resolves an IPv4 or IPv6 address to an
+array of host names.
+
+On error, \texttt{err} is an
+\href{errors.md\#class-error}{\texttt{Error}} object, where
+\texttt{err.code} is one of the \hyperref[error-codes]{DNS error codes}.
+
+\subsection{\texorpdfstring{\texttt{dns.setDefaultResultOrder(order)}}{dns.setDefaultResultOrder(order)}}\label{dns.setdefaultresultorderorder}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{order} \{string\} must be
+  \texttt{\textquotesingle{}ipv4first\textquotesingle{}} or
+  \texttt{\textquotesingle{}verbatim\textquotesingle{}}.
+\end{itemize}
+
+Set the default value of \texttt{verbatim} in
+\hyperref[dnslookuphostname-options-callback]{\texttt{dns.lookup()}} and
+\hyperref[dnspromiseslookuphostname-options]{\texttt{dnsPromises.lookup()}}.
+The value could be:
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{ipv4first}: sets default \texttt{verbatim} \texttt{false}.
+\item
+  \texttt{verbatim}: sets default \texttt{verbatim} \texttt{true}.
+\end{itemize}
+
+The default is \texttt{verbatim} and
+\hyperref[dnssetdefaultresultorderorder]{\texttt{dns.setDefaultResultOrder()}}
+have higher priority than
+\href{cli.md\#--dns-result-orderorder}{\texttt{-\/-dns-result-order}}.
+When using \href{worker_threads.md}{worker threads},
+\hyperref[dnssetdefaultresultorderorder]{\texttt{dns.setDefaultResultOrder()}}
+from the main thread won't affect the default dns orders in workers.
+
+\subsection{\texorpdfstring{\texttt{dns.getDefaultResultOrder()}}{dns.getDefaultResultOrder()}}\label{dns.getdefaultresultorder}
+
+Get the default value for \texttt{verbatim} in
+\hyperref[dnslookuphostname-options-callback]{\texttt{dns.lookup()}} and
+\hyperref[dnspromiseslookuphostname-options]{\texttt{dnsPromises.lookup()}}.
+The value could be:
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{ipv4first}: for \texttt{verbatim} defaulting to
+  \texttt{false}.
+\item
+  \texttt{verbatim}: for \texttt{verbatim} defaulting to \texttt{true}.
+\end{itemize}
+
+\subsection{\texorpdfstring{\texttt{dns.setServers(servers)}}{dns.setServers(servers)}}\label{dns.setserversservers}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{servers} \{string{[}{]}\} array of
+  \href{https://tools.ietf.org/html/rfc5952\#section-6}{RFC 5952}
+  formatted addresses
+\end{itemize}
+
+Sets the IP address and port of servers to be used when performing DNS
+resolution. The \texttt{servers} argument is an array of
+\href{https://tools.ietf.org/html/rfc5952\#section-6}{RFC 5952}
+formatted addresses. If the port is the IANA default DNS port (53) it
+can be omitted.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{dns}\OperatorTok{.}\FunctionTok{setServers}\NormalTok{([}
+  \StringTok{\textquotesingle{}4.4.4.4\textquotesingle{}}\OperatorTok{,}
+  \StringTok{\textquotesingle{}[2001:4860:4860::8888]\textquotesingle{}}\OperatorTok{,}
+  \StringTok{\textquotesingle{}4.4.4.4:1053\textquotesingle{}}\OperatorTok{,}
+  \StringTok{\textquotesingle{}[2001:4860:4860::8888]:1053\textquotesingle{}}\OperatorTok{,}
+\NormalTok{])}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+An error will be thrown if an invalid address is provided.
+
+The \texttt{dns.setServers()} method must not be called while a DNS
+query is in progress.
+
+The \hyperref[dnssetserversservers]{\texttt{dns.setServers()}} method
+affects only
+\hyperref[dnsresolvehostname-rrtype-callback]{\texttt{dns.resolve()}},
+\texttt{dns.resolve*()} and
+\hyperref[dnsreverseip-callback]{\texttt{dns.reverse()}} (and
+specifically \emph{not}
+\hyperref[dnslookuphostname-options-callback]{\texttt{dns.lookup()}}).
+
+This method works much like
+\href{https://man7.org/linux/man-pages/man5/resolv.conf.5.html}{resolve.conf}.
+That is, if attempting to resolve with the first server provided results
+in a \texttt{NOTFOUND} error, the \texttt{resolve()} method will
+\emph{not} attempt to resolve with subsequent servers provided. Fallback
+DNS servers will only be used if the earlier ones time out or result in
+some other error.
+
+\subsection{DNS promises API}\label{dns-promises-api}
+
+The \texttt{dns.promises} API provides an alternative set of
+asynchronous DNS methods that return \texttt{Promise} objects rather
+than using callbacks. The API is accessible via
+\texttt{require(\textquotesingle{}node:dns\textquotesingle{}).promises}
+or
+\texttt{require(\textquotesingle{}node:dns/promises\textquotesingle{})}.
+
+\subsubsection{\texorpdfstring{Class:
+\texttt{dnsPromises.Resolver}}{Class: dnsPromises.Resolver}}\label{class-dnspromises.resolver}
+
+An independent resolver for DNS requests.
+
+Creating a new resolver uses the default server settings. Setting the
+servers used for a resolver using
+\hyperref[dnspromisessetserversservers]{\texttt{resolver.setServers()}}
+does not affect other resolvers:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ \{ Resolver \} }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:dns\textquotesingle{}}\NormalTok{)}\OperatorTok{.}\AttributeTok{promises}\OperatorTok{;}
+\KeywordTok{const}\NormalTok{ resolver }\OperatorTok{=} \KeywordTok{new} \FunctionTok{Resolver}\NormalTok{()}\OperatorTok{;}
+\NormalTok{resolver}\OperatorTok{.}\FunctionTok{setServers}\NormalTok{([}\StringTok{\textquotesingle{}4.4.4.4\textquotesingle{}}\NormalTok{])}\OperatorTok{;}
+
+\CommentTok{// This request will use the server at 4.4.4.4, independent of global settings.}
+\NormalTok{resolver}\OperatorTok{.}\FunctionTok{resolve4}\NormalTok{(}\StringTok{\textquotesingle{}example.org\textquotesingle{}}\NormalTok{)}\OperatorTok{.}\FunctionTok{then}\NormalTok{((addresses) }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+  \CommentTok{// ...}
+\NormalTok{\})}\OperatorTok{;}
+
+\CommentTok{// Alternatively, the same code can be written using async{-}await style.}
+\NormalTok{(}\KeywordTok{async} \KeywordTok{function}\NormalTok{() \{}
+  \KeywordTok{const}\NormalTok{ addresses }\OperatorTok{=} \ControlFlowTok{await}\NormalTok{ resolver}\OperatorTok{.}\FunctionTok{resolve4}\NormalTok{(}\StringTok{\textquotesingle{}example.org\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{\})()}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+The following methods from the \texttt{dnsPromises} API are available:
+
+\begin{itemize}
+\tightlist
+\item
+  \hyperref[dnspromisesgetservers]{\texttt{resolver.getServers()}}
+\item
+  \hyperref[dnspromisesresolvehostname-rrtype]{\texttt{resolver.resolve()}}
+\item
+  \hyperref[dnspromisesresolve4hostname-options]{\texttt{resolver.resolve4()}}
+\item
+  \hyperref[dnspromisesresolve6hostname-options]{\texttt{resolver.resolve6()}}
+\item
+  \hyperref[dnspromisesresolveanyhostname]{\texttt{resolver.resolveAny()}}
+\item
+  \hyperref[dnspromisesresolvecaahostname]{\texttt{resolver.resolveCaa()}}
+\item
+  \hyperref[dnspromisesresolvecnamehostname]{\texttt{resolver.resolveCname()}}
+\item
+  \hyperref[dnspromisesresolvemxhostname]{\texttt{resolver.resolveMx()}}
+\item
+  \hyperref[dnspromisesresolvenaptrhostname]{\texttt{resolver.resolveNaptr()}}
+\item
+  \hyperref[dnspromisesresolvenshostname]{\texttt{resolver.resolveNs()}}
+\item
+  \hyperref[dnspromisesresolveptrhostname]{\texttt{resolver.resolvePtr()}}
+\item
+  \hyperref[dnspromisesresolvesoahostname]{\texttt{resolver.resolveSoa()}}
+\item
+  \hyperref[dnspromisesresolvesrvhostname]{\texttt{resolver.resolveSrv()}}
+\item
+  \hyperref[dnspromisesresolvetxthostname]{\texttt{resolver.resolveTxt()}}
+\item
+  \hyperref[dnspromisesreverseip]{\texttt{resolver.reverse()}}
+\item
+  \hyperref[dnspromisessetserversservers]{\texttt{resolver.setServers()}}
+\end{itemize}
+
+\subsubsection{\texorpdfstring{\texttt{resolver.cancel()}}{resolver.cancel()}}\label{resolver.cancel-1}
+
+Cancel all outstanding DNS queries made by this resolver. The
+corresponding promises will be rejected with an error with the code
+\texttt{ECANCELLED}.
+
+\subsubsection{\texorpdfstring{\texttt{dnsPromises.getServers()}}{dnsPromises.getServers()}}\label{dnspromises.getservers}
+
+\begin{itemize}
+\tightlist
+\item
+  Returns: \{string{[}{]}\}
+\end{itemize}
+
+Returns an array of IP address strings, formatted according to
+\href{https://tools.ietf.org/html/rfc5952\#section-6}{RFC 5952}, that
+are currently configured for DNS resolution. A string will include a
+port section if a custom port is used.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{[}
+  \StringTok{\textquotesingle{}4.4.4.4\textquotesingle{}}\OperatorTok{,}
+  \StringTok{\textquotesingle{}2001:4860:4860::8888\textquotesingle{}}\OperatorTok{,}
+  \StringTok{\textquotesingle{}4.4.4.4:1053\textquotesingle{}}\OperatorTok{,}
+  \StringTok{\textquotesingle{}[2001:4860:4860::8888]:1053\textquotesingle{}}\OperatorTok{,}
+\NormalTok{]}
+\end{Highlighting}
+\end{Shaded}
+
+\subsubsection{\texorpdfstring{\texttt{dnsPromises.lookup(hostname{[},\ options{]})}}{dnsPromises.lookup(hostname{[}, options{]})}}\label{dnspromises.lookuphostname-options}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{hostname} \{string\}
+\item
+  \texttt{options} \{integer \textbar{} Object\}
+
+  \begin{itemize}
+  \tightlist
+  \item
+    \texttt{family} \{integer\} The record family. Must be \texttt{4},
+    \texttt{6}, or \texttt{0}. The value \texttt{0} indicates that IPv4
+    and IPv6 addresses are both returned. \textbf{Default:} \texttt{0}.
+  \item
+    \texttt{hints} \{number\} One or more
+    \hyperref[supported-getaddrinfo-flags]{supported
+    \texttt{getaddrinfo} flags}. Multiple flags may be passed by bitwise
+    \texttt{OR}ing their values.
+  \item
+    \texttt{all} \{boolean\} When \texttt{true}, the \texttt{Promise} is
+    resolved with all addresses in an array. Otherwise, returns a single
+    address. \textbf{Default:} \texttt{false}.
+  \item
+    \texttt{verbatim} \{boolean\} When \texttt{true}, the
+    \texttt{Promise} is resolved with IPv4 and IPv6 addresses in the
+    order the DNS resolver returned them. When \texttt{false}, IPv4
+    addresses are placed before IPv6 addresses. \textbf{Default:}
+    currently \texttt{false} (addresses are reordered) but this is
+    expected to change in the not too distant future. Default value is
+    configurable using
+    \hyperref[dnssetdefaultresultorderorder]{\texttt{dns.setDefaultResultOrder()}}
+    or
+    \href{cli.md\#--dns-result-orderorder}{\texttt{-\/-dns-result-order}}.
+    New code should use \texttt{\{\ verbatim:\ true\ \}}.
+  \end{itemize}
+\end{itemize}
+
+Resolves a host name
+(e.g.~\texttt{\textquotesingle{}nodejs.org\textquotesingle{}}) into the
+first found A (IPv4) or AAAA (IPv6) record. All \texttt{option}
+properties are optional. If \texttt{options} is an integer, then it must
+be \texttt{4} or \texttt{6} -- if \texttt{options} is not provided, then
+IPv4 and IPv6 addresses are both returned if found.
+
+With the \texttt{all} option set to \texttt{true}, the \texttt{Promise}
+is resolved with \texttt{addresses} being an array of objects with the
+properties \texttt{address} and \texttt{family}.
+
+On error, the \texttt{Promise} is rejected with an
+\href{errors.md\#class-error}{\texttt{Error}} object, where
+\texttt{err.code} is the error code. Keep in mind that \texttt{err.code}
+will be set to \texttt{\textquotesingle{}ENOTFOUND\textquotesingle{}}
+not only when the host name does not exist but also when the lookup
+fails in other ways such as no available file descriptors.
+
+\hyperref[dnspromiseslookuphostname-options]{\texttt{dnsPromises.lookup()}}
+does not necessarily have anything to do with the DNS protocol. The
+implementation uses an operating system facility that can associate
+names with addresses and vice versa. This implementation can have subtle
+but important consequences on the behavior of any Node.js program.
+Please take some time to consult the
+\hyperref[implementation-considerations]{Implementation considerations
+section} before using \texttt{dnsPromises.lookup()}.
+
+Example usage:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ dns }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:dns\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\KeywordTok{const}\NormalTok{ dnsPromises }\OperatorTok{=}\NormalTok{ dns}\OperatorTok{.}\AttributeTok{promises}\OperatorTok{;}
+\KeywordTok{const}\NormalTok{ options }\OperatorTok{=}\NormalTok{ \{}
+  \DataTypeTok{family}\OperatorTok{:} \DecValTok{6}\OperatorTok{,}
+  \DataTypeTok{hints}\OperatorTok{:}\NormalTok{ dns}\OperatorTok{.}\AttributeTok{ADDRCONFIG} \OperatorTok{|}\NormalTok{ dns}\OperatorTok{.}\AttributeTok{V4MAPPED}\OperatorTok{,}
+\NormalTok{\}}\OperatorTok{;}
+
+\NormalTok{dnsPromises}\OperatorTok{.}\FunctionTok{lookup}\NormalTok{(}\StringTok{\textquotesingle{}example.com\textquotesingle{}}\OperatorTok{,}\NormalTok{ options)}\OperatorTok{.}\FunctionTok{then}\NormalTok{((result) }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+  \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\StringTok{\textquotesingle{}address: \%j family: IPv\%s\textquotesingle{}}\OperatorTok{,}\NormalTok{ result}\OperatorTok{.}\AttributeTok{address}\OperatorTok{,}\NormalTok{ result}\OperatorTok{.}\AttributeTok{family}\NormalTok{)}\OperatorTok{;}
+  \CommentTok{// address: "2606:2800:220:1:248:1893:25c8:1946" family: IPv6}
+\NormalTok{\})}\OperatorTok{;}
+
+\CommentTok{// When options.all is true, the result will be an Array.}
+\NormalTok{options}\OperatorTok{.}\AttributeTok{all} \OperatorTok{=} \KeywordTok{true}\OperatorTok{;}
+\NormalTok{dnsPromises}\OperatorTok{.}\FunctionTok{lookup}\NormalTok{(}\StringTok{\textquotesingle{}example.com\textquotesingle{}}\OperatorTok{,}\NormalTok{ options)}\OperatorTok{.}\FunctionTok{then}\NormalTok{((result) }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+  \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\StringTok{\textquotesingle{}addresses: \%j\textquotesingle{}}\OperatorTok{,}\NormalTok{ result)}\OperatorTok{;}
+  \CommentTok{// addresses: [\{"address":"2606:2800:220:1:248:1893:25c8:1946","family":6\}]}
+\NormalTok{\})}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+\subsubsection{\texorpdfstring{\texttt{dnsPromises.lookupService(address,\ port)}}{dnsPromises.lookupService(address, port)}}\label{dnspromises.lookupserviceaddress-port}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{address} \{string\}
+\item
+  \texttt{port} \{number\}
+\end{itemize}
+
+Resolves the given \texttt{address} and \texttt{port} into a host name
+and service using the operating system's underlying \texttt{getnameinfo}
+implementation.
+
+If \texttt{address} is not a valid IP address, a \texttt{TypeError} will
+be thrown. The \texttt{port} will be coerced to a number. If it is not a
+legal port, a \texttt{TypeError} will be thrown.
+
+On error, the \texttt{Promise} is rejected with an
+\href{errors.md\#class-error}{\texttt{Error}} object, where
+\texttt{err.code} is the error code.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ dnsPromises }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:dns\textquotesingle{}}\NormalTok{)}\OperatorTok{.}\AttributeTok{promises}\OperatorTok{;}
+\NormalTok{dnsPromises}\OperatorTok{.}\FunctionTok{lookupService}\NormalTok{(}\StringTok{\textquotesingle{}127.0.0.1\textquotesingle{}}\OperatorTok{,} \DecValTok{22}\NormalTok{)}\OperatorTok{.}\FunctionTok{then}\NormalTok{((result) }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+  \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(result}\OperatorTok{.}\AttributeTok{hostname}\OperatorTok{,}\NormalTok{ result}\OperatorTok{.}\AttributeTok{service}\NormalTok{)}\OperatorTok{;}
+  \CommentTok{// Prints: localhost ssh}
+\NormalTok{\})}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+\subsubsection{\texorpdfstring{\texttt{dnsPromises.resolve(hostname{[},\ rrtype{]})}}{dnsPromises.resolve(hostname{[}, rrtype{]})}}\label{dnspromises.resolvehostname-rrtype}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{hostname} \{string\} Host name to resolve.
+\item
+  \texttt{rrtype} \{string\} Resource record type. \textbf{Default:}
+  \texttt{\textquotesingle{}A\textquotesingle{}}.
+\end{itemize}
+
+Uses the DNS protocol to resolve a host name
+(e.g.~\texttt{\textquotesingle{}nodejs.org\textquotesingle{}}) into an
+array of the resource records. When successful, the \texttt{Promise} is
+resolved with an array of resource records. The type and structure of
+individual results vary based on \texttt{rrtype}:
+
+\begin{longtable}[]{@{}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 6\tabcolsep) * \real{0.1098}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 6\tabcolsep) * \real{0.3659}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 6\tabcolsep) * \real{0.1341}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 6\tabcolsep) * \real{0.3902}}@{}}
+\toprule\noalign{}
+\begin{minipage}[b]{\linewidth}\raggedright
+\texttt{rrtype}
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+\texttt{records} contains
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Result type
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Shorthand method
+\end{minipage} \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+\texttt{\textquotesingle{}A\textquotesingle{}} & IPv4 addresses
+(default) & \{string\} &
+\hyperref[dnspromisesresolve4hostname-options]{\texttt{dnsPromises.resolve4()}} \\
+\texttt{\textquotesingle{}AAAA\textquotesingle{}} & IPv6 addresses &
+\{string\} &
+\hyperref[dnspromisesresolve6hostname-options]{\texttt{dnsPromises.resolve6()}} \\
+\texttt{\textquotesingle{}ANY\textquotesingle{}} & any records &
+\{Object\} &
+\hyperref[dnspromisesresolveanyhostname]{\texttt{dnsPromises.resolveAny()}} \\
+\texttt{\textquotesingle{}CAA\textquotesingle{}} & CA authorization
+records & \{Object\} &
+\hyperref[dnspromisesresolvecaahostname]{\texttt{dnsPromises.resolveCaa()}} \\
+\texttt{\textquotesingle{}CNAME\textquotesingle{}} & canonical name
+records & \{string\} &
+\hyperref[dnspromisesresolvecnamehostname]{\texttt{dnsPromises.resolveCname()}} \\
+\texttt{\textquotesingle{}MX\textquotesingle{}} & mail exchange records
+& \{Object\} &
+\hyperref[dnspromisesresolvemxhostname]{\texttt{dnsPromises.resolveMx()}} \\
+\texttt{\textquotesingle{}NAPTR\textquotesingle{}} & name authority
+pointer records & \{Object\} &
+\hyperref[dnspromisesresolvenaptrhostname]{\texttt{dnsPromises.resolveNaptr()}} \\
+\texttt{\textquotesingle{}NS\textquotesingle{}} & name server records &
+\{string\} &
+\hyperref[dnspromisesresolvenshostname]{\texttt{dnsPromises.resolveNs()}} \\
+\texttt{\textquotesingle{}PTR\textquotesingle{}} & pointer records &
+\{string\} &
+\hyperref[dnspromisesresolveptrhostname]{\texttt{dnsPromises.resolvePtr()}} \\
+\texttt{\textquotesingle{}SOA\textquotesingle{}} & start of authority
+records & \{Object\} &
+\hyperref[dnspromisesresolvesoahostname]{\texttt{dnsPromises.resolveSoa()}} \\
+\texttt{\textquotesingle{}SRV\textquotesingle{}} & service records &
+\{Object\} &
+\hyperref[dnspromisesresolvesrvhostname]{\texttt{dnsPromises.resolveSrv()}} \\
+\texttt{\textquotesingle{}TXT\textquotesingle{}} & text records &
+\{string{[}{]}\} &
+\hyperref[dnspromisesresolvetxthostname]{\texttt{dnsPromises.resolveTxt()}} \\
+\end{longtable}
+
+On error, the \texttt{Promise} is rejected with an
+\href{errors.md\#class-error}{\texttt{Error}} object, where
+\texttt{err.code} is one of the \hyperref[error-codes]{DNS error codes}.
+
+\subsubsection{\texorpdfstring{\texttt{dnsPromises.resolve4(hostname{[},\ options{]})}}{dnsPromises.resolve4(hostname{[}, options{]})}}\label{dnspromises.resolve4hostname-options}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{hostname} \{string\} Host name to resolve.
+\item
+  \texttt{options} \{Object\}
+
+  \begin{itemize}
+  \tightlist
+  \item
+    \texttt{ttl} \{boolean\} Retrieve the Time-To-Live value (TTL) of
+    each record. When \texttt{true}, the \texttt{Promise} is resolved
+    with an array of
+    \texttt{\{\ address:\ \textquotesingle{}1.2.3.4\textquotesingle{},\ ttl:\ 60\ \}}
+    objects rather than an array of strings, with the TTL expressed in
+    seconds.
+  \end{itemize}
+\end{itemize}
+
+Uses the DNS protocol to resolve IPv4 addresses (\texttt{A} records) for
+the \texttt{hostname}. On success, the \texttt{Promise} is resolved with
+an array of IPv4 addresses
+(e.g.~\texttt{{[}\textquotesingle{}74.125.79.104\textquotesingle{},\ \textquotesingle{}74.125.79.105\textquotesingle{},\ \textquotesingle{}74.125.79.106\textquotesingle{}{]}}).
+
+\subsubsection{\texorpdfstring{\texttt{dnsPromises.resolve6(hostname{[},\ options{]})}}{dnsPromises.resolve6(hostname{[}, options{]})}}\label{dnspromises.resolve6hostname-options}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{hostname} \{string\} Host name to resolve.
+\item
+  \texttt{options} \{Object\}
+
+  \begin{itemize}
+  \tightlist
+  \item
+    \texttt{ttl} \{boolean\} Retrieve the Time-To-Live value (TTL) of
+    each record. When \texttt{true}, the \texttt{Promise} is resolved
+    with an array of
+    \texttt{\{\ address:\ \textquotesingle{}0:1:2:3:4:5:6:7\textquotesingle{},\ ttl:\ 60\ \}}
+    objects rather than an array of strings, with the TTL expressed in
+    seconds.
+  \end{itemize}
+\end{itemize}
+
+Uses the DNS protocol to resolve IPv6 addresses (\texttt{AAAA} records)
+for the \texttt{hostname}. On success, the \texttt{Promise} is resolved
+with an array of IPv6 addresses.
+
+\subsubsection{\texorpdfstring{\texttt{dnsPromises.resolveAny(hostname)}}{dnsPromises.resolveAny(hostname)}}\label{dnspromises.resolveanyhostname}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{hostname} \{string\}
+\end{itemize}
+
+Uses the DNS protocol to resolve all records (also known as \texttt{ANY}
+or \texttt{*} query). On success, the \texttt{Promise} is resolved with
+an array containing various types of records. Each object has a property
+\texttt{type} that indicates the type of the current record. And
+depending on the \texttt{type}, additional properties will be present on
+the object:
+
+\begin{longtable}[]{@{}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 2\tabcolsep) * \real{0.0559}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 2\tabcolsep) * \real{0.9441}}@{}}
+\toprule\noalign{}
+\begin{minipage}[b]{\linewidth}\raggedright
+Type
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Properties
+\end{minipage} \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+\texttt{\textquotesingle{}A\textquotesingle{}} &
+\texttt{address}/\texttt{ttl} \\
+\texttt{\textquotesingle{}AAAA\textquotesingle{}} &
+\texttt{address}/\texttt{ttl} \\
+\texttt{\textquotesingle{}CNAME\textquotesingle{}} & \texttt{value} \\
+\texttt{\textquotesingle{}MX\textquotesingle{}} & Refer to
+\hyperref[dnspromisesresolvemxhostname]{\texttt{dnsPromises.resolveMx()}} \\
+\texttt{\textquotesingle{}NAPTR\textquotesingle{}} & Refer to
+\hyperref[dnspromisesresolvenaptrhostname]{\texttt{dnsPromises.resolveNaptr()}} \\
+\texttt{\textquotesingle{}NS\textquotesingle{}} & \texttt{value} \\
+\texttt{\textquotesingle{}PTR\textquotesingle{}} & \texttt{value} \\
+\texttt{\textquotesingle{}SOA\textquotesingle{}} & Refer to
+\hyperref[dnspromisesresolvesoahostname]{\texttt{dnsPromises.resolveSoa()}} \\
+\texttt{\textquotesingle{}SRV\textquotesingle{}} & Refer to
+\hyperref[dnspromisesresolvesrvhostname]{\texttt{dnsPromises.resolveSrv()}} \\
+\texttt{\textquotesingle{}TXT\textquotesingle{}} & This type of record
+contains an array property called \texttt{entries} which refers to
+\hyperref[dnspromisesresolvetxthostname]{\texttt{dnsPromises.resolveTxt()}},
+e.g.~\texttt{\{\ entries:\ {[}\textquotesingle{}...\textquotesingle{}{]},\ type:\ \textquotesingle{}TXT\textquotesingle{}\ \}} \\
+\end{longtable}
+
+Here is an example of the result object:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{[ \{ }\DataTypeTok{type}\OperatorTok{:} \StringTok{\textquotesingle{}A\textquotesingle{}}\OperatorTok{,} \DataTypeTok{address}\OperatorTok{:} \StringTok{\textquotesingle{}127.0.0.1\textquotesingle{}}\OperatorTok{,} \DataTypeTok{ttl}\OperatorTok{:} \DecValTok{299}\NormalTok{ \}}\OperatorTok{,}
+\NormalTok{  \{ }\DataTypeTok{type}\OperatorTok{:} \StringTok{\textquotesingle{}CNAME\textquotesingle{}}\OperatorTok{,} \DataTypeTok{value}\OperatorTok{:} \StringTok{\textquotesingle{}example.com\textquotesingle{}}\NormalTok{ \}}\OperatorTok{,}
+\NormalTok{  \{ }\DataTypeTok{type}\OperatorTok{:} \StringTok{\textquotesingle{}MX\textquotesingle{}}\OperatorTok{,} \DataTypeTok{exchange}\OperatorTok{:} \StringTok{\textquotesingle{}alt4.aspmx.l.example.com\textquotesingle{}}\OperatorTok{,} \DataTypeTok{priority}\OperatorTok{:} \DecValTok{50}\NormalTok{ \}}\OperatorTok{,}
+\NormalTok{  \{ }\DataTypeTok{type}\OperatorTok{:} \StringTok{\textquotesingle{}NS\textquotesingle{}}\OperatorTok{,} \DataTypeTok{value}\OperatorTok{:} \StringTok{\textquotesingle{}ns1.example.com\textquotesingle{}}\NormalTok{ \}}\OperatorTok{,}
+\NormalTok{  \{ }\DataTypeTok{type}\OperatorTok{:} \StringTok{\textquotesingle{}TXT\textquotesingle{}}\OperatorTok{,} \DataTypeTok{entries}\OperatorTok{:}\NormalTok{ [ }\StringTok{\textquotesingle{}v=spf1 include:\_spf.example.com \textasciitilde{}all\textquotesingle{}}\NormalTok{ ] \}}\OperatorTok{,}
+\NormalTok{  \{ }\DataTypeTok{type}\OperatorTok{:} \StringTok{\textquotesingle{}SOA\textquotesingle{}}\OperatorTok{,}
+    \DataTypeTok{nsname}\OperatorTok{:} \StringTok{\textquotesingle{}ns1.example.com\textquotesingle{}}\OperatorTok{,}
+    \DataTypeTok{hostmaster}\OperatorTok{:} \StringTok{\textquotesingle{}admin.example.com\textquotesingle{}}\OperatorTok{,}
+    \DataTypeTok{serial}\OperatorTok{:} \DecValTok{156696742}\OperatorTok{,}
+    \DataTypeTok{refresh}\OperatorTok{:} \DecValTok{900}\OperatorTok{,}
+    \DataTypeTok{retry}\OperatorTok{:} \DecValTok{900}\OperatorTok{,}
+    \DataTypeTok{expire}\OperatorTok{:} \DecValTok{1800}\OperatorTok{,}
+    \DataTypeTok{minttl}\OperatorTok{:} \DecValTok{60}\NormalTok{ \} ]}
+\end{Highlighting}
+\end{Shaded}
+
+\subsubsection{\texorpdfstring{\texttt{dnsPromises.resolveCaa(hostname)}}{dnsPromises.resolveCaa(hostname)}}\label{dnspromises.resolvecaahostname}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{hostname} \{string\}
+\end{itemize}
+
+Uses the DNS protocol to resolve \texttt{CAA} records for the
+\texttt{hostname}. On success, the \texttt{Promise} is resolved with an
+array of objects containing available certification authority
+authorization records available for the \texttt{hostname}
+(e.g.~\texttt{{[}\{critical:\ 0,\ iodef:\ \textquotesingle{}mailto:pki@example.com\textquotesingle{}\},\{critical:\ 128,\ issue:\ \textquotesingle{}pki.example.com\textquotesingle{}\}{]}}).
+
+\subsubsection{\texorpdfstring{\texttt{dnsPromises.resolveCname(hostname)}}{dnsPromises.resolveCname(hostname)}}\label{dnspromises.resolvecnamehostname}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{hostname} \{string\}
+\end{itemize}
+
+Uses the DNS protocol to resolve \texttt{CNAME} records for the
+\texttt{hostname}. On success, the \texttt{Promise} is resolved with an
+array of canonical name records available for the \texttt{hostname}
+(e.g.~\texttt{{[}\textquotesingle{}bar.example.com\textquotesingle{}{]}}).
+
+\subsubsection{\texorpdfstring{\texttt{dnsPromises.resolveMx(hostname)}}{dnsPromises.resolveMx(hostname)}}\label{dnspromises.resolvemxhostname}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{hostname} \{string\}
+\end{itemize}
+
+Uses the DNS protocol to resolve mail exchange records (\texttt{MX}
+records) for the \texttt{hostname}. On success, the \texttt{Promise} is
+resolved with an array of objects containing both a \texttt{priority}
+and \texttt{exchange} property (e.g.
+\texttt{{[}\{priority:\ 10,\ exchange:\ \textquotesingle{}mx.example.com\textquotesingle{}\},\ ...{]}}).
+
+\subsubsection{\texorpdfstring{\texttt{dnsPromises.resolveNaptr(hostname)}}{dnsPromises.resolveNaptr(hostname)}}\label{dnspromises.resolvenaptrhostname}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{hostname} \{string\}
+\end{itemize}
+
+Uses the DNS protocol to resolve regular expression-based records
+(\texttt{NAPTR} records) for the \texttt{hostname}. On success, the
+\texttt{Promise} is resolved with an array of objects with the following
+properties:
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{flags}
+\item
+  \texttt{service}
+\item
+  \texttt{regexp}
+\item
+  \texttt{replacement}
+\item
+  \texttt{order}
+\item
+  \texttt{preference}
+\end{itemize}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{\{}
+  \DataTypeTok{flags}\OperatorTok{:} \StringTok{\textquotesingle{}s\textquotesingle{}}\OperatorTok{,}
+  \DataTypeTok{service}\OperatorTok{:} \StringTok{\textquotesingle{}SIP+D2U\textquotesingle{}}\OperatorTok{,}
+  \DataTypeTok{regexp}\OperatorTok{:} \StringTok{\textquotesingle{}\textquotesingle{}}\OperatorTok{,}
+  \DataTypeTok{replacement}\OperatorTok{:} \StringTok{\textquotesingle{}\_sip.\_udp.example.com\textquotesingle{}}\OperatorTok{,}
+  \DataTypeTok{order}\OperatorTok{:} \DecValTok{30}\OperatorTok{,}
+  \DataTypeTok{preference}\OperatorTok{:} \DecValTok{100}
+\NormalTok{\}}
+\end{Highlighting}
+\end{Shaded}
+
+\subsubsection{\texorpdfstring{\texttt{dnsPromises.resolveNs(hostname)}}{dnsPromises.resolveNs(hostname)}}\label{dnspromises.resolvenshostname}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{hostname} \{string\}
+\end{itemize}
+
+Uses the DNS protocol to resolve name server records (\texttt{NS}
+records) for the \texttt{hostname}. On success, the \texttt{Promise} is
+resolved with an array of name server records available for
+\texttt{hostname} (e.g.
+\texttt{{[}\textquotesingle{}ns1.example.com\textquotesingle{},\ \textquotesingle{}ns2.example.com\textquotesingle{}{]}}).
+
+\subsubsection{\texorpdfstring{\texttt{dnsPromises.resolvePtr(hostname)}}{dnsPromises.resolvePtr(hostname)}}\label{dnspromises.resolveptrhostname}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{hostname} \{string\}
+\end{itemize}
+
+Uses the DNS protocol to resolve pointer records (\texttt{PTR} records)
+for the \texttt{hostname}. On success, the \texttt{Promise} is resolved
+with an array of strings containing the reply records.
+
+\subsubsection{\texorpdfstring{\texttt{dnsPromises.resolveSoa(hostname)}}{dnsPromises.resolveSoa(hostname)}}\label{dnspromises.resolvesoahostname}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{hostname} \{string\}
+\end{itemize}
+
+Uses the DNS protocol to resolve a start of authority record
+(\texttt{SOA} record) for the \texttt{hostname}. On success, the
+\texttt{Promise} is resolved with an object with the following
+properties:
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{nsname}
+\item
+  \texttt{hostmaster}
+\item
+  \texttt{serial}
+\item
+  \texttt{refresh}
+\item
+  \texttt{retry}
+\item
+  \texttt{expire}
+\item
+  \texttt{minttl}
+\end{itemize}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{\{}
+  \DataTypeTok{nsname}\OperatorTok{:} \StringTok{\textquotesingle{}ns.example.com\textquotesingle{}}\OperatorTok{,}
+  \DataTypeTok{hostmaster}\OperatorTok{:} \StringTok{\textquotesingle{}root.example.com\textquotesingle{}}\OperatorTok{,}
+  \DataTypeTok{serial}\OperatorTok{:} \DecValTok{2013101809}\OperatorTok{,}
+  \DataTypeTok{refresh}\OperatorTok{:} \DecValTok{10000}\OperatorTok{,}
+  \DataTypeTok{retry}\OperatorTok{:} \DecValTok{2400}\OperatorTok{,}
+  \DataTypeTok{expire}\OperatorTok{:} \DecValTok{604800}\OperatorTok{,}
+  \DataTypeTok{minttl}\OperatorTok{:} \DecValTok{3600}
+\NormalTok{\}}
+\end{Highlighting}
+\end{Shaded}
+
+\subsubsection{\texorpdfstring{\texttt{dnsPromises.resolveSrv(hostname)}}{dnsPromises.resolveSrv(hostname)}}\label{dnspromises.resolvesrvhostname}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{hostname} \{string\}
+\end{itemize}
+
+Uses the DNS protocol to resolve service records (\texttt{SRV} records)
+for the \texttt{hostname}. On success, the \texttt{Promise} is resolved
+with an array of objects with the following properties:
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{priority}
+\item
+  \texttt{weight}
+\item
+  \texttt{port}
+\item
+  \texttt{name}
+\end{itemize}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{\{}
+  \DataTypeTok{priority}\OperatorTok{:} \DecValTok{10}\OperatorTok{,}
+  \DataTypeTok{weight}\OperatorTok{:} \DecValTok{5}\OperatorTok{,}
+  \DataTypeTok{port}\OperatorTok{:} \DecValTok{21223}\OperatorTok{,}
+  \DataTypeTok{name}\OperatorTok{:} \StringTok{\textquotesingle{}service.example.com\textquotesingle{}}
+\NormalTok{\}}
+\end{Highlighting}
+\end{Shaded}
+
+\subsubsection{\texorpdfstring{\texttt{dnsPromises.resolveTxt(hostname)}}{dnsPromises.resolveTxt(hostname)}}\label{dnspromises.resolvetxthostname}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{hostname} \{string\}
+\end{itemize}
+
+Uses the DNS protocol to resolve text queries (\texttt{TXT} records) for
+the \texttt{hostname}. On success, the \texttt{Promise} is resolved with
+a two-dimensional array of the text records available for
+\texttt{hostname} (e.g.
+\texttt{{[}\ {[}\textquotesingle{}v=spf1\ ip4:0.0.0.0\ \textquotesingle{},\ \textquotesingle{}\textasciitilde{}all\textquotesingle{}\ {]}\ {]}}).
+Each sub-array contains TXT chunks of one record. Depending on the use
+case, these could be either joined together or treated separately.
+
+\subsubsection{\texorpdfstring{\texttt{dnsPromises.reverse(ip)}}{dnsPromises.reverse(ip)}}\label{dnspromises.reverseip}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{ip} \{string\}
+\end{itemize}
+
+Performs a reverse DNS query that resolves an IPv4 or IPv6 address to an
+array of host names.
+
+On error, the \texttt{Promise} is rejected with an
+\href{errors.md\#class-error}{\texttt{Error}} object, where
+\texttt{err.code} is one of the \hyperref[error-codes]{DNS error codes}.
+
+\subsubsection{\texorpdfstring{\texttt{dnsPromises.setDefaultResultOrder(order)}}{dnsPromises.setDefaultResultOrder(order)}}\label{dnspromises.setdefaultresultorderorder}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{order} \{string\} must be
+  \texttt{\textquotesingle{}ipv4first\textquotesingle{}} or
+  \texttt{\textquotesingle{}verbatim\textquotesingle{}}.
+\end{itemize}
+
+Set the default value of \texttt{verbatim} in
+\hyperref[dnslookuphostname-options-callback]{\texttt{dns.lookup()}} and
+\hyperref[dnspromiseslookuphostname-options]{\texttt{dnsPromises.lookup()}}.
+The value could be:
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{ipv4first}: sets default \texttt{verbatim} \texttt{false}.
+\item
+  \texttt{verbatim}: sets default \texttt{verbatim} \texttt{true}.
+\end{itemize}
+
+The default is \texttt{verbatim} and
+\hyperref[dnspromisessetdefaultresultorderorder]{\texttt{dnsPromises.setDefaultResultOrder()}}
+have higher priority than
+\href{cli.md\#--dns-result-orderorder}{\texttt{-\/-dns-result-order}}.
+When using \href{worker_threads.md}{worker threads},
+\hyperref[dnspromisessetdefaultresultorderorder]{\texttt{dnsPromises.setDefaultResultOrder()}}
+from the main thread won't affect the default dns orders in workers.
+
+\subsubsection{\texorpdfstring{\texttt{dnsPromises.getDefaultResultOrder()}}{dnsPromises.getDefaultResultOrder()}}\label{dnspromises.getdefaultresultorder}
+
+Get the value of \texttt{dnsOrder}.
+
+\subsubsection{\texorpdfstring{\texttt{dnsPromises.setServers(servers)}}{dnsPromises.setServers(servers)}}\label{dnspromises.setserversservers}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{servers} \{string{[}{]}\} array of
+  \href{https://tools.ietf.org/html/rfc5952\#section-6}{RFC 5952}
+  formatted addresses
+\end{itemize}
+
+Sets the IP address and port of servers to be used when performing DNS
+resolution. The \texttt{servers} argument is an array of
+\href{https://tools.ietf.org/html/rfc5952\#section-6}{RFC 5952}
+formatted addresses. If the port is the IANA default DNS port (53) it
+can be omitted.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{dnsPromises}\OperatorTok{.}\FunctionTok{setServers}\NormalTok{([}
+  \StringTok{\textquotesingle{}4.4.4.4\textquotesingle{}}\OperatorTok{,}
+  \StringTok{\textquotesingle{}[2001:4860:4860::8888]\textquotesingle{}}\OperatorTok{,}
+  \StringTok{\textquotesingle{}4.4.4.4:1053\textquotesingle{}}\OperatorTok{,}
+  \StringTok{\textquotesingle{}[2001:4860:4860::8888]:1053\textquotesingle{}}\OperatorTok{,}
+\NormalTok{])}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+An error will be thrown if an invalid address is provided.
+
+The \texttt{dnsPromises.setServers()} method must not be called while a
+DNS query is in progress.
+
+This method works much like
+\href{https://man7.org/linux/man-pages/man5/resolv.conf.5.html}{resolve.conf}.
+That is, if attempting to resolve with the first server provided results
+in a \texttt{NOTFOUND} error, the \texttt{resolve()} method will
+\emph{not} attempt to resolve with subsequent servers provided. Fallback
+DNS servers will only be used if the earlier ones time out or result in
+some other error.
+
+\subsection{Error codes}\label{error-codes}
+
+Each DNS query can return one of the following error codes:
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{dns.NODATA}: DNS server returned an answer with no data.
+\item
+  \texttt{dns.FORMERR}: DNS server claims query was misformatted.
+\item
+  \texttt{dns.SERVFAIL}: DNS server returned general failure.
+\item
+  \texttt{dns.NOTFOUND}: Domain name not found.
+\item
+  \texttt{dns.NOTIMP}: DNS server does not implement the requested
+  operation.
+\item
+  \texttt{dns.REFUSED}: DNS server refused query.
+\item
+  \texttt{dns.BADQUERY}: Misformatted DNS query.
+\item
+  \texttt{dns.BADNAME}: Misformatted host name.
+\item
+  \texttt{dns.BADFAMILY}: Unsupported address family.
+\item
+  \texttt{dns.BADRESP}: Misformatted DNS reply.
+\item
+  \texttt{dns.CONNREFUSED}: Could not contact DNS servers.
+\item
+  \texttt{dns.TIMEOUT}: Timeout while contacting DNS servers.
+\item
+  \texttt{dns.EOF}: End of file.
+\item
+  \texttt{dns.FILE}: Error reading file.
+\item
+  \texttt{dns.NOMEM}: Out of memory.
+\item
+  \texttt{dns.DESTRUCTION}: Channel is being destroyed.
+\item
+  \texttt{dns.BADSTR}: Misformatted string.
+\item
+  \texttt{dns.BADFLAGS}: Illegal flags specified.
+\item
+  \texttt{dns.NONAME}: Given host name is not numeric.
+\item
+  \texttt{dns.BADHINTS}: Illegal hints flags specified.
+\item
+  \texttt{dns.NOTINITIALIZED}: c-ares library initialization not yet
+  performed.
+\item
+  \texttt{dns.LOADIPHLPAPI}: Error loading \texttt{iphlpapi.dll}.
+\item
+  \texttt{dns.ADDRGETNETWORKPARAMS}: Could not find
+  \texttt{GetNetworkParams} function.
+\item
+  \texttt{dns.CANCELLED}: DNS query cancelled.
+\end{itemize}
+
+The \texttt{dnsPromises} API also exports the above error codes, e.g.,
+\texttt{dnsPromises.NODATA}.
+
+\subsection{Implementation
+considerations}\label{implementation-considerations}
+
+Although
+\hyperref[dnslookuphostname-options-callback]{\texttt{dns.lookup()}} and
+the various \texttt{dns.resolve*()/dns.reverse()} functions have the
+same goal of associating a network name with a network address (or vice
+versa), their behavior is quite different. These differences can have
+subtle but significant consequences on the behavior of Node.js programs.
+
+\subsubsection{\texorpdfstring{\texttt{dns.lookup()}}{dns.lookup()}}\label{dns.lookup}
+
+Under the hood,
+\hyperref[dnslookuphostname-options-callback]{\texttt{dns.lookup()}}
+uses the same operating system facilities as most other programs. For
+instance,
+\hyperref[dnslookuphostname-options-callback]{\texttt{dns.lookup()}}
+will almost always resolve a given name the same way as the
+\texttt{ping} command. On most POSIX-like operating systems, the
+behavior of the
+\hyperref[dnslookuphostname-options-callback]{\texttt{dns.lookup()}}
+function can be modified by changing settings in nsswitch.conf(5) and/or
+resolv.conf(5), but changing these files will change the behavior of all
+other programs running on the same operating system.
+
+Though the call to \texttt{dns.lookup()} will be asynchronous from
+JavaScript's perspective, it is implemented as a synchronous call to
+getaddrinfo(3) that runs on libuv's threadpool. This can have surprising
+negative performance implications for some applications, see the
+\href{cli.md\#uv_threadpool_sizesize}{\texttt{UV\_THREADPOOL\_SIZE}}
+documentation for more information.
+
+Various networking APIs will call \texttt{dns.lookup()} internally to
+resolve host names. If that is an issue, consider resolving the host
+name to an address using \texttt{dns.resolve()} and using the address
+instead of a host name. Also, some networking APIs (such as
+\href{net.md\#socketconnectoptions-connectlistener}{\texttt{socket.connect()}}
+and
+\href{dgram.md\#dgramcreatesocketoptions-callback}{\texttt{dgram.createSocket()}})
+allow the default resolver, \texttt{dns.lookup()}, to be replaced.
+
+\subsubsection{\texorpdfstring{\texttt{dns.resolve()},
+\texttt{dns.resolve*()}, and
+\texttt{dns.reverse()}}{dns.resolve(), dns.resolve*(), and dns.reverse()}}\label{dns.resolve-dns.resolve-and-dns.reverse}
+
+These functions are implemented quite differently than
+\hyperref[dnslookuphostname-options-callback]{\texttt{dns.lookup()}}.
+They do not use getaddrinfo(3) and they \emph{always} perform a DNS
+query on the network. This network communication is always done
+asynchronously and does not use libuv's threadpool.
+
+As a result, these functions cannot have the same negative impact on
+other processing that happens on libuv's threadpool that
+\hyperref[dnslookuphostname-options-callback]{\texttt{dns.lookup()}} can
+have.
+
+They do not use the same set of configuration files that
+\hyperref[dnslookuphostname-options-callback]{\texttt{dns.lookup()}}
+uses. For instance, they do not use the configuration from
+\texttt{/etc/hosts}.

@@ -1,0 +1,732 @@
+\section{Path}\label{path}
+
+\begin{quote}
+Stability: 2 - Stable
+\end{quote}
+
+The \texttt{node:path} module provides utilities for working with file
+and directory paths. It can be accessed using:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ path }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:path\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+\subsection{Windows vs.~POSIX}\label{windows-vs.-posix}
+
+The default operation of the \texttt{node:path} module varies based on
+the operating system on which a Node.js application is running.
+Specifically, when running on a Windows operating system, the
+\texttt{node:path} module will assume that Windows-style paths are being
+used.
+
+So using \texttt{path.basename()} might yield different results on POSIX
+and Windows:
+
+On POSIX:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{path}\OperatorTok{.}\FunctionTok{basename}\NormalTok{(}\StringTok{\textquotesingle{}C:}\SpecialCharTok{\textbackslash{}\textbackslash{}}\StringTok{temp}\SpecialCharTok{\textbackslash{}\textbackslash{}}\StringTok{myfile.html\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// Returns: \textquotesingle{}C:\textbackslash{}\textbackslash{}temp\textbackslash{}\textbackslash{}myfile.html\textquotesingle{}}
+\end{Highlighting}
+\end{Shaded}
+
+On Windows:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{path}\OperatorTok{.}\FunctionTok{basename}\NormalTok{(}\StringTok{\textquotesingle{}C:}\SpecialCharTok{\textbackslash{}\textbackslash{}}\StringTok{temp}\SpecialCharTok{\textbackslash{}\textbackslash{}}\StringTok{myfile.html\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// Returns: \textquotesingle{}myfile.html\textquotesingle{}}
+\end{Highlighting}
+\end{Shaded}
+
+To achieve consistent results when working with Windows file paths on
+any operating system, use \hyperref[pathwin32]{\texttt{path.win32}}:
+
+On POSIX and Windows:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{path}\OperatorTok{.}\AttributeTok{win32}\OperatorTok{.}\FunctionTok{basename}\NormalTok{(}\StringTok{\textquotesingle{}C:}\SpecialCharTok{\textbackslash{}\textbackslash{}}\StringTok{temp}\SpecialCharTok{\textbackslash{}\textbackslash{}}\StringTok{myfile.html\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// Returns: \textquotesingle{}myfile.html\textquotesingle{}}
+\end{Highlighting}
+\end{Shaded}
+
+To achieve consistent results when working with POSIX file paths on any
+operating system, use \hyperref[pathposix]{\texttt{path.posix}}:
+
+On POSIX and Windows:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{path}\OperatorTok{.}\AttributeTok{posix}\OperatorTok{.}\FunctionTok{basename}\NormalTok{(}\StringTok{\textquotesingle{}/tmp/myfile.html\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// Returns: \textquotesingle{}myfile.html\textquotesingle{}}
+\end{Highlighting}
+\end{Shaded}
+
+On Windows Node.js follows the concept of per-drive working directory.
+This behavior can be observed when using a drive path without a
+backslash. For example,
+\texttt{path.resolve(\textquotesingle{}C:\textbackslash{}\textbackslash{}\textquotesingle{})}
+can potentially return a different result than
+\texttt{path.resolve(\textquotesingle{}C:\textquotesingle{})}. For more
+information, see
+\href{https://docs.microsoft.com/en-us/windows/desktop/FileIO/naming-a-file\#fully-qualified-vs-relative-paths}{this
+MSDN page}.
+
+\subsection{\texorpdfstring{\texttt{path.basename(path{[},\ suffix{]})}}{path.basename(path{[}, suffix{]})}}\label{path.basenamepath-suffix}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{path} \{string\}
+\item
+  \texttt{suffix} \{string\} An optional suffix to remove
+\item
+  Returns: \{string\}
+\end{itemize}
+
+The \texttt{path.basename()} method returns the last portion of a
+\texttt{path}, similar to the Unix \texttt{basename} command. Trailing
+\hyperref[pathsep]{directory separators} are ignored.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{path}\OperatorTok{.}\FunctionTok{basename}\NormalTok{(}\StringTok{\textquotesingle{}/foo/bar/baz/asdf/quux.html\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// Returns: \textquotesingle{}quux.html\textquotesingle{}}
+
+\NormalTok{path}\OperatorTok{.}\FunctionTok{basename}\NormalTok{(}\StringTok{\textquotesingle{}/foo/bar/baz/asdf/quux.html\textquotesingle{}}\OperatorTok{,} \StringTok{\textquotesingle{}.html\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// Returns: \textquotesingle{}quux\textquotesingle{}}
+\end{Highlighting}
+\end{Shaded}
+
+Although Windows usually treats file names, including file extensions,
+in a case-insensitive manner, this function does not. For example,
+\texttt{C:\textbackslash{}\textbackslash{}foo.html} and
+\texttt{C:\textbackslash{}\textbackslash{}foo.HTML} refer to the same
+file, but \texttt{basename} treats the extension as a case-sensitive
+string:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{path}\OperatorTok{.}\AttributeTok{win32}\OperatorTok{.}\FunctionTok{basename}\NormalTok{(}\StringTok{\textquotesingle{}C:}\SpecialCharTok{\textbackslash{}\textbackslash{}}\StringTok{foo.html\textquotesingle{}}\OperatorTok{,} \StringTok{\textquotesingle{}.html\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// Returns: \textquotesingle{}foo\textquotesingle{}}
+
+\NormalTok{path}\OperatorTok{.}\AttributeTok{win32}\OperatorTok{.}\FunctionTok{basename}\NormalTok{(}\StringTok{\textquotesingle{}C:}\SpecialCharTok{\textbackslash{}\textbackslash{}}\StringTok{foo.HTML\textquotesingle{}}\OperatorTok{,} \StringTok{\textquotesingle{}.html\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// Returns: \textquotesingle{}foo.HTML\textquotesingle{}}
+\end{Highlighting}
+\end{Shaded}
+
+A \href{errors.md\#class-typeerror}{\texttt{TypeError}} is thrown if
+\texttt{path} is not a string or if \texttt{suffix} is given and is not
+a string.
+
+\subsection{\texorpdfstring{\texttt{path.delimiter}}{path.delimiter}}\label{path.delimiter}
+
+\begin{itemize}
+\tightlist
+\item
+  \{string\}
+\end{itemize}
+
+Provides the platform-specific path delimiter:
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{;} for Windows
+\item
+  \texttt{:} for POSIX
+\end{itemize}
+
+For example, on POSIX:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\BuiltInTok{process}\OperatorTok{.}\AttributeTok{env}\OperatorTok{.}\AttributeTok{PATH}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// Prints: \textquotesingle{}/usr/bin:/bin:/usr/sbin:/sbin:/usr/local/bin\textquotesingle{}}
+
+\BuiltInTok{process}\OperatorTok{.}\AttributeTok{env}\OperatorTok{.}\AttributeTok{PATH}\OperatorTok{.}\FunctionTok{split}\NormalTok{(path}\OperatorTok{.}\AttributeTok{delimiter}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// Returns: [\textquotesingle{}/usr/bin\textquotesingle{}, \textquotesingle{}/bin\textquotesingle{}, \textquotesingle{}/usr/sbin\textquotesingle{}, \textquotesingle{}/sbin\textquotesingle{}, \textquotesingle{}/usr/local/bin\textquotesingle{}]}
+\end{Highlighting}
+\end{Shaded}
+
+On Windows:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\BuiltInTok{process}\OperatorTok{.}\AttributeTok{env}\OperatorTok{.}\AttributeTok{PATH}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// Prints: \textquotesingle{}C:\textbackslash{}Windows\textbackslash{}system32;C:\textbackslash{}Windows;C:\textbackslash{}Program Files\textbackslash{}node\textbackslash{}\textquotesingle{}}
+
+\BuiltInTok{process}\OperatorTok{.}\AttributeTok{env}\OperatorTok{.}\AttributeTok{PATH}\OperatorTok{.}\FunctionTok{split}\NormalTok{(path}\OperatorTok{.}\AttributeTok{delimiter}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// Returns [\textquotesingle{}C:\textbackslash{}\textbackslash{}Windows\textbackslash{}\textbackslash{}system32\textquotesingle{}, \textquotesingle{}C:\textbackslash{}\textbackslash{}Windows\textquotesingle{}, \textquotesingle{}C:\textbackslash{}\textbackslash{}Program Files\textbackslash{}\textbackslash{}node\textbackslash{}\textbackslash{}\textquotesingle{}]}
+\end{Highlighting}
+\end{Shaded}
+
+\subsection{\texorpdfstring{\texttt{path.dirname(path)}}{path.dirname(path)}}\label{path.dirnamepath}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{path} \{string\}
+\item
+  Returns: \{string\}
+\end{itemize}
+
+The \texttt{path.dirname()} method returns the directory name of a
+\texttt{path}, similar to the Unix \texttt{dirname} command. Trailing
+directory separators are ignored, see
+\hyperref[pathsep]{\texttt{path.sep}}.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{path}\OperatorTok{.}\FunctionTok{dirname}\NormalTok{(}\StringTok{\textquotesingle{}/foo/bar/baz/asdf/quux\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// Returns: \textquotesingle{}/foo/bar/baz/asdf\textquotesingle{}}
+\end{Highlighting}
+\end{Shaded}
+
+A \href{errors.md\#class-typeerror}{\texttt{TypeError}} is thrown if
+\texttt{path} is not a string.
+
+\subsection{\texorpdfstring{\texttt{path.extname(path)}}{path.extname(path)}}\label{path.extnamepath}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{path} \{string\}
+\item
+  Returns: \{string\}
+\end{itemize}
+
+The \texttt{path.extname()} method returns the extension of the
+\texttt{path}, from the last occurrence of the \texttt{.} (period)
+character to end of string in the last portion of the \texttt{path}. If
+there is no \texttt{.} in the last portion of the \texttt{path}, or if
+there are no \texttt{.} characters other than the first character of the
+basename of \texttt{path} (see \texttt{path.basename()}) , an empty
+string is returned.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{path}\OperatorTok{.}\FunctionTok{extname}\NormalTok{(}\StringTok{\textquotesingle{}index.html\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// Returns: \textquotesingle{}.html\textquotesingle{}}
+
+\NormalTok{path}\OperatorTok{.}\FunctionTok{extname}\NormalTok{(}\StringTok{\textquotesingle{}index.coffee.md\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// Returns: \textquotesingle{}.md\textquotesingle{}}
+
+\NormalTok{path}\OperatorTok{.}\FunctionTok{extname}\NormalTok{(}\StringTok{\textquotesingle{}index.\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// Returns: \textquotesingle{}.\textquotesingle{}}
+
+\NormalTok{path}\OperatorTok{.}\FunctionTok{extname}\NormalTok{(}\StringTok{\textquotesingle{}index\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// Returns: \textquotesingle{}\textquotesingle{}}
+
+\NormalTok{path}\OperatorTok{.}\FunctionTok{extname}\NormalTok{(}\StringTok{\textquotesingle{}.index\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// Returns: \textquotesingle{}\textquotesingle{}}
+
+\NormalTok{path}\OperatorTok{.}\FunctionTok{extname}\NormalTok{(}\StringTok{\textquotesingle{}.index.md\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// Returns: \textquotesingle{}.md\textquotesingle{}}
+\end{Highlighting}
+\end{Shaded}
+
+A \href{errors.md\#class-typeerror}{\texttt{TypeError}} is thrown if
+\texttt{path} is not a string.
+
+\subsection{\texorpdfstring{\texttt{path.format(pathObject)}}{path.format(pathObject)}}\label{path.formatpathobject}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{pathObject} \{Object\} Any JavaScript object having the
+  following properties:
+
+  \begin{itemize}
+  \tightlist
+  \item
+    \texttt{dir} \{string\}
+  \item
+    \texttt{root} \{string\}
+  \item
+    \texttt{base} \{string\}
+  \item
+    \texttt{name} \{string\}
+  \item
+    \texttt{ext} \{string\}
+  \end{itemize}
+\item
+  Returns: \{string\}
+\end{itemize}
+
+The \texttt{path.format()} method returns a path string from an object.
+This is the opposite of \hyperref[pathparsepath]{\texttt{path.parse()}}.
+
+When providing properties to the \texttt{pathObject} remember that there
+are combinations where one property has priority over another:
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{pathObject.root} is ignored if \texttt{pathObject.dir} is
+  provided
+\item
+  \texttt{pathObject.ext} and \texttt{pathObject.name} are ignored if
+  \texttt{pathObject.base} exists
+\end{itemize}
+
+For example, on POSIX:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{// If \textasciigrave{}dir\textasciigrave{}, \textasciigrave{}root\textasciigrave{} and \textasciigrave{}base\textasciigrave{} are provided,}
+\CommentTok{// \textasciigrave{}$\{dir\}$\{path.sep\}$\{base\}\textasciigrave{}}
+\CommentTok{// will be returned. \textasciigrave{}root\textasciigrave{} is ignored.}
+\NormalTok{path}\OperatorTok{.}\FunctionTok{format}\NormalTok{(\{}
+  \DataTypeTok{root}\OperatorTok{:} \StringTok{\textquotesingle{}/ignored\textquotesingle{}}\OperatorTok{,}
+  \DataTypeTok{dir}\OperatorTok{:} \StringTok{\textquotesingle{}/home/user/dir\textquotesingle{}}\OperatorTok{,}
+  \DataTypeTok{base}\OperatorTok{:} \StringTok{\textquotesingle{}file.txt\textquotesingle{}}\OperatorTok{,}
+\NormalTok{\})}\OperatorTok{;}
+\CommentTok{// Returns: \textquotesingle{}/home/user/dir/file.txt\textquotesingle{}}
+
+\CommentTok{// \textasciigrave{}root\textasciigrave{} will be used if \textasciigrave{}dir\textasciigrave{} is not specified.}
+\CommentTok{// If only \textasciigrave{}root\textasciigrave{} is provided or \textasciigrave{}dir\textasciigrave{} is equal to \textasciigrave{}root\textasciigrave{} then the}
+\CommentTok{// platform separator will not be included. \textasciigrave{}ext\textasciigrave{} will be ignored.}
+\NormalTok{path}\OperatorTok{.}\FunctionTok{format}\NormalTok{(\{}
+  \DataTypeTok{root}\OperatorTok{:} \StringTok{\textquotesingle{}/\textquotesingle{}}\OperatorTok{,}
+  \DataTypeTok{base}\OperatorTok{:} \StringTok{\textquotesingle{}file.txt\textquotesingle{}}\OperatorTok{,}
+  \DataTypeTok{ext}\OperatorTok{:} \StringTok{\textquotesingle{}ignored\textquotesingle{}}\OperatorTok{,}
+\NormalTok{\})}\OperatorTok{;}
+\CommentTok{// Returns: \textquotesingle{}/file.txt\textquotesingle{}}
+
+\CommentTok{// \textasciigrave{}name\textasciigrave{} + \textasciigrave{}ext\textasciigrave{} will be used if \textasciigrave{}base\textasciigrave{} is not specified.}
+\NormalTok{path}\OperatorTok{.}\FunctionTok{format}\NormalTok{(\{}
+  \DataTypeTok{root}\OperatorTok{:} \StringTok{\textquotesingle{}/\textquotesingle{}}\OperatorTok{,}
+  \DataTypeTok{name}\OperatorTok{:} \StringTok{\textquotesingle{}file\textquotesingle{}}\OperatorTok{,}
+  \DataTypeTok{ext}\OperatorTok{:} \StringTok{\textquotesingle{}.txt\textquotesingle{}}\OperatorTok{,}
+\NormalTok{\})}\OperatorTok{;}
+\CommentTok{// Returns: \textquotesingle{}/file.txt\textquotesingle{}}
+
+\CommentTok{// The dot will be added if it is not specified in \textasciigrave{}ext\textasciigrave{}.}
+\NormalTok{path}\OperatorTok{.}\FunctionTok{format}\NormalTok{(\{}
+  \DataTypeTok{root}\OperatorTok{:} \StringTok{\textquotesingle{}/\textquotesingle{}}\OperatorTok{,}
+  \DataTypeTok{name}\OperatorTok{:} \StringTok{\textquotesingle{}file\textquotesingle{}}\OperatorTok{,}
+  \DataTypeTok{ext}\OperatorTok{:} \StringTok{\textquotesingle{}txt\textquotesingle{}}\OperatorTok{,}
+\NormalTok{\})}\OperatorTok{;}
+\CommentTok{// Returns: \textquotesingle{}/file.txt\textquotesingle{}}
+\end{Highlighting}
+\end{Shaded}
+
+On Windows:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{path}\OperatorTok{.}\FunctionTok{format}\NormalTok{(\{}
+  \DataTypeTok{dir}\OperatorTok{:} \StringTok{\textquotesingle{}C:}\SpecialCharTok{\textbackslash{}\textbackslash{}}\StringTok{path}\SpecialCharTok{\textbackslash{}\textbackslash{}}\StringTok{dir\textquotesingle{}}\OperatorTok{,}
+  \DataTypeTok{base}\OperatorTok{:} \StringTok{\textquotesingle{}file.txt\textquotesingle{}}\OperatorTok{,}
+\NormalTok{\})}\OperatorTok{;}
+\CommentTok{// Returns: \textquotesingle{}C:\textbackslash{}\textbackslash{}path\textbackslash{}\textbackslash{}dir\textbackslash{}\textbackslash{}file.txt\textquotesingle{}}
+\end{Highlighting}
+\end{Shaded}
+
+\subsection{\texorpdfstring{\texttt{path.isAbsolute(path)}}{path.isAbsolute(path)}}\label{path.isabsolutepath}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{path} \{string\}
+\item
+  Returns: \{boolean\}
+\end{itemize}
+
+The \texttt{path.isAbsolute()} method determines if \texttt{path} is an
+absolute path.
+
+If the given \texttt{path} is a zero-length string, \texttt{false} will
+be returned.
+
+For example, on POSIX:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{path}\OperatorTok{.}\FunctionTok{isAbsolute}\NormalTok{(}\StringTok{\textquotesingle{}/foo/bar\textquotesingle{}}\NormalTok{)}\OperatorTok{;} \CommentTok{// true}
+\NormalTok{path}\OperatorTok{.}\FunctionTok{isAbsolute}\NormalTok{(}\StringTok{\textquotesingle{}/baz/..\textquotesingle{}}\NormalTok{)}\OperatorTok{;}  \CommentTok{// true}
+\NormalTok{path}\OperatorTok{.}\FunctionTok{isAbsolute}\NormalTok{(}\StringTok{\textquotesingle{}qux/\textquotesingle{}}\NormalTok{)}\OperatorTok{;}     \CommentTok{// false}
+\NormalTok{path}\OperatorTok{.}\FunctionTok{isAbsolute}\NormalTok{(}\StringTok{\textquotesingle{}.\textquotesingle{}}\NormalTok{)}\OperatorTok{;}        \CommentTok{// false}
+\end{Highlighting}
+\end{Shaded}
+
+On Windows:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{path}\OperatorTok{.}\FunctionTok{isAbsolute}\NormalTok{(}\StringTok{\textquotesingle{}//server\textquotesingle{}}\NormalTok{)}\OperatorTok{;}    \CommentTok{// true}
+\NormalTok{path}\OperatorTok{.}\FunctionTok{isAbsolute}\NormalTok{(}\StringTok{\textquotesingle{}}\SpecialCharTok{\textbackslash{}\textbackslash{}\textbackslash{}\textbackslash{}}\StringTok{server\textquotesingle{}}\NormalTok{)}\OperatorTok{;}  \CommentTok{// true}
+\NormalTok{path}\OperatorTok{.}\FunctionTok{isAbsolute}\NormalTok{(}\StringTok{\textquotesingle{}C:/foo/..\textquotesingle{}}\NormalTok{)}\OperatorTok{;}   \CommentTok{// true}
+\NormalTok{path}\OperatorTok{.}\FunctionTok{isAbsolute}\NormalTok{(}\StringTok{\textquotesingle{}C:}\SpecialCharTok{\textbackslash{}\textbackslash{}}\StringTok{foo}\SpecialCharTok{\textbackslash{}\textbackslash{}}\StringTok{..\textquotesingle{}}\NormalTok{)}\OperatorTok{;} \CommentTok{// true}
+\NormalTok{path}\OperatorTok{.}\FunctionTok{isAbsolute}\NormalTok{(}\StringTok{\textquotesingle{}bar}\SpecialCharTok{\textbackslash{}\textbackslash{}}\StringTok{baz\textquotesingle{}}\NormalTok{)}\OperatorTok{;}    \CommentTok{// false}
+\NormalTok{path}\OperatorTok{.}\FunctionTok{isAbsolute}\NormalTok{(}\StringTok{\textquotesingle{}bar/baz\textquotesingle{}}\NormalTok{)}\OperatorTok{;}     \CommentTok{// false}
+\NormalTok{path}\OperatorTok{.}\FunctionTok{isAbsolute}\NormalTok{(}\StringTok{\textquotesingle{}.\textquotesingle{}}\NormalTok{)}\OperatorTok{;}           \CommentTok{// false}
+\end{Highlighting}
+\end{Shaded}
+
+A \href{errors.md\#class-typeerror}{\texttt{TypeError}} is thrown if
+\texttt{path} is not a string.
+
+\subsection{\texorpdfstring{\texttt{path.join({[}...paths{]})}}{path.join({[}...paths{]})}}\label{path.join...paths}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{...paths} \{string\} A sequence of path segments
+\item
+  Returns: \{string\}
+\end{itemize}
+
+The \texttt{path.join()} method joins all given \texttt{path} segments
+together using the platform-specific separator as a delimiter, then
+normalizes the resulting path.
+
+Zero-length \texttt{path} segments are ignored. If the joined path
+string is a zero-length string then
+\texttt{\textquotesingle{}.\textquotesingle{}} will be returned,
+representing the current working directory.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{path}\OperatorTok{.}\FunctionTok{join}\NormalTok{(}\StringTok{\textquotesingle{}/foo\textquotesingle{}}\OperatorTok{,} \StringTok{\textquotesingle{}bar\textquotesingle{}}\OperatorTok{,} \StringTok{\textquotesingle{}baz/asdf\textquotesingle{}}\OperatorTok{,} \StringTok{\textquotesingle{}quux\textquotesingle{}}\OperatorTok{,} \StringTok{\textquotesingle{}..\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// Returns: \textquotesingle{}/foo/bar/baz/asdf\textquotesingle{}}
+
+\NormalTok{path}\OperatorTok{.}\FunctionTok{join}\NormalTok{(}\StringTok{\textquotesingle{}foo\textquotesingle{}}\OperatorTok{,}\NormalTok{ \{\}}\OperatorTok{,} \StringTok{\textquotesingle{}bar\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// Throws \textquotesingle{}TypeError: Path must be a string. Received \{\}\textquotesingle{}}
+\end{Highlighting}
+\end{Shaded}
+
+A \href{errors.md\#class-typeerror}{\texttt{TypeError}} is thrown if any
+of the path segments is not a string.
+
+\subsection{\texorpdfstring{\texttt{path.normalize(path)}}{path.normalize(path)}}\label{path.normalizepath}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{path} \{string\}
+\item
+  Returns: \{string\}
+\end{itemize}
+
+The \texttt{path.normalize()} method normalizes the given \texttt{path},
+resolving \texttt{\textquotesingle{}..\textquotesingle{}} and
+\texttt{\textquotesingle{}.\textquotesingle{}} segments.
+
+When multiple, sequential path segment separation characters are found
+(e.g. \texttt{/} on POSIX and either \texttt{\textbackslash{}} or
+\texttt{/} on Windows), they are replaced by a single instance of the
+platform-specific path segment separator (\texttt{/} on POSIX and
+\texttt{\textbackslash{}} on Windows). Trailing separators are
+preserved.
+
+If the \texttt{path} is a zero-length string,
+\texttt{\textquotesingle{}.\textquotesingle{}} is returned, representing
+the current working directory.
+
+For example, on POSIX:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{path}\OperatorTok{.}\FunctionTok{normalize}\NormalTok{(}\StringTok{\textquotesingle{}/foo/bar//baz/asdf/quux/..\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// Returns: \textquotesingle{}/foo/bar/baz/asdf\textquotesingle{}}
+\end{Highlighting}
+\end{Shaded}
+
+On Windows:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{path}\OperatorTok{.}\FunctionTok{normalize}\NormalTok{(}\StringTok{\textquotesingle{}C:}\SpecialCharTok{\textbackslash{}\textbackslash{}}\StringTok{temp}\SpecialCharTok{\textbackslash{}\textbackslash{}\textbackslash{}\textbackslash{}}\StringTok{foo}\SpecialCharTok{\textbackslash{}\textbackslash{}}\StringTok{bar}\SpecialCharTok{\textbackslash{}\textbackslash{}}\StringTok{..}\SpecialCharTok{\textbackslash{}\textbackslash{}}\StringTok{\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// Returns: \textquotesingle{}C:\textbackslash{}\textbackslash{}temp\textbackslash{}\textbackslash{}foo\textbackslash{}\textbackslash{}\textquotesingle{}}
+\end{Highlighting}
+\end{Shaded}
+
+Since Windows recognizes multiple path separators, both separators will
+be replaced by instances of the Windows preferred separator
+(\texttt{\textbackslash{}}):
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{path}\OperatorTok{.}\AttributeTok{win32}\OperatorTok{.}\FunctionTok{normalize}\NormalTok{(}\StringTok{\textquotesingle{}C:////temp}\SpecialCharTok{\textbackslash{}\textbackslash{}\textbackslash{}\textbackslash{}}\StringTok{/}\SpecialCharTok{\textbackslash{}\textbackslash{}}\StringTok{/}\SpecialCharTok{\textbackslash{}\textbackslash{}}\StringTok{/foo/bar\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// Returns: \textquotesingle{}C:\textbackslash{}\textbackslash{}temp\textbackslash{}\textbackslash{}foo\textbackslash{}\textbackslash{}bar\textquotesingle{}}
+\end{Highlighting}
+\end{Shaded}
+
+A \href{errors.md\#class-typeerror}{\texttt{TypeError}} is thrown if
+\texttt{path} is not a string.
+
+\subsection{\texorpdfstring{\texttt{path.parse(path)}}{path.parse(path)}}\label{path.parsepath}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{path} \{string\}
+\item
+  Returns: \{Object\}
+\end{itemize}
+
+The \texttt{path.parse()} method returns an object whose properties
+represent significant elements of the \texttt{path}. Trailing directory
+separators are ignored, see \hyperref[pathsep]{\texttt{path.sep}}.
+
+The returned object will have the following properties:
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{dir} \{string\}
+\item
+  \texttt{root} \{string\}
+\item
+  \texttt{base} \{string\}
+\item
+  \texttt{name} \{string\}
+\item
+  \texttt{ext} \{string\}
+\end{itemize}
+
+For example, on POSIX:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{path}\OperatorTok{.}\FunctionTok{parse}\NormalTok{(}\StringTok{\textquotesingle{}/home/user/dir/file.txt\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// Returns:}
+\CommentTok{// \{ root: \textquotesingle{}/\textquotesingle{},}
+\CommentTok{//   dir: \textquotesingle{}/home/user/dir\textquotesingle{},}
+\CommentTok{//   base: \textquotesingle{}file.txt\textquotesingle{},}
+\CommentTok{//   ext: \textquotesingle{}.txt\textquotesingle{},}
+\CommentTok{//   name: \textquotesingle{}file\textquotesingle{} \}}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{┌─────────────────────┬────────────┐}
+\NormalTok{│          dir        │    base    │}
+\NormalTok{├──────┬              ├──────┬─────┤}
+\NormalTok{│ root │              │ name │ ext │}
+\NormalTok{"  /    home/user/dir / file  .txt "}
+\NormalTok{└──────┴──────────────┴──────┴─────┘}
+\NormalTok{(All spaces in the "" line should be ignored. They are purely for formatting.)}
+\end{Highlighting}
+\end{Shaded}
+
+On Windows:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{path}\OperatorTok{.}\FunctionTok{parse}\NormalTok{(}\StringTok{\textquotesingle{}C:}\SpecialCharTok{\textbackslash{}\textbackslash{}}\StringTok{path}\SpecialCharTok{\textbackslash{}\textbackslash{}}\StringTok{dir}\SpecialCharTok{\textbackslash{}\textbackslash{}}\StringTok{file.txt\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// Returns:}
+\CommentTok{// \{ root: \textquotesingle{}C:\textbackslash{}\textbackslash{}\textquotesingle{},}
+\CommentTok{//   dir: \textquotesingle{}C:\textbackslash{}\textbackslash{}path\textbackslash{}\textbackslash{}dir\textquotesingle{},}
+\CommentTok{//   base: \textquotesingle{}file.txt\textquotesingle{},}
+\CommentTok{//   ext: \textquotesingle{}.txt\textquotesingle{},}
+\CommentTok{//   name: \textquotesingle{}file\textquotesingle{} \}}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{┌─────────────────────┬────────────┐}
+\NormalTok{│          dir        │    base    │}
+\NormalTok{├──────┬              ├──────┬─────┤}
+\NormalTok{│ root │              │ name │ ext │}
+\NormalTok{" C:\textbackslash{}      path\textbackslash{}dir   \textbackslash{} file  .txt "}
+\NormalTok{└──────┴──────────────┴──────┴─────┘}
+\NormalTok{(All spaces in the "" line should be ignored. They are purely for formatting.)}
+\end{Highlighting}
+\end{Shaded}
+
+A \href{errors.md\#class-typeerror}{\texttt{TypeError}} is thrown if
+\texttt{path} is not a string.
+
+\subsection{\texorpdfstring{\texttt{path.posix}}{path.posix}}\label{path.posix}
+
+\begin{itemize}
+\tightlist
+\item
+  \{Object\}
+\end{itemize}
+
+The \texttt{path.posix} property provides access to POSIX specific
+implementations of the \texttt{path} methods.
+
+The API is accessible via
+\texttt{require(\textquotesingle{}node:path\textquotesingle{}).posix} or
+\texttt{require(\textquotesingle{}node:path/posix\textquotesingle{})}.
+
+\subsection{\texorpdfstring{\texttt{path.relative(from,\ to)}}{path.relative(from, to)}}\label{path.relativefrom-to}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{from} \{string\}
+\item
+  \texttt{to} \{string\}
+\item
+  Returns: \{string\}
+\end{itemize}
+
+The \texttt{path.relative()} method returns the relative path from
+\texttt{from} to \texttt{to} based on the current working directory. If
+\texttt{from} and \texttt{to} each resolve to the same path (after
+calling \texttt{path.resolve()} on each), a zero-length string is
+returned.
+
+If a zero-length string is passed as \texttt{from} or \texttt{to}, the
+current working directory will be used instead of the zero-length
+strings.
+
+For example, on POSIX:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{path}\OperatorTok{.}\FunctionTok{relative}\NormalTok{(}\StringTok{\textquotesingle{}/data/orandea/test/aaa\textquotesingle{}}\OperatorTok{,} \StringTok{\textquotesingle{}/data/orandea/impl/bbb\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// Returns: \textquotesingle{}../../impl/bbb\textquotesingle{}}
+\end{Highlighting}
+\end{Shaded}
+
+On Windows:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{path}\OperatorTok{.}\FunctionTok{relative}\NormalTok{(}\StringTok{\textquotesingle{}C:}\SpecialCharTok{\textbackslash{}\textbackslash{}}\StringTok{orandea}\SpecialCharTok{\textbackslash{}\textbackslash{}}\StringTok{test}\SpecialCharTok{\textbackslash{}\textbackslash{}}\StringTok{aaa\textquotesingle{}}\OperatorTok{,} \StringTok{\textquotesingle{}C:}\SpecialCharTok{\textbackslash{}\textbackslash{}}\StringTok{orandea}\SpecialCharTok{\textbackslash{}\textbackslash{}}\StringTok{impl}\SpecialCharTok{\textbackslash{}\textbackslash{}}\StringTok{bbb\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// Returns: \textquotesingle{}..\textbackslash{}\textbackslash{}..\textbackslash{}\textbackslash{}impl\textbackslash{}\textbackslash{}bbb\textquotesingle{}}
+\end{Highlighting}
+\end{Shaded}
+
+A \href{errors.md\#class-typeerror}{\texttt{TypeError}} is thrown if
+either \texttt{from} or \texttt{to} is not a string.
+
+\subsection{\texorpdfstring{\texttt{path.resolve({[}...paths{]})}}{path.resolve({[}...paths{]})}}\label{path.resolve...paths}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{...paths} \{string\} A sequence of paths or path segments
+\item
+  Returns: \{string\}
+\end{itemize}
+
+The \texttt{path.resolve()} method resolves a sequence of paths or path
+segments into an absolute path.
+
+The given sequence of paths is processed from right to left, with each
+subsequent \texttt{path} prepended until an absolute path is
+constructed. For instance, given the sequence of path segments:
+\texttt{/foo}, \texttt{/bar}, \texttt{baz}, calling
+\texttt{path.resolve(\textquotesingle{}/foo\textquotesingle{},\ \textquotesingle{}/bar\textquotesingle{},\ \textquotesingle{}baz\textquotesingle{})}
+would return \texttt{/bar/baz} because
+\texttt{\textquotesingle{}baz\textquotesingle{}} is not an absolute path
+but
+\texttt{\textquotesingle{}/bar\textquotesingle{}\ +\ \textquotesingle{}/\textquotesingle{}\ +\ \textquotesingle{}baz\textquotesingle{}}
+is.
+
+If, after processing all given \texttt{path} segments, an absolute path
+has not yet been generated, the current working directory is used.
+
+The resulting path is normalized and trailing slashes are removed unless
+the path is resolved to the root directory.
+
+Zero-length \texttt{path} segments are ignored.
+
+If no \texttt{path} segments are passed, \texttt{path.resolve()} will
+return the absolute path of the current working directory.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{path}\OperatorTok{.}\FunctionTok{resolve}\NormalTok{(}\StringTok{\textquotesingle{}/foo/bar\textquotesingle{}}\OperatorTok{,} \StringTok{\textquotesingle{}./baz\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// Returns: \textquotesingle{}/foo/bar/baz\textquotesingle{}}
+
+\NormalTok{path}\OperatorTok{.}\FunctionTok{resolve}\NormalTok{(}\StringTok{\textquotesingle{}/foo/bar\textquotesingle{}}\OperatorTok{,} \StringTok{\textquotesingle{}/tmp/file/\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// Returns: \textquotesingle{}/tmp/file\textquotesingle{}}
+
+\NormalTok{path}\OperatorTok{.}\FunctionTok{resolve}\NormalTok{(}\StringTok{\textquotesingle{}wwwroot\textquotesingle{}}\OperatorTok{,} \StringTok{\textquotesingle{}static\_files/png/\textquotesingle{}}\OperatorTok{,} \StringTok{\textquotesingle{}../gif/image.gif\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// If the current working directory is /home/myself/node,}
+\CommentTok{// this returns \textquotesingle{}/home/myself/node/wwwroot/static\_files/gif/image.gif\textquotesingle{}}
+\end{Highlighting}
+\end{Shaded}
+
+A \href{errors.md\#class-typeerror}{\texttt{TypeError}} is thrown if any
+of the arguments is not a string.
+
+\subsection{\texorpdfstring{\texttt{path.sep}}{path.sep}}\label{path.sep}
+
+\begin{itemize}
+\tightlist
+\item
+  \{string\}
+\end{itemize}
+
+Provides the platform-specific path segment separator:
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{\textbackslash{}} on Windows
+\item
+  \texttt{/} on POSIX
+\end{itemize}
+
+For example, on POSIX:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\StringTok{\textquotesingle{}foo/bar/baz\textquotesingle{}}\OperatorTok{.}\FunctionTok{split}\NormalTok{(path}\OperatorTok{.}\AttributeTok{sep}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// Returns: [\textquotesingle{}foo\textquotesingle{}, \textquotesingle{}bar\textquotesingle{}, \textquotesingle{}baz\textquotesingle{}]}
+\end{Highlighting}
+\end{Shaded}
+
+On Windows:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\StringTok{\textquotesingle{}foo}\SpecialCharTok{\textbackslash{}\textbackslash{}}\StringTok{bar}\SpecialCharTok{\textbackslash{}\textbackslash{}}\StringTok{baz\textquotesingle{}}\OperatorTok{.}\FunctionTok{split}\NormalTok{(path}\OperatorTok{.}\AttributeTok{sep}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// Returns: [\textquotesingle{}foo\textquotesingle{}, \textquotesingle{}bar\textquotesingle{}, \textquotesingle{}baz\textquotesingle{}]}
+\end{Highlighting}
+\end{Shaded}
+
+On Windows, both the forward slash (\texttt{/}) and backward slash
+(\texttt{\textbackslash{}}) are accepted as path segment separators;
+however, the \texttt{path} methods only add backward slashes
+(\texttt{\textbackslash{}}).
+
+\subsection{\texorpdfstring{\texttt{path.toNamespacedPath(path)}}{path.toNamespacedPath(path)}}\label{path.tonamespacedpathpath}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{path} \{string\}
+\item
+  Returns: \{string\}
+\end{itemize}
+
+On Windows systems only, returns an equivalent
+\href{https://docs.microsoft.com/en-us/windows/desktop/FileIO/naming-a-file\#namespaces}{namespace-prefixed
+path} for the given \texttt{path}. If \texttt{path} is not a string,
+\texttt{path} will be returned without modifications.
+
+This method is meaningful only on Windows systems. On POSIX systems, the
+method is non-operational and always returns \texttt{path} without
+modifications.
+
+\subsection{\texorpdfstring{\texttt{path.win32}}{path.win32}}\label{path.win32}
+
+\begin{itemize}
+\tightlist
+\item
+  \{Object\}
+\end{itemize}
+
+The \texttt{path.win32} property provides access to Windows-specific
+implementations of the \texttt{path} methods.
+
+The API is accessible via
+\texttt{require(\textquotesingle{}node:path\textquotesingle{}).win32} or
+\texttt{require(\textquotesingle{}node:path/win32\textquotesingle{})}.

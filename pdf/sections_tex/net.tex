@@ -1,0 +1,2105 @@
+\section{Net}\label{net}
+
+\begin{quote}
+Stability: 2 - Stable
+\end{quote}
+
+The \texttt{node:net} module provides an asynchronous network API for
+creating stream-based TCP or \hyperref[ipc-support]{IPC} servers
+(\hyperref[netcreateserveroptions-connectionlistener]{\texttt{net.createServer()}})
+and clients
+(\hyperref[netcreateconnection]{\texttt{net.createConnection()}}).
+
+It can be accessed using:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ net }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:net\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+\subsection{IPC support}\label{ipc-support}
+
+The \texttt{node:net} module supports IPC with named pipes on Windows,
+and Unix domain sockets on other operating systems.
+
+\subsubsection{Identifying paths for IPC
+connections}\label{identifying-paths-for-ipc-connections}
+
+\hyperref[netconnect]{\texttt{net.connect()}},
+\hyperref[netcreateconnection]{\texttt{net.createConnection()}},
+\hyperref[serverlisten]{\texttt{server.listen()}}, and
+\hyperref[socketconnect]{\texttt{socket.connect()}} take a \texttt{path}
+parameter to identify IPC endpoints.
+
+On Unix, the local domain is also known as the Unix domain. The path is
+a file system pathname. It gets truncated to an OS-dependent length of
+\texttt{sizeof(sockaddr\_un.sun\_path)\ -\ 1}. Typical values are 107
+bytes on Linux and 103 bytes on macOS. If a Node.js API abstraction
+creates the Unix domain socket, it will unlink the Unix domain socket as
+well. For example,
+\hyperref[netcreateserveroptions-connectionlistener]{\texttt{net.createServer()}}
+may create a Unix domain socket and
+\hyperref[serverclosecallback]{\texttt{server.close()}} will unlink it.
+But if a user creates the Unix domain socket outside of these
+abstractions, the user will need to remove it. The same applies when a
+Node.js API creates a Unix domain socket but the program then crashes.
+In short, a Unix domain socket will be visible in the file system and
+will persist until unlinked. On Linux, You can use Unix abstract socket
+by adding \texttt{\textbackslash{}0} to the beginning of the path, such
+as \texttt{\textbackslash{}0abstract}. The path to the Unix abstract
+socket is not visible in the file system and it will disappear
+automatically when all open references to the socket are closed.
+
+On Windows, the local domain is implemented using a named pipe. The path
+\emph{must} refer to an entry in
+\texttt{\textbackslash{}\textbackslash{}?\textbackslash{}pipe\textbackslash{}}
+or
+\texttt{\textbackslash{}\textbackslash{}.\textbackslash{}pipe\textbackslash{}}.
+Any characters are permitted, but the latter may do some processing of
+pipe names, such as resolving \texttt{..} sequences. Despite how it
+might look, the pipe namespace is flat. Pipes will \emph{not persist}.
+They are removed when the last reference to them is closed. Unlike Unix
+domain sockets, Windows will close and remove the pipe when the owning
+process exits.
+
+JavaScript string escaping requires paths to be specified with extra
+backslash escaping such as:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{net}\OperatorTok{.}\FunctionTok{createServer}\NormalTok{()}\OperatorTok{.}\FunctionTok{listen}\NormalTok{(}
+\NormalTok{  path}\OperatorTok{.}\FunctionTok{join}\NormalTok{(}\StringTok{\textquotesingle{}}\SpecialCharTok{\textbackslash{}\textbackslash{}\textbackslash{}\textbackslash{}}\StringTok{?}\SpecialCharTok{\textbackslash{}\textbackslash{}}\StringTok{pipe\textquotesingle{}}\OperatorTok{,} \BuiltInTok{process}\OperatorTok{.}\FunctionTok{cwd}\NormalTok{()}\OperatorTok{,} \StringTok{\textquotesingle{}myctl\textquotesingle{}}\NormalTok{))}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+\subsection{\texorpdfstring{Class:
+\texttt{net.BlockList}}{Class: net.BlockList}}\label{class-net.blocklist}
+
+The \texttt{BlockList} object can be used with some network APIs to
+specify rules for disabling inbound or outbound access to specific IP
+addresses, IP ranges, or IP subnets.
+
+\subsubsection{\texorpdfstring{\texttt{blockList.addAddress(address{[},\ type{]})}}{blockList.addAddress(address{[}, type{]})}}\label{blocklist.addaddressaddress-type}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{address} \{string\textbar net.SocketAddress\} An IPv4 or IPv6
+  address.
+\item
+  \texttt{type} \{string\} Either
+  \texttt{\textquotesingle{}ipv4\textquotesingle{}} or
+  \texttt{\textquotesingle{}ipv6\textquotesingle{}}. \textbf{Default:}
+  \texttt{\textquotesingle{}ipv4\textquotesingle{}}.
+\end{itemize}
+
+Adds a rule to block the given IP address.
+
+\subsubsection{\texorpdfstring{\texttt{blockList.addRange(start,\ end{[},\ type{]})}}{blockList.addRange(start, end{[}, type{]})}}\label{blocklist.addrangestart-end-type}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{start} \{string\textbar net.SocketAddress\} The starting IPv4
+  or IPv6 address in the range.
+\item
+  \texttt{end} \{string\textbar net.SocketAddress\} The ending IPv4 or
+  IPv6 address in the range.
+\item
+  \texttt{type} \{string\} Either
+  \texttt{\textquotesingle{}ipv4\textquotesingle{}} or
+  \texttt{\textquotesingle{}ipv6\textquotesingle{}}. \textbf{Default:}
+  \texttt{\textquotesingle{}ipv4\textquotesingle{}}.
+\end{itemize}
+
+Adds a rule to block a range of IP addresses from \texttt{start}
+(inclusive) to \texttt{end} (inclusive).
+
+\subsubsection{\texorpdfstring{\texttt{blockList.addSubnet(net,\ prefix{[},\ type{]})}}{blockList.addSubnet(net, prefix{[}, type{]})}}\label{blocklist.addsubnetnet-prefix-type}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{net} \{string\textbar net.SocketAddress\} The network IPv4 or
+  IPv6 address.
+\item
+  \texttt{prefix} \{number\} The number of CIDR prefix bits. For IPv4,
+  this must be a value between \texttt{0} and \texttt{32}. For IPv6,
+  this must be between \texttt{0} and \texttt{128}.
+\item
+  \texttt{type} \{string\} Either
+  \texttt{\textquotesingle{}ipv4\textquotesingle{}} or
+  \texttt{\textquotesingle{}ipv6\textquotesingle{}}. \textbf{Default:}
+  \texttt{\textquotesingle{}ipv4\textquotesingle{}}.
+\end{itemize}
+
+Adds a rule to block a range of IP addresses specified as a subnet mask.
+
+\subsubsection{\texorpdfstring{\texttt{blockList.check(address{[},\ type{]})}}{blockList.check(address{[}, type{]})}}\label{blocklist.checkaddress-type}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{address} \{string\textbar net.SocketAddress\} The IP address
+  to check
+\item
+  \texttt{type} \{string\} Either
+  \texttt{\textquotesingle{}ipv4\textquotesingle{}} or
+  \texttt{\textquotesingle{}ipv6\textquotesingle{}}. \textbf{Default:}
+  \texttt{\textquotesingle{}ipv4\textquotesingle{}}.
+\item
+  Returns: \{boolean\}
+\end{itemize}
+
+Returns \texttt{true} if the given IP address matches any of the rules
+added to the \texttt{BlockList}.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ blockList }\OperatorTok{=} \KeywordTok{new}\NormalTok{ net}\OperatorTok{.}\FunctionTok{BlockList}\NormalTok{()}\OperatorTok{;}
+\NormalTok{blockList}\OperatorTok{.}\FunctionTok{addAddress}\NormalTok{(}\StringTok{\textquotesingle{}123.123.123.123\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{blockList}\OperatorTok{.}\FunctionTok{addRange}\NormalTok{(}\StringTok{\textquotesingle{}10.0.0.1\textquotesingle{}}\OperatorTok{,} \StringTok{\textquotesingle{}10.0.0.10\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{blockList}\OperatorTok{.}\FunctionTok{addSubnet}\NormalTok{(}\StringTok{\textquotesingle{}8592:757c:efae:4e45::\textquotesingle{}}\OperatorTok{,} \DecValTok{64}\OperatorTok{,} \StringTok{\textquotesingle{}ipv6\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+
+\BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(blockList}\OperatorTok{.}\FunctionTok{check}\NormalTok{(}\StringTok{\textquotesingle{}123.123.123.123\textquotesingle{}}\NormalTok{))}\OperatorTok{;}  \CommentTok{// Prints: true}
+\BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(blockList}\OperatorTok{.}\FunctionTok{check}\NormalTok{(}\StringTok{\textquotesingle{}10.0.0.3\textquotesingle{}}\NormalTok{))}\OperatorTok{;}  \CommentTok{// Prints: true}
+\BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(blockList}\OperatorTok{.}\FunctionTok{check}\NormalTok{(}\StringTok{\textquotesingle{}222.111.111.222\textquotesingle{}}\NormalTok{))}\OperatorTok{;}  \CommentTok{// Prints: false}
+
+\CommentTok{// IPv6 notation for IPv4 addresses works:}
+\BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(blockList}\OperatorTok{.}\FunctionTok{check}\NormalTok{(}\StringTok{\textquotesingle{}::ffff:7b7b:7b7b\textquotesingle{}}\OperatorTok{,} \StringTok{\textquotesingle{}ipv6\textquotesingle{}}\NormalTok{))}\OperatorTok{;} \CommentTok{// Prints: true}
+\BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(blockList}\OperatorTok{.}\FunctionTok{check}\NormalTok{(}\StringTok{\textquotesingle{}::ffff:123.123.123.123\textquotesingle{}}\OperatorTok{,} \StringTok{\textquotesingle{}ipv6\textquotesingle{}}\NormalTok{))}\OperatorTok{;} \CommentTok{// Prints: true}
+\end{Highlighting}
+\end{Shaded}
+
+\subsubsection{\texorpdfstring{\texttt{blockList.rules}}{blockList.rules}}\label{blocklist.rules}
+
+\begin{itemize}
+\tightlist
+\item
+  Type: \{string{[}{]}\}
+\end{itemize}
+
+The list of rules added to the blocklist.
+
+\subsection{\texorpdfstring{Class:
+\texttt{net.SocketAddress}}{Class: net.SocketAddress}}\label{class-net.socketaddress}
+
+\subsubsection{\texorpdfstring{\texttt{new\ net.SocketAddress({[}options{]})}}{new net.SocketAddress({[}options{]})}}\label{new-net.socketaddressoptions}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{options} \{Object\}
+
+  \begin{itemize}
+  \tightlist
+  \item
+    \texttt{address} \{string\} The network address as either an IPv4 or
+    IPv6 string. \textbf{Default}:
+    \texttt{\textquotesingle{}127.0.0.1\textquotesingle{}} if
+    \texttt{family} is
+    \texttt{\textquotesingle{}ipv4\textquotesingle{}};
+    \texttt{\textquotesingle{}::\textquotesingle{}} if \texttt{family}
+    is \texttt{\textquotesingle{}ipv6\textquotesingle{}}.
+  \item
+    \texttt{family} \{string\} One of either
+    \texttt{\textquotesingle{}ipv4\textquotesingle{}} or
+    \texttt{\textquotesingle{}ipv6\textquotesingle{}}. \textbf{Default}:
+    \texttt{\textquotesingle{}ipv4\textquotesingle{}}.
+  \item
+    \texttt{flowlabel} \{number\} An IPv6 flow-label used only if
+    \texttt{family} is
+    \texttt{\textquotesingle{}ipv6\textquotesingle{}}.
+  \item
+    \texttt{port} \{number\} An IP port.
+  \end{itemize}
+\end{itemize}
+
+\subsubsection{\texorpdfstring{\texttt{socketaddress.address}}{socketaddress.address}}\label{socketaddress.address}
+
+\begin{itemize}
+\tightlist
+\item
+  Type \{string\}
+\end{itemize}
+
+\subsubsection{\texorpdfstring{\texttt{socketaddress.family}}{socketaddress.family}}\label{socketaddress.family}
+
+\begin{itemize}
+\tightlist
+\item
+  Type \{string\} Either
+  \texttt{\textquotesingle{}ipv4\textquotesingle{}} or
+  \texttt{\textquotesingle{}ipv6\textquotesingle{}}.
+\end{itemize}
+
+\subsubsection{\texorpdfstring{\texttt{socketaddress.flowlabel}}{socketaddress.flowlabel}}\label{socketaddress.flowlabel}
+
+\begin{itemize}
+\tightlist
+\item
+  Type \{number\}
+\end{itemize}
+
+\subsubsection{\texorpdfstring{\texttt{socketaddress.port}}{socketaddress.port}}\label{socketaddress.port}
+
+\begin{itemize}
+\tightlist
+\item
+  Type \{number\}
+\end{itemize}
+
+\subsection{\texorpdfstring{Class:
+\texttt{net.Server}}{Class: net.Server}}\label{class-net.server}
+
+\begin{itemize}
+\tightlist
+\item
+  Extends: \{EventEmitter\}
+\end{itemize}
+
+This class is used to create a TCP or \hyperref[ipc-support]{IPC}
+server.
+
+\subsubsection{\texorpdfstring{\texttt{new\ net.Server({[}options{]}{[},\ connectionListener{]})}}{new net.Server({[}options{]}{[}, connectionListener{]})}}\label{new-net.serveroptions-connectionlistener}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{options} \{Object\} See
+  \hyperref[netcreateserveroptions-connectionlistener]{\texttt{net.createServer({[}options{]}{[},\ connectionListener{]})}}.
+\item
+  \texttt{connectionListener} \{Function\} Automatically set as a
+  listener for the
+  \hyperref[event-connection]{\texttt{\textquotesingle{}connection\textquotesingle{}}}
+  event.
+\item
+  Returns: \{net.Server\}
+\end{itemize}
+
+\texttt{net.Server} is an
+\href{events.md\#class-eventemitter}{\texttt{EventEmitter}} with the
+following events:
+
+\subsubsection{\texorpdfstring{Event:
+\texttt{\textquotesingle{}close\textquotesingle{}}}{Event: \textquotesingle close\textquotesingle{}}}\label{event-close}
+
+Emitted when the server closes. If connections exist, this event is not
+emitted until all connections are ended.
+
+\subsubsection{\texorpdfstring{Event:
+\texttt{\textquotesingle{}connection\textquotesingle{}}}{Event: \textquotesingle connection\textquotesingle{}}}\label{event-connection}
+
+\begin{itemize}
+\tightlist
+\item
+  \{net.Socket\} The connection object
+\end{itemize}
+
+Emitted when a new connection is made. \texttt{socket} is an instance of
+\texttt{net.Socket}.
+
+\subsubsection{\texorpdfstring{Event:
+\texttt{\textquotesingle{}error\textquotesingle{}}}{Event: \textquotesingle error\textquotesingle{}}}\label{event-error}
+
+\begin{itemize}
+\tightlist
+\item
+  \{Error\}
+\end{itemize}
+
+Emitted when an error occurs. Unlike
+\hyperref[class-netsocket]{\texttt{net.Socket}}, the
+\hyperref[event-close]{\texttt{\textquotesingle{}close\textquotesingle{}}}
+event will \textbf{not} be emitted directly following this event unless
+\hyperref[serverclosecallback]{\texttt{server.close()}} is manually
+called. See the example in discussion of
+\hyperref[serverlisten]{\texttt{server.listen()}}.
+
+\subsubsection{\texorpdfstring{Event:
+\texttt{\textquotesingle{}listening\textquotesingle{}}}{Event: \textquotesingle listening\textquotesingle{}}}\label{event-listening}
+
+Emitted when the server has been bound after calling
+\hyperref[serverlisten]{\texttt{server.listen()}}.
+
+\subsubsection{\texorpdfstring{Event:
+\texttt{\textquotesingle{}drop\textquotesingle{}}}{Event: \textquotesingle drop\textquotesingle{}}}\label{event-drop}
+
+When the number of connections reaches the threshold of
+\texttt{server.maxConnections}, the server will drop new connections and
+emit \texttt{\textquotesingle{}drop\textquotesingle{}} event instead. If
+it is a TCP server, the argument is as follows, otherwise the argument
+is \texttt{undefined}.
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{data} \{Object\} The argument passed to event listener.
+
+  \begin{itemize}
+  \tightlist
+  \item
+    \texttt{localAddress} \{string\} Local address.
+  \item
+    \texttt{localPort} \{number\} Local port.
+  \item
+    \texttt{localFamily} \{string\} Local family.
+  \item
+    \texttt{remoteAddress} \{string\} Remote address.
+  \item
+    \texttt{remotePort} \{number\} Remote port.
+  \item
+    \texttt{remoteFamily} \{string\} Remote IP family.
+    \texttt{\textquotesingle{}IPv4\textquotesingle{}} or
+    \texttt{\textquotesingle{}IPv6\textquotesingle{}}.
+  \end{itemize}
+\end{itemize}
+
+\subsubsection{\texorpdfstring{\texttt{server.address()}}{server.address()}}\label{server.address}
+
+\begin{itemize}
+\tightlist
+\item
+  Returns: \{Object\textbar string\textbar null\}
+\end{itemize}
+
+Returns the bound \texttt{address}, the address \texttt{family} name,
+and \texttt{port} of the server as reported by the operating system if
+listening on an IP socket (useful to find which port was assigned when
+getting an OS-assigned address):
+\texttt{\{\ port:\ 12346,\ family:\ \textquotesingle{}IPv4\textquotesingle{},\ address:\ \textquotesingle{}127.0.0.1\textquotesingle{}\ \}}.
+
+For a server listening on a pipe or Unix domain socket, the name is
+returned as a string.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ server }\OperatorTok{=}\NormalTok{ net}\OperatorTok{.}\FunctionTok{createServer}\NormalTok{((socket) }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+\NormalTok{  socket}\OperatorTok{.}\FunctionTok{end}\NormalTok{(}\StringTok{\textquotesingle{}goodbye}\SpecialCharTok{\textbackslash{}n}\StringTok{\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{\})}\OperatorTok{.}\FunctionTok{on}\NormalTok{(}\StringTok{\textquotesingle{}error\textquotesingle{}}\OperatorTok{,}\NormalTok{ (err) }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+  \CommentTok{// Handle errors here.}
+  \ControlFlowTok{throw}\NormalTok{ err}\OperatorTok{;}
+\NormalTok{\})}\OperatorTok{;}
+
+\CommentTok{// Grab an arbitrary unused port.}
+\NormalTok{server}\OperatorTok{.}\FunctionTok{listen}\NormalTok{(() }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+  \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\StringTok{\textquotesingle{}opened server on\textquotesingle{}}\OperatorTok{,}\NormalTok{ server}\OperatorTok{.}\FunctionTok{address}\NormalTok{())}\OperatorTok{;}
+\NormalTok{\})}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+\texttt{server.address()} returns \texttt{null} before the
+\texttt{\textquotesingle{}listening\textquotesingle{}} event has been
+emitted or after calling \texttt{server.close()}.
+
+\subsubsection{\texorpdfstring{\texttt{server.close({[}callback{]})}}{server.close({[}callback{]})}}\label{server.closecallback}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{callback} \{Function\} Called when the server is closed.
+\item
+  Returns: \{net.Server\}
+\end{itemize}
+
+Stops the server from accepting new connections and keeps existing
+connections. This function is asynchronous, the server is finally closed
+when all connections are ended and the server emits a
+\hyperref[event-close]{\texttt{\textquotesingle{}close\textquotesingle{}}}
+event. The optional \texttt{callback} will be called once the
+\texttt{\textquotesingle{}close\textquotesingle{}} event occurs. Unlike
+that event, it will be called with an \texttt{Error} as its only
+argument if the server was not open when it was closed.
+
+\subsubsection{\texorpdfstring{\texttt{server{[}Symbol.asyncDispose{]}()}}{server{[}Symbol.asyncDispose{]}()}}\label{serversymbol.asyncdispose}
+
+\begin{quote}
+Stability: 1 - Experimental
+\end{quote}
+
+Calls \hyperref[serverclosecallback]{\texttt{server.close()}} and
+returns a promise that fulfills when the server has closed.
+
+\subsubsection{\texorpdfstring{\texttt{server.getConnections(callback)}}{server.getConnections(callback)}}\label{server.getconnectionscallback}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{callback} \{Function\}
+\item
+  Returns: \{net.Server\}
+\end{itemize}
+
+Asynchronously get the number of concurrent connections on the server.
+Works when sockets were sent to forks.
+
+Callback should take two arguments \texttt{err} and \texttt{count}.
+
+\subsubsection{\texorpdfstring{\texttt{server.listen()}}{server.listen()}}\label{server.listen}
+
+Start a server listening for connections. A \texttt{net.Server} can be a
+TCP or an \hyperref[ipc-support]{IPC} server depending on what it
+listens to.
+
+Possible signatures:
+
+\begin{itemize}
+\tightlist
+\item
+  \hyperref[serverlistenhandle-backlog-callback]{\texttt{server.listen(handle{[},\ backlog{]}{[},\ callback{]})}}
+\item
+  \hyperref[serverlistenoptions-callback]{\texttt{server.listen(options{[},\ callback{]})}}
+\item
+  \hyperref[serverlistenpath-backlog-callback]{\texttt{server.listen(path{[},\ backlog{]}{[},\ callback{]})}}
+  for \hyperref[ipc-support]{IPC} servers
+\item
+  \hyperref[serverlistenport-host-backlog-callback]{\texttt{server.listen({[}port{[},\ host{[},\ backlog{]}{]}{]}{[},\ callback{]})}}
+  for TCP servers
+\end{itemize}
+
+This function is asynchronous. When the server starts listening, the
+\hyperref[event-listening]{\texttt{\textquotesingle{}listening\textquotesingle{}}}
+event will be emitted. The last parameter \texttt{callback} will be
+added as a listener for the
+\hyperref[event-listening]{\texttt{\textquotesingle{}listening\textquotesingle{}}}
+event.
+
+All \texttt{listen()} methods can take a \texttt{backlog} parameter to
+specify the maximum length of the queue of pending connections. The
+actual length will be determined by the OS through sysctl settings such
+as \texttt{tcp\_max\_syn\_backlog} and \texttt{somaxconn} on Linux. The
+default value of this parameter is 511 (not 512).
+
+All \hyperref[class-netsocket]{\texttt{net.Socket}} are set to
+\texttt{SO\_REUSEADDR} (see
+\href{https://man7.org/linux/man-pages/man7/socket.7.html}{\texttt{socket(7)}}
+for details).
+
+The \texttt{server.listen()} method can be called again if and only if
+there was an error during the first \texttt{server.listen()} call or
+\texttt{server.close()} has been called. Otherwise, an
+\texttt{ERR\_SERVER\_ALREADY\_LISTEN} error will be thrown.
+
+One of the most common errors raised when listening is
+\texttt{EADDRINUSE}. This happens when another server is already
+listening on the requested \texttt{port}/\texttt{path}/\texttt{handle}.
+One way to handle this would be to retry after a certain amount of time:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{server}\OperatorTok{.}\FunctionTok{on}\NormalTok{(}\StringTok{\textquotesingle{}error\textquotesingle{}}\OperatorTok{,}\NormalTok{ (e) }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+  \ControlFlowTok{if}\NormalTok{ (e}\OperatorTok{.}\AttributeTok{code} \OperatorTok{===} \StringTok{\textquotesingle{}EADDRINUSE\textquotesingle{}}\NormalTok{) \{}
+    \BuiltInTok{console}\OperatorTok{.}\FunctionTok{error}\NormalTok{(}\StringTok{\textquotesingle{}Address in use, retrying...\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+    \PreprocessorTok{setTimeout}\NormalTok{(() }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+\NormalTok{      server}\OperatorTok{.}\FunctionTok{close}\NormalTok{()}\OperatorTok{;}
+\NormalTok{      server}\OperatorTok{.}\FunctionTok{listen}\NormalTok{(PORT}\OperatorTok{,}\NormalTok{ HOST)}\OperatorTok{;}
+\NormalTok{    \}}\OperatorTok{,} \DecValTok{1000}\NormalTok{)}\OperatorTok{;}
+\NormalTok{  \}}
+\NormalTok{\})}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+\paragraph{\texorpdfstring{\texttt{server.listen(handle{[},\ backlog{]}{[},\ callback{]})}}{server.listen(handle{[}, backlog{]}{[}, callback{]})}}\label{server.listenhandle-backlog-callback}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{handle} \{Object\}
+\item
+  \texttt{backlog} \{number\} Common parameter of
+  \hyperref[serverlisten]{\texttt{server.listen()}} functions
+\item
+  \texttt{callback} \{Function\}
+\item
+  Returns: \{net.Server\}
+\end{itemize}
+
+Start a server listening for connections on a given \texttt{handle} that
+has already been bound to a port, a Unix domain socket, or a Windows
+named pipe.
+
+The \texttt{handle} object can be either a server, a socket (anything
+with an underlying \texttt{\_handle} member), or an object with an
+\texttt{fd} member that is a valid file descriptor.
+
+Listening on a file descriptor is not supported on Windows.
+
+\paragraph{\texorpdfstring{\texttt{server.listen(options{[},\ callback{]})}}{server.listen(options{[}, callback{]})}}\label{server.listenoptions-callback}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{options} \{Object\} Required. Supports the following
+  properties:
+
+  \begin{itemize}
+  \tightlist
+  \item
+    \texttt{port} \{number\}
+  \item
+    \texttt{host} \{string\}
+  \item
+    \texttt{path} \{string\} Will be ignored if \texttt{port} is
+    specified. See
+    \hyperref[identifying-paths-for-ipc-connections]{Identifying paths
+    for IPC connections}.
+  \item
+    \texttt{backlog} \{number\} Common parameter of
+    \hyperref[serverlisten]{\texttt{server.listen()}} functions.
+  \item
+    \texttt{exclusive} \{boolean\} \textbf{Default:} \texttt{false}
+  \item
+    \texttt{readableAll} \{boolean\} For IPC servers makes the pipe
+    readable for all users. \textbf{Default:} \texttt{false}.
+  \item
+    \texttt{writableAll} \{boolean\} For IPC servers makes the pipe
+    writable for all users. \textbf{Default:} \texttt{false}.
+  \item
+    \texttt{ipv6Only} \{boolean\} For TCP servers, setting
+    \texttt{ipv6Only} to \texttt{true} will disable dual-stack support,
+    i.e., binding to host \texttt{::} won't make \texttt{0.0.0.0} be
+    bound. \textbf{Default:} \texttt{false}.
+  \item
+    \texttt{signal} \{AbortSignal\} An AbortSignal that may be used to
+    close a listening server.
+  \end{itemize}
+\item
+  \texttt{callback} \{Function\} functions.
+\item
+  Returns: \{net.Server\}
+\end{itemize}
+
+If \texttt{port} is specified, it behaves the same as
+\hyperref[serverlistenport-host-backlog-callback]{\texttt{server.listen({[}port{[},\ host{[},\ backlog{]}{]}{]}{[},\ callback{]})}}.
+Otherwise, if \texttt{path} is specified, it behaves the same as
+\hyperref[serverlistenpath-backlog-callback]{\texttt{server.listen(path{[},\ backlog{]}{[},\ callback{]})}}.
+If none of them is specified, an error will be thrown.
+
+If \texttt{exclusive} is \texttt{false} (default), then cluster workers
+will use the same underlying handle, allowing connection handling duties
+to be shared. When \texttt{exclusive} is \texttt{true}, the handle is
+not shared, and attempted port sharing results in an error. An example
+which listens on an exclusive port is shown below.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{server}\OperatorTok{.}\FunctionTok{listen}\NormalTok{(\{}
+  \DataTypeTok{host}\OperatorTok{:} \StringTok{\textquotesingle{}localhost\textquotesingle{}}\OperatorTok{,}
+  \DataTypeTok{port}\OperatorTok{:} \DecValTok{80}\OperatorTok{,}
+  \DataTypeTok{exclusive}\OperatorTok{:} \KeywordTok{true}\OperatorTok{,}
+\NormalTok{\})}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+When \texttt{exclusive} is \texttt{true} and the underlying handle is
+shared, it is possible that several workers query a handle with
+different backlogs. In this case, the first \texttt{backlog} passed to
+the master process will be used.
+
+Starting an IPC server as root may cause the server path to be
+inaccessible for unprivileged users. Using \texttt{readableAll} and
+\texttt{writableAll} will make the server accessible for all users.
+
+If the \texttt{signal} option is enabled, calling \texttt{.abort()} on
+the corresponding \texttt{AbortController} is similar to calling
+\texttt{.close()} on the server:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ controller }\OperatorTok{=} \KeywordTok{new} \FunctionTok{AbortController}\NormalTok{()}\OperatorTok{;}
+\NormalTok{server}\OperatorTok{.}\FunctionTok{listen}\NormalTok{(\{}
+  \DataTypeTok{host}\OperatorTok{:} \StringTok{\textquotesingle{}localhost\textquotesingle{}}\OperatorTok{,}
+  \DataTypeTok{port}\OperatorTok{:} \DecValTok{80}\OperatorTok{,}
+  \DataTypeTok{signal}\OperatorTok{:}\NormalTok{ controller}\OperatorTok{.}\AttributeTok{signal}\OperatorTok{,}
+\NormalTok{\})}\OperatorTok{;}
+\CommentTok{// Later, when you want to close the server.}
+\NormalTok{controller}\OperatorTok{.}\FunctionTok{abort}\NormalTok{()}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+\paragraph{\texorpdfstring{\texttt{server.listen(path{[},\ backlog{]}{[},\ callback{]})}}{server.listen(path{[}, backlog{]}{[}, callback{]})}}\label{server.listenpath-backlog-callback}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{path} \{string\} Path the server should listen to. See
+  \hyperref[identifying-paths-for-ipc-connections]{Identifying paths for
+  IPC connections}.
+\item
+  \texttt{backlog} \{number\} Common parameter of
+  \hyperref[serverlisten]{\texttt{server.listen()}} functions.
+\item
+  \texttt{callback} \{Function\}.
+\item
+  Returns: \{net.Server\}
+\end{itemize}
+
+Start an \hyperref[ipc-support]{IPC} server listening for connections on
+the given \texttt{path}.
+
+\paragraph{\texorpdfstring{\texttt{server.listen({[}port{[},\ host{[},\ backlog{]}{]}{]}{[},\ callback{]})}}{server.listen({[}port{[}, host{[}, backlog{]}{]}{]}{[}, callback{]})}}\label{server.listenport-host-backlog-callback}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{port} \{number\}
+\item
+  \texttt{host} \{string\}
+\item
+  \texttt{backlog} \{number\} Common parameter of
+  \hyperref[serverlisten]{\texttt{server.listen()}} functions.
+\item
+  \texttt{callback} \{Function\}.
+\item
+  Returns: \{net.Server\}
+\end{itemize}
+
+Start a TCP server listening for connections on the given \texttt{port}
+and \texttt{host}.
+
+If \texttt{port} is omitted or is 0, the operating system will assign an
+arbitrary unused port, which can be retrieved by using
+\texttt{server.address().port} after the
+\hyperref[event-listening]{\texttt{\textquotesingle{}listening\textquotesingle{}}}
+event has been emitted.
+
+If \texttt{host} is omitted, the server will accept connections on the
+\href{https://en.wikipedia.org/wiki/IPv6_address\#Unspecified_address}{unspecified
+IPv6 address} (\texttt{::}) when IPv6 is available, or the
+\href{https://en.wikipedia.org/wiki/0.0.0.0}{unspecified IPv4 address}
+(\texttt{0.0.0.0}) otherwise.
+
+In most operating systems, listening to the
+\href{https://en.wikipedia.org/wiki/IPv6_address\#Unspecified_address}{unspecified
+IPv6 address} (\texttt{::}) may cause the \texttt{net.Server} to also
+listen on the \href{https://en.wikipedia.org/wiki/0.0.0.0}{unspecified
+IPv4 address} (\texttt{0.0.0.0}).
+
+\subsubsection{\texorpdfstring{\texttt{server.listening}}{server.listening}}\label{server.listening}
+
+\begin{itemize}
+\tightlist
+\item
+  \{boolean\} Indicates whether or not the server is listening for
+  connections.
+\end{itemize}
+
+\subsubsection{\texorpdfstring{\texttt{server.maxConnections}}{server.maxConnections}}\label{server.maxconnections}
+
+\begin{itemize}
+\tightlist
+\item
+  \{integer\}
+\end{itemize}
+
+Set this property to reject connections when the server's connection
+count gets high.
+
+It is not recommended to use this option once a socket has been sent to
+a child with
+\href{child_process.md\#child_processforkmodulepath-args-options}{\texttt{child\_process.fork()}}.
+
+\subsubsection{\texorpdfstring{\texttt{server.ref()}}{server.ref()}}\label{server.ref}
+
+\begin{itemize}
+\tightlist
+\item
+  Returns: \{net.Server\}
+\end{itemize}
+
+Opposite of \texttt{unref()}, calling \texttt{ref()} on a previously
+\texttt{unref}ed server will \emph{not} let the program exit if it's the
+only server left (the default behavior). If the server is \texttt{ref}ed
+calling \texttt{ref()} again will have no effect.
+
+\subsubsection{\texorpdfstring{\texttt{server.unref()}}{server.unref()}}\label{server.unref}
+
+\begin{itemize}
+\tightlist
+\item
+  Returns: \{net.Server\}
+\end{itemize}
+
+Calling \texttt{unref()} on a server will allow the program to exit if
+this is the only active server in the event system. If the server is
+already \texttt{unref}ed calling \texttt{unref()} again will have no
+effect.
+
+\subsection{\texorpdfstring{Class:
+\texttt{net.Socket}}{Class: net.Socket}}\label{class-net.socket}
+
+\begin{itemize}
+\tightlist
+\item
+  Extends: \{stream.Duplex\}
+\end{itemize}
+
+This class is an abstraction of a TCP socket or a streaming
+\hyperref[ipc-support]{IPC} endpoint (uses named pipes on Windows, and
+Unix domain sockets otherwise). It is also an
+\href{events.md\#class-eventemitter}{\texttt{EventEmitter}}.
+
+A \texttt{net.Socket} can be created by the user and used directly to
+interact with a server. For example, it is returned by
+\hyperref[netcreateconnection]{\texttt{net.createConnection()}}, so the
+user can use it to talk to the server.
+
+It can also be created by Node.js and passed to the user when a
+connection is received. For example, it is passed to the listeners of a
+\hyperref[event-connection]{\texttt{\textquotesingle{}connection\textquotesingle{}}}
+event emitted on a \hyperref[class-netserver]{\texttt{net.Server}}, so
+the user can use it to interact with the client.
+
+\subsubsection{\texorpdfstring{\texttt{new\ net.Socket({[}options{]})}}{new net.Socket({[}options{]})}}\label{new-net.socketoptions}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{options} \{Object\} Available options are:
+
+  \begin{itemize}
+  \tightlist
+  \item
+    \texttt{fd} \{number\} If specified, wrap around an existing socket
+    with the given file descriptor, otherwise a new socket will be
+    created.
+  \item
+    \texttt{allowHalfOpen} \{boolean\} If set to \texttt{false}, then
+    the socket will automatically end the writable side when the
+    readable side ends. See
+    \hyperref[netcreateserveroptions-connectionlistener]{\texttt{net.createServer()}}
+    and the
+    \hyperref[event-end]{\texttt{\textquotesingle{}end\textquotesingle{}}}
+    event for details. \textbf{Default:} \texttt{false}.
+  \item
+    \texttt{readable} \{boolean\} Allow reads on the socket when an
+    \texttt{fd} is passed, otherwise ignored. \textbf{Default:}
+    \texttt{false}.
+  \item
+    \texttt{writable} \{boolean\} Allow writes on the socket when an
+    \texttt{fd} is passed, otherwise ignored. \textbf{Default:}
+    \texttt{false}.
+  \item
+    \texttt{signal} \{AbortSignal\} An Abort signal that may be used to
+    destroy the socket.
+  \end{itemize}
+\item
+  Returns: \{net.Socket\}
+\end{itemize}
+
+Creates a new socket object.
+
+The newly created socket can be either a TCP socket or a streaming
+\hyperref[ipc-support]{IPC} endpoint, depending on what it
+\hyperref[socketconnect]{\texttt{connect()}} to.
+
+\subsubsection{\texorpdfstring{Event:
+\texttt{\textquotesingle{}close\textquotesingle{}}}{Event: \textquotesingle close\textquotesingle{}}}\label{event-close-1}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{hadError} \{boolean\} \texttt{true} if the socket had a
+  transmission error.
+\end{itemize}
+
+Emitted once the socket is fully closed. The argument \texttt{hadError}
+is a boolean which says if the socket was closed due to a transmission
+error.
+
+\subsubsection{\texorpdfstring{Event:
+\texttt{\textquotesingle{}connect\textquotesingle{}}}{Event: \textquotesingle connect\textquotesingle{}}}\label{event-connect}
+
+Emitted when a socket connection is successfully established. See
+\hyperref[netcreateconnection]{\texttt{net.createConnection()}}.
+
+\subsubsection{\texorpdfstring{Event:
+\texttt{\textquotesingle{}data\textquotesingle{}}}{Event: \textquotesingle data\textquotesingle{}}}\label{event-data}
+
+\begin{itemize}
+\tightlist
+\item
+  \{Buffer\textbar string\}
+\end{itemize}
+
+Emitted when data is received. The argument \texttt{data} will be a
+\texttt{Buffer} or \texttt{String}. Encoding of data is set by
+\hyperref[socketsetencodingencoding]{\texttt{socket.setEncoding()}}.
+
+The data will be lost if there is no listener when a \texttt{Socket}
+emits a \texttt{\textquotesingle{}data\textquotesingle{}} event.
+
+\subsubsection{\texorpdfstring{Event:
+\texttt{\textquotesingle{}drain\textquotesingle{}}}{Event: \textquotesingle drain\textquotesingle{}}}\label{event-drain}
+
+Emitted when the write buffer becomes empty. Can be used to throttle
+uploads.
+
+See also: the return values of \texttt{socket.write()}.
+
+\subsubsection{\texorpdfstring{Event:
+\texttt{\textquotesingle{}end\textquotesingle{}}}{Event: \textquotesingle end\textquotesingle{}}}\label{event-end}
+
+Emitted when the other end of the socket signals the end of
+transmission, thus ending the readable side of the socket.
+
+By default (\texttt{allowHalfOpen} is \texttt{false}) the socket will
+send an end of transmission packet back and destroy its file descriptor
+once it has written out its pending write queue. However, if
+\texttt{allowHalfOpen} is set to \texttt{true}, the socket will not
+automatically \hyperref[socketenddata-encoding-callback]{\texttt{end()}}
+its writable side, allowing the user to write arbitrary amounts of data.
+The user must call
+\hyperref[socketenddata-encoding-callback]{\texttt{end()}} explicitly to
+close the connection (i.e.~sending a FIN packet back).
+
+\subsubsection{\texorpdfstring{Event:
+\texttt{\textquotesingle{}error\textquotesingle{}}}{Event: \textquotesingle error\textquotesingle{}}}\label{event-error-1}
+
+\begin{itemize}
+\tightlist
+\item
+  \{Error\}
+\end{itemize}
+
+Emitted when an error occurs. The
+\texttt{\textquotesingle{}close\textquotesingle{}} event will be called
+directly following this event.
+
+\subsubsection{\texorpdfstring{Event:
+\texttt{\textquotesingle{}lookup\textquotesingle{}}}{Event: \textquotesingle lookup\textquotesingle{}}}\label{event-lookup}
+
+Emitted after resolving the host name but before connecting. Not
+applicable to Unix sockets.
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{err} \{Error\textbar null\} The error object. See
+  \href{dns.md\#dnslookuphostname-options-callback}{\texttt{dns.lookup()}}.
+\item
+  \texttt{address} \{string\} The IP address.
+\item
+  \texttt{family} \{number\textbar null\} The address type. See
+  \href{dns.md\#dnslookuphostname-options-callback}{\texttt{dns.lookup()}}.
+\item
+  \texttt{host} \{string\} The host name.
+\end{itemize}
+
+\subsubsection{\texorpdfstring{Event:
+\texttt{\textquotesingle{}ready\textquotesingle{}}}{Event: \textquotesingle ready\textquotesingle{}}}\label{event-ready}
+
+Emitted when a socket is ready to be used.
+
+Triggered immediately after
+\texttt{\textquotesingle{}connect\textquotesingle{}}.
+
+\subsubsection{\texorpdfstring{Event:
+\texttt{\textquotesingle{}timeout\textquotesingle{}}}{Event: \textquotesingle timeout\textquotesingle{}}}\label{event-timeout}
+
+Emitted if the socket times out from inactivity. This is only to notify
+that the socket has been idle. The user must manually close the
+connection.
+
+See also:
+\hyperref[socketsettimeouttimeout-callback]{\texttt{socket.setTimeout()}}.
+
+\subsubsection{\texorpdfstring{\texttt{socket.address()}}{socket.address()}}\label{socket.address}
+
+\begin{itemize}
+\tightlist
+\item
+  Returns: \{Object\}
+\end{itemize}
+
+Returns the bound \texttt{address}, the address \texttt{family} name and
+\texttt{port} of the socket as reported by the operating system:
+\texttt{\{\ port:\ 12346,\ family:\ \textquotesingle{}IPv4\textquotesingle{},\ address:\ \textquotesingle{}127.0.0.1\textquotesingle{}\ \}}
+
+\subsubsection{\texorpdfstring{\texttt{socket.autoSelectFamilyAttemptedAddresses}}{socket.autoSelectFamilyAttemptedAddresses}}\label{socket.autoselectfamilyattemptedaddresses}
+
+\begin{itemize}
+\tightlist
+\item
+  \{string{[}{]}\}
+\end{itemize}
+
+This property is only present if the family autoselection algorithm is
+enabled in
+\hyperref[socketconnectoptions-connectlistener]{\texttt{socket.connect(options)}}
+and it is an array of the addresses that have been attempted.
+
+Each address is a string in the form of \texttt{\$IP:\$PORT}. If the
+connection was successful, then the last address is the one that the
+socket is currently connected to.
+
+\subsubsection{\texorpdfstring{\texttt{socket.bufferSize}}{socket.bufferSize}}\label{socket.buffersize}
+
+\begin{quote}
+Stability: 0 - Deprecated: Use
+\href{stream.md\#writablewritablelength}{\texttt{writable.writableLength}}
+instead.
+\end{quote}
+
+\begin{itemize}
+\tightlist
+\item
+  \{integer\}
+\end{itemize}
+
+This property shows the number of characters buffered for writing. The
+buffer may contain strings whose length after encoding is not yet known.
+So this number is only an approximation of the number of bytes in the
+buffer.
+
+\texttt{net.Socket} has the property that \texttt{socket.write()} always
+works. This is to help users get up and running quickly. The computer
+cannot always keep up with the amount of data that is written to a
+socket. The network connection simply might be too slow. Node.js will
+internally queue up the data written to a socket and send it out over
+the wire when it is possible.
+
+The consequence of this internal buffering is that memory may grow.
+Users who experience large or growing \texttt{bufferSize} should attempt
+to ``throttle'' the data flows in their program with
+\hyperref[socketpause]{\texttt{socket.pause()}} and
+\hyperref[socketresume]{\texttt{socket.resume()}}.
+
+\subsubsection{\texorpdfstring{\texttt{socket.bytesRead}}{socket.bytesRead}}\label{socket.bytesread}
+
+\begin{itemize}
+\tightlist
+\item
+  \{integer\}
+\end{itemize}
+
+The amount of received bytes.
+
+\subsubsection{\texorpdfstring{\texttt{socket.bytesWritten}}{socket.bytesWritten}}\label{socket.byteswritten}
+
+\begin{itemize}
+\tightlist
+\item
+  \{integer\}
+\end{itemize}
+
+The amount of bytes sent.
+
+\subsubsection{\texorpdfstring{\texttt{socket.connect()}}{socket.connect()}}\label{socket.connect}
+
+Initiate a connection on a given socket.
+
+Possible signatures:
+
+\begin{itemize}
+\tightlist
+\item
+  \hyperref[socketconnectoptions-connectlistener]{\texttt{socket.connect(options{[},\ connectListener{]})}}
+\item
+  \hyperref[socketconnectpath-connectlistener]{\texttt{socket.connect(path{[},\ connectListener{]})}}
+  for \hyperref[ipc-support]{IPC} connections.
+\item
+  \hyperref[socketconnectport-host-connectlistener]{\texttt{socket.connect(port{[},\ host{]}{[},\ connectListener{]})}}
+  for TCP connections.
+\item
+  Returns: \{net.Socket\} The socket itself.
+\end{itemize}
+
+This function is asynchronous. When the connection is established, the
+\hyperref[event-connect]{\texttt{\textquotesingle{}connect\textquotesingle{}}}
+event will be emitted. If there is a problem connecting, instead of a
+\hyperref[event-connect]{\texttt{\textquotesingle{}connect\textquotesingle{}}}
+event, an
+\hyperref[event-error_1]{\texttt{\textquotesingle{}error\textquotesingle{}}}
+event will be emitted with the error passed to the
+\hyperref[event-error_1]{\texttt{\textquotesingle{}error\textquotesingle{}}}
+listener. The last parameter \texttt{connectListener}, if supplied, will
+be added as a listener for the
+\hyperref[event-connect]{\texttt{\textquotesingle{}connect\textquotesingle{}}}
+event \textbf{once}.
+
+This function should only be used for reconnecting a socket after
+\texttt{\textquotesingle{}close\textquotesingle{}} has been emitted or
+otherwise it may lead to undefined behavior.
+
+\paragraph{\texorpdfstring{\texttt{socket.connect(options{[},\ connectListener{]})}}{socket.connect(options{[}, connectListener{]})}}\label{socket.connectoptions-connectlistener}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{options} \{Object\}
+\item
+  \texttt{connectListener} \{Function\} Common parameter of
+  \hyperref[socketconnect]{\texttt{socket.connect()}} methods. Will be
+  added as a listener for the
+  \hyperref[event-connect]{\texttt{\textquotesingle{}connect\textquotesingle{}}}
+  event once.
+\item
+  Returns: \{net.Socket\} The socket itself.
+\end{itemize}
+
+Initiate a connection on a given socket. Normally this method is not
+needed, the socket should be created and opened with
+\hyperref[netcreateconnection]{\texttt{net.createConnection()}}. Use
+this only when implementing a custom Socket.
+
+For TCP connections, available \texttt{options} are:
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{port} \{number\} Required. Port the socket should connect to.
+\item
+  \texttt{host} \{string\} Host the socket should connect to.
+  \textbf{Default:}
+  \texttt{\textquotesingle{}localhost\textquotesingle{}}.
+\item
+  \texttt{localAddress} \{string\} Local address the socket should
+  connect from.
+\item
+  \texttt{localPort} \{number\} Local port the socket should connect
+  from.
+\item
+  \texttt{family} \{number\}: Version of IP stack. Must be \texttt{4},
+  \texttt{6}, or \texttt{0}. The value \texttt{0} indicates that both
+  IPv4 and IPv6 addresses are allowed. \textbf{Default:} \texttt{0}.
+\item
+  \texttt{hints} \{number\} Optional
+  \href{dns.md\#supported-getaddrinfo-flags}{\texttt{dns.lookup()}
+  hints}.
+\item
+  \texttt{lookup} \{Function\} Custom lookup function. \textbf{Default:}
+  \href{dns.md\#dnslookuphostname-options-callback}{\texttt{dns.lookup()}}.
+\item
+  \texttt{noDelay} \{boolean\} If set to \texttt{true}, it disables the
+  use of Nagle's algorithm immediately after the socket is established.
+  \textbf{Default:} \texttt{false}.
+\item
+  \texttt{keepAlive} \{boolean\} If set to \texttt{true}, it enables
+  keep-alive functionality on the socket immediately after the
+  connection is established, similarly on what is done in
+  \hyperref[socketsetkeepaliveenable-initialdelay]{\texttt{socket.setKeepAlive({[}enable{]}{[},\ initialDelay{]})}}.
+  \textbf{Default:} \texttt{false}.
+\item
+  \texttt{keepAliveInitialDelay} \{number\} If set to a positive number,
+  it sets the initial delay before the first keepalive probe is sent on
+  an idle socket.\textbf{Default:} \texttt{0}.
+\item
+  \texttt{autoSelectFamily} \{boolean\}: If set to \texttt{true}, it
+  enables a family autodetection algorithm that loosely implements
+  section 5 of \href{https://www.rfc-editor.org/rfc/rfc8305.txt}{RFC
+  8305}. The \texttt{all} option passed to lookup is set to
+  \texttt{true} and the sockets attempts to connect to all obtained IPv6
+  and IPv4 addresses, in sequence, until a connection is established.
+  The first returned AAAA address is tried first, then the first
+  returned A address, then the second returned AAAA address and so on.
+  Each connection attempt is given the amount of time specified by the
+  \texttt{autoSelectFamilyAttemptTimeout} option before timing out and
+  trying the next address. Ignored if the \texttt{family} option is not
+  \texttt{0} or if \texttt{localAddress} is set. Connection errors are
+  not emitted if at least one connection succeeds. If all connections
+  attempts fails, a single \texttt{AggregateError} with all failed
+  attempts is emitted. \textbf{Default:}
+  \hyperref[netgetdefaultautoselectfamily]{\texttt{net.getDefaultAutoSelectFamily()}}
+\item
+  \texttt{autoSelectFamilyAttemptTimeout} \{number\}: The amount of time
+  in milliseconds to wait for a connection attempt to finish before
+  trying the next address when using the \texttt{autoSelectFamily}
+  option. If set to a positive integer less than \texttt{10}, then the
+  value \texttt{10} will be used instead. \textbf{Default:}
+  \hyperref[netgetdefaultautoselectfamilyattempttimeout]{\texttt{net.getDefaultAutoSelectFamilyAttemptTimeout()}}
+\end{itemize}
+
+For \hyperref[ipc-support]{IPC} connections, available \texttt{options}
+are:
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{path} \{string\} Required. Path the client should connect to.
+  See \hyperref[identifying-paths-for-ipc-connections]{Identifying paths
+  for IPC connections}. If provided, the TCP-specific options above are
+  ignored.
+\end{itemize}
+
+For both types, available \texttt{options} include:
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{onread} \{Object\} If specified, incoming data is stored in a
+  single \texttt{buffer} and passed to the supplied \texttt{callback}
+  when data arrives on the socket. This will cause the streaming
+  functionality to not provide any data. The socket will emit events
+  like \texttt{\textquotesingle{}error\textquotesingle{}},
+  \texttt{\textquotesingle{}end\textquotesingle{}}, and
+  \texttt{\textquotesingle{}close\textquotesingle{}} as usual. Methods
+  like \texttt{pause()} and \texttt{resume()} will also behave as
+  expected.
+
+  \begin{itemize}
+  \tightlist
+  \item
+    \texttt{buffer} \{Buffer\textbar Uint8Array\textbar Function\}
+    Either a reusable chunk of memory to use for storing incoming data
+    or a function that returns such.
+  \item
+    \texttt{callback} \{Function\} This function is called for every
+    chunk of incoming data. Two arguments are passed to it: the number
+    of bytes written to \texttt{buffer} and a reference to
+    \texttt{buffer}. Return \texttt{false} from this function to
+    implicitly \texttt{pause()} the socket. This function will be
+    executed in the global context.
+  \end{itemize}
+\end{itemize}
+
+Following is an example of a client using the \texttt{onread} option:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ net }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:net\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{net}\OperatorTok{.}\FunctionTok{connect}\NormalTok{(\{}
+  \DataTypeTok{port}\OperatorTok{:} \DecValTok{80}\OperatorTok{,}
+  \DataTypeTok{onread}\OperatorTok{:}\NormalTok{ \{}
+    \CommentTok{// Reuses a 4KiB Buffer for every read from the socket.}
+    \DataTypeTok{buffer}\OperatorTok{:} \BuiltInTok{Buffer}\OperatorTok{.}\FunctionTok{alloc}\NormalTok{(}\DecValTok{4} \OperatorTok{*} \DecValTok{1024}\NormalTok{)}\OperatorTok{,}
+    \DataTypeTok{callback}\OperatorTok{:} \KeywordTok{function}\NormalTok{(nread}\OperatorTok{,}\NormalTok{ buf) \{}
+      \CommentTok{// Received data is available in \textasciigrave{}buf\textasciigrave{} from 0 to \textasciigrave{}nread\textasciigrave{}.}
+      \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(buf}\OperatorTok{.}\FunctionTok{toString}\NormalTok{(}\StringTok{\textquotesingle{}utf8\textquotesingle{}}\OperatorTok{,} \DecValTok{0}\OperatorTok{,}\NormalTok{ nread))}\OperatorTok{;}
+\NormalTok{    \}}\OperatorTok{,}
+\NormalTok{  \}}\OperatorTok{,}
+\NormalTok{\})}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+\paragraph{\texorpdfstring{\texttt{socket.connect(path{[},\ connectListener{]})}}{socket.connect(path{[}, connectListener{]})}}\label{socket.connectpath-connectlistener}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{path} \{string\} Path the client should connect to. See
+  \hyperref[identifying-paths-for-ipc-connections]{Identifying paths for
+  IPC connections}.
+\item
+  \texttt{connectListener} \{Function\} Common parameter of
+  \hyperref[socketconnect]{\texttt{socket.connect()}} methods. Will be
+  added as a listener for the
+  \hyperref[event-connect]{\texttt{\textquotesingle{}connect\textquotesingle{}}}
+  event once.
+\item
+  Returns: \{net.Socket\} The socket itself.
+\end{itemize}
+
+Initiate an \hyperref[ipc-support]{IPC} connection on the given socket.
+
+Alias to
+\hyperref[socketconnectoptions-connectlistener]{\texttt{socket.connect(options{[},\ connectListener{]})}}
+called with \texttt{\{\ path:\ path\ \}} as \texttt{options}.
+
+\paragraph{\texorpdfstring{\texttt{socket.connect(port{[},\ host{]}{[},\ connectListener{]})}}{socket.connect(port{[}, host{]}{[}, connectListener{]})}}\label{socket.connectport-host-connectlistener}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{port} \{number\} Port the client should connect to.
+\item
+  \texttt{host} \{string\} Host the client should connect to.
+\item
+  \texttt{connectListener} \{Function\} Common parameter of
+  \hyperref[socketconnect]{\texttt{socket.connect()}} methods. Will be
+  added as a listener for the
+  \hyperref[event-connect]{\texttt{\textquotesingle{}connect\textquotesingle{}}}
+  event once.
+\item
+  Returns: \{net.Socket\} The socket itself.
+\end{itemize}
+
+Initiate a TCP connection on the given socket.
+
+Alias to
+\hyperref[socketconnectoptions-connectlistener]{\texttt{socket.connect(options{[},\ connectListener{]})}}
+called with \texttt{\{port:\ port,\ host:\ host\}} as \texttt{options}.
+
+\subsubsection{\texorpdfstring{\texttt{socket.connecting}}{socket.connecting}}\label{socket.connecting}
+
+\begin{itemize}
+\tightlist
+\item
+  \{boolean\}
+\end{itemize}
+
+If \texttt{true},
+\hyperref[socketconnectoptions-connectlistener]{\texttt{socket.connect(options{[},\ connectListener{]})}}
+was called and has not yet finished. It will stay \texttt{true} until
+the socket becomes connected, then it is set to \texttt{false} and the
+\texttt{\textquotesingle{}connect\textquotesingle{}} event is emitted.
+Note that the
+\hyperref[socketconnectoptions-connectlistener]{\texttt{socket.connect(options{[},\ connectListener{]})}}
+callback is a listener for the
+\texttt{\textquotesingle{}connect\textquotesingle{}} event.
+
+\subsubsection{\texorpdfstring{\texttt{socket.destroy({[}error{]})}}{socket.destroy({[}error{]})}}\label{socket.destroyerror}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{error} \{Object\}
+\item
+  Returns: \{net.Socket\}
+\end{itemize}
+
+Ensures that no more I/O activity happens on this socket. Destroys the
+stream and closes the connection.
+
+See \href{stream.md\#writabledestroyerror}{\texttt{writable.destroy()}}
+for further details.
+
+\subsubsection{\texorpdfstring{\texttt{socket.destroyed}}{socket.destroyed}}\label{socket.destroyed}
+
+\begin{itemize}
+\tightlist
+\item
+  \{boolean\} Indicates if the connection is destroyed or not. Once a
+  connection is destroyed no further data can be transferred using it.
+\end{itemize}
+
+See \href{stream.md\#writabledestroyed}{\texttt{writable.destroyed}} for
+further details.
+
+\subsubsection{\texorpdfstring{\texttt{socket.destroySoon()}}{socket.destroySoon()}}\label{socket.destroysoon}
+
+Destroys the socket after all data is written. If the
+\texttt{\textquotesingle{}finish\textquotesingle{}} event was already
+emitted the socket is destroyed immediately. If the socket is still
+writable it implicitly calls \texttt{socket.end()}.
+
+\subsubsection{\texorpdfstring{\texttt{socket.end({[}data{[},\ encoding{]}{]}{[},\ callback{]})}}{socket.end({[}data{[}, encoding{]}{]}{[}, callback{]})}}\label{socket.enddata-encoding-callback}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{data} \{string\textbar Buffer\textbar Uint8Array\}
+\item
+  \texttt{encoding} \{string\} Only used when data is \texttt{string}.
+  \textbf{Default:} \texttt{\textquotesingle{}utf8\textquotesingle{}}.
+\item
+  \texttt{callback} \{Function\} Optional callback for when the socket
+  is finished.
+\item
+  Returns: \{net.Socket\} The socket itself.
+\end{itemize}
+
+Half-closes the socket. i.e., it sends a FIN packet. It is possible the
+server will still send some data.
+
+See
+\href{stream.md\#writableendchunk-encoding-callback}{\texttt{writable.end()}}
+for further details.
+
+\subsubsection{\texorpdfstring{\texttt{socket.localAddress}}{socket.localAddress}}\label{socket.localaddress}
+
+\begin{itemize}
+\tightlist
+\item
+  \{string\}
+\end{itemize}
+
+The string representation of the local IP address the remote client is
+connecting on. For example, in a server listening on
+\texttt{\textquotesingle{}0.0.0.0\textquotesingle{}}, if a client
+connects on \texttt{\textquotesingle{}192.168.1.1\textquotesingle{}},
+the value of \texttt{socket.localAddress} would be
+\texttt{\textquotesingle{}192.168.1.1\textquotesingle{}}.
+
+\subsubsection{\texorpdfstring{\texttt{socket.localPort}}{socket.localPort}}\label{socket.localport}
+
+\begin{itemize}
+\tightlist
+\item
+  \{integer\}
+\end{itemize}
+
+The numeric representation of the local port. For example, \texttt{80}
+or \texttt{21}.
+
+\subsubsection{\texorpdfstring{\texttt{socket.localFamily}}{socket.localFamily}}\label{socket.localfamily}
+
+\begin{itemize}
+\tightlist
+\item
+  \{string\}
+\end{itemize}
+
+The string representation of the local IP family.
+\texttt{\textquotesingle{}IPv4\textquotesingle{}} or
+\texttt{\textquotesingle{}IPv6\textquotesingle{}}.
+
+\subsubsection{\texorpdfstring{\texttt{socket.pause()}}{socket.pause()}}\label{socket.pause}
+
+\begin{itemize}
+\tightlist
+\item
+  Returns: \{net.Socket\} The socket itself.
+\end{itemize}
+
+Pauses the reading of data. That is,
+\hyperref[event-data]{\texttt{\textquotesingle{}data\textquotesingle{}}}
+events will not be emitted. Useful to throttle back an upload.
+
+\subsubsection{\texorpdfstring{\texttt{socket.pending}}{socket.pending}}\label{socket.pending}
+
+\begin{itemize}
+\tightlist
+\item
+  \{boolean\}
+\end{itemize}
+
+This is \texttt{true} if the socket is not connected yet, either because
+\texttt{.connect()} has not yet been called or because it is still in
+the process of connecting (see
+\hyperref[socketconnecting]{\texttt{socket.connecting}}).
+
+\subsubsection{\texorpdfstring{\texttt{socket.ref()}}{socket.ref()}}\label{socket.ref}
+
+\begin{itemize}
+\tightlist
+\item
+  Returns: \{net.Socket\} The socket itself.
+\end{itemize}
+
+Opposite of \texttt{unref()}, calling \texttt{ref()} on a previously
+\texttt{unref}ed socket will \emph{not} let the program exit if it's the
+only socket left (the default behavior). If the socket is \texttt{ref}ed
+calling \texttt{ref} again will have no effect.
+
+\subsubsection{\texorpdfstring{\texttt{socket.remoteAddress}}{socket.remoteAddress}}\label{socket.remoteaddress}
+
+\begin{itemize}
+\tightlist
+\item
+  \{string\}
+\end{itemize}
+
+The string representation of the remote IP address. For example,
+\texttt{\textquotesingle{}74.125.127.100\textquotesingle{}} or
+\texttt{\textquotesingle{}2001:4860:a005::68\textquotesingle{}}. Value
+may be \texttt{undefined} if the socket is destroyed (for example, if
+the client disconnected).
+
+\subsubsection{\texorpdfstring{\texttt{socket.remoteFamily}}{socket.remoteFamily}}\label{socket.remotefamily}
+
+\begin{itemize}
+\tightlist
+\item
+  \{string\}
+\end{itemize}
+
+The string representation of the remote IP family.
+\texttt{\textquotesingle{}IPv4\textquotesingle{}} or
+\texttt{\textquotesingle{}IPv6\textquotesingle{}}. Value may be
+\texttt{undefined} if the socket is destroyed (for example, if the
+client disconnected).
+
+\subsubsection{\texorpdfstring{\texttt{socket.remotePort}}{socket.remotePort}}\label{socket.remoteport}
+
+\begin{itemize}
+\tightlist
+\item
+  \{integer\}
+\end{itemize}
+
+The numeric representation of the remote port. For example, \texttt{80}
+or \texttt{21}. Value may be \texttt{undefined} if the socket is
+destroyed (for example, if the client disconnected).
+
+\subsubsection{\texorpdfstring{\texttt{socket.resetAndDestroy()}}{socket.resetAndDestroy()}}\label{socket.resetanddestroy}
+
+\begin{itemize}
+\tightlist
+\item
+  Returns: \{net.Socket\}
+\end{itemize}
+
+Close the TCP connection by sending an RST packet and destroy the
+stream. If this TCP socket is in connecting status, it will send an RST
+packet and destroy this TCP socket once it is connected. Otherwise, it
+will call \texttt{socket.destroy} with an \texttt{ERR\_SOCKET\_CLOSED}
+Error. If this is not a TCP socket (for example, a pipe), calling this
+method will immediately throw an \texttt{ERR\_INVALID\_HANDLE\_TYPE}
+Error.
+
+\subsubsection{\texorpdfstring{\texttt{socket.resume()}}{socket.resume()}}\label{socket.resume}
+
+\begin{itemize}
+\tightlist
+\item
+  Returns: \{net.Socket\} The socket itself.
+\end{itemize}
+
+Resumes reading after a call to
+\hyperref[socketpause]{\texttt{socket.pause()}}.
+
+\subsubsection{\texorpdfstring{\texttt{socket.setEncoding({[}encoding{]})}}{socket.setEncoding({[}encoding{]})}}\label{socket.setencodingencoding}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{encoding} \{string\}
+\item
+  Returns: \{net.Socket\} The socket itself.
+\end{itemize}
+
+Set the encoding for the socket as a
+\href{stream.md\#class-streamreadable}{Readable Stream}. See
+\href{stream.md\#readablesetencodingencoding}{\texttt{readable.setEncoding()}}
+for more information.
+
+\subsubsection{\texorpdfstring{\texttt{socket.setKeepAlive({[}enable{]}{[},\ initialDelay{]})}}{socket.setKeepAlive({[}enable{]}{[}, initialDelay{]})}}\label{socket.setkeepaliveenable-initialdelay}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{enable} \{boolean\} \textbf{Default:} \texttt{false}
+\item
+  \texttt{initialDelay} \{number\} \textbf{Default:} \texttt{0}
+\item
+  Returns: \{net.Socket\} The socket itself.
+\end{itemize}
+
+Enable/disable keep-alive functionality, and optionally set the initial
+delay before the first keepalive probe is sent on an idle socket.
+
+Set \texttt{initialDelay} (in milliseconds) to set the delay between the
+last data packet received and the first keepalive probe. Setting
+\texttt{0} for \texttt{initialDelay} will leave the value unchanged from
+the default (or previous) setting.
+
+Enabling the keep-alive functionality will set the following socket
+options:
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{SO\_KEEPALIVE=1}
+\item
+  \texttt{TCP\_KEEPIDLE=initialDelay}
+\item
+  \texttt{TCP\_KEEPCNT=10}
+\item
+  \texttt{TCP\_KEEPINTVL=1}
+\end{itemize}
+
+\subsubsection{\texorpdfstring{\texttt{socket.setNoDelay({[}noDelay{]})}}{socket.setNoDelay({[}noDelay{]})}}\label{socket.setnodelaynodelay}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{noDelay} \{boolean\} \textbf{Default:} \texttt{true}
+\item
+  Returns: \{net.Socket\} The socket itself.
+\end{itemize}
+
+Enable/disable the use of Nagle's algorithm.
+
+When a TCP connection is created, it will have Nagle's algorithm
+enabled.
+
+Nagle's algorithm delays data before it is sent via the network. It
+attempts to optimize throughput at the expense of latency.
+
+Passing \texttt{true} for \texttt{noDelay} or not passing an argument
+will disable Nagle's algorithm for the socket. Passing \texttt{false}
+for \texttt{noDelay} will enable Nagle's algorithm.
+
+\subsubsection{\texorpdfstring{\texttt{socket.setTimeout(timeout{[},\ callback{]})}}{socket.setTimeout(timeout{[}, callback{]})}}\label{socket.settimeouttimeout-callback}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{timeout} \{number\}
+\item
+  \texttt{callback} \{Function\}
+\item
+  Returns: \{net.Socket\} The socket itself.
+\end{itemize}
+
+Sets the socket to timeout after \texttt{timeout} milliseconds of
+inactivity on the socket. By default \texttt{net.Socket} do not have a
+timeout.
+
+When an idle timeout is triggered the socket will receive a
+\hyperref[event-timeout]{\texttt{\textquotesingle{}timeout\textquotesingle{}}}
+event but the connection will not be severed. The user must manually
+call \hyperref[socketenddata-encoding-callback]{\texttt{socket.end()}}
+or \hyperref[socketdestroyerror]{\texttt{socket.destroy()}} to end the
+connection.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{socket}\OperatorTok{.}\FunctionTok{setTimeout}\NormalTok{(}\DecValTok{3000}\NormalTok{)}\OperatorTok{;}
+\NormalTok{socket}\OperatorTok{.}\FunctionTok{on}\NormalTok{(}\StringTok{\textquotesingle{}timeout\textquotesingle{}}\OperatorTok{,}\NormalTok{ () }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+  \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\StringTok{\textquotesingle{}socket timeout\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{  socket}\OperatorTok{.}\FunctionTok{end}\NormalTok{()}\OperatorTok{;}
+\NormalTok{\})}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+If \texttt{timeout} is 0, then the existing idle timeout is disabled.
+
+The optional \texttt{callback} parameter will be added as a one-time
+listener for the
+\hyperref[event-timeout]{\texttt{\textquotesingle{}timeout\textquotesingle{}}}
+event.
+
+\subsubsection{\texorpdfstring{\texttt{socket.timeout}}{socket.timeout}}\label{socket.timeout}
+
+\begin{itemize}
+\tightlist
+\item
+  \{number\textbar undefined\}
+\end{itemize}
+
+The socket timeout in milliseconds as set by
+\hyperref[socketsettimeouttimeout-callback]{\texttt{socket.setTimeout()}}.
+It is \texttt{undefined} if a timeout has not been set.
+
+\subsubsection{\texorpdfstring{\texttt{socket.unref()}}{socket.unref()}}\label{socket.unref}
+
+\begin{itemize}
+\tightlist
+\item
+  Returns: \{net.Socket\} The socket itself.
+\end{itemize}
+
+Calling \texttt{unref()} on a socket will allow the program to exit if
+this is the only active socket in the event system. If the socket is
+already \texttt{unref}ed calling \texttt{unref()} again will have no
+effect.
+
+\subsubsection{\texorpdfstring{\texttt{socket.write(data{[},\ encoding{]}{[},\ callback{]})}}{socket.write(data{[}, encoding{]}{[}, callback{]})}}\label{socket.writedata-encoding-callback}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{data} \{string\textbar Buffer\textbar Uint8Array\}
+\item
+  \texttt{encoding} \{string\} Only used when data is \texttt{string}.
+  \textbf{Default:} \texttt{utf8}.
+\item
+  \texttt{callback} \{Function\}
+\item
+  Returns: \{boolean\}
+\end{itemize}
+
+Sends data on the socket. The second parameter specifies the encoding in
+the case of a string. It defaults to UTF8 encoding.
+
+Returns \texttt{true} if the entire data was flushed successfully to the
+kernel buffer. Returns \texttt{false} if all or part of the data was
+queued in user memory.
+\hyperref[event-drain]{\texttt{\textquotesingle{}drain\textquotesingle{}}}
+will be emitted when the buffer is again free.
+
+The optional \texttt{callback} parameter will be executed when the data
+is finally written out, which may not be immediately.
+
+See \texttt{Writable} stream
+\href{stream.md\#writablewritechunk-encoding-callback}{\texttt{write()}}
+method for more information.
+
+\subsubsection{\texorpdfstring{\texttt{socket.readyState}}{socket.readyState}}\label{socket.readystate}
+
+\begin{itemize}
+\tightlist
+\item
+  \{string\}
+\end{itemize}
+
+This property represents the state of the connection as a string.
+
+\begin{itemize}
+\tightlist
+\item
+  If the stream is connecting \texttt{socket.readyState} is
+  \texttt{opening}.
+\item
+  If the stream is readable and writable, it is \texttt{open}.
+\item
+  If the stream is readable and not writable, it is \texttt{readOnly}.
+\item
+  If the stream is not readable and writable, it is \texttt{writeOnly}.
+\end{itemize}
+
+\subsection{\texorpdfstring{\texttt{net.connect()}}{net.connect()}}\label{net.connect}
+
+Aliases to
+\hyperref[netcreateconnection]{\texttt{net.createConnection()}}.
+
+Possible signatures:
+
+\begin{itemize}
+\tightlist
+\item
+  \hyperref[netconnectoptions-connectlistener]{\texttt{net.connect(options{[},\ connectListener{]})}}
+\item
+  \hyperref[netconnectpath-connectlistener]{\texttt{net.connect(path{[},\ connectListener{]})}}
+  for \hyperref[ipc-support]{IPC} connections.
+\item
+  \hyperref[netconnectport-host-connectlistener]{\texttt{net.connect(port{[},\ host{]}{[},\ connectListener{]})}}
+  for TCP connections.
+\end{itemize}
+
+\subsubsection{\texorpdfstring{\texttt{net.connect(options{[},\ connectListener{]})}}{net.connect(options{[}, connectListener{]})}}\label{net.connectoptions-connectlistener}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{options} \{Object\}
+\item
+  \texttt{connectListener} \{Function\}
+\item
+  Returns: \{net.Socket\}
+\end{itemize}
+
+Alias to
+\hyperref[netcreateconnectionoptions-connectlistener]{\texttt{net.createConnection(options{[},\ connectListener{]})}}.
+
+\subsubsection{\texorpdfstring{\texttt{net.connect(path{[},\ connectListener{]})}}{net.connect(path{[}, connectListener{]})}}\label{net.connectpath-connectlistener}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{path} \{string\}
+\item
+  \texttt{connectListener} \{Function\}
+\item
+  Returns: \{net.Socket\}
+\end{itemize}
+
+Alias to
+\hyperref[netcreateconnectionpath-connectlistener]{\texttt{net.createConnection(path{[},\ connectListener{]})}}.
+
+\subsubsection{\texorpdfstring{\texttt{net.connect(port{[},\ host{]}{[},\ connectListener{]})}}{net.connect(port{[}, host{]}{[}, connectListener{]})}}\label{net.connectport-host-connectlistener}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{port} \{number\}
+\item
+  \texttt{host} \{string\}
+\item
+  \texttt{connectListener} \{Function\}
+\item
+  Returns: \{net.Socket\}
+\end{itemize}
+
+Alias to
+\hyperref[netcreateconnectionport-host-connectlistener]{\texttt{net.createConnection(port{[},\ host{]}{[},\ connectListener{]})}}.
+
+\subsection{\texorpdfstring{\texttt{net.createConnection()}}{net.createConnection()}}\label{net.createconnection}
+
+A factory function, which creates a new
+\hyperref[class-netsocket]{\texttt{net.Socket}}, immediately initiates
+connection with \hyperref[socketconnect]{\texttt{socket.connect()}},
+then returns the \texttt{net.Socket} that starts the connection.
+
+When the connection is established, a
+\hyperref[event-connect]{\texttt{\textquotesingle{}connect\textquotesingle{}}}
+event will be emitted on the returned socket. The last parameter
+\texttt{connectListener}, if supplied, will be added as a listener for
+the
+\hyperref[event-connect]{\texttt{\textquotesingle{}connect\textquotesingle{}}}
+event \textbf{once}.
+
+Possible signatures:
+
+\begin{itemize}
+\tightlist
+\item
+  \hyperref[netcreateconnectionoptions-connectlistener]{\texttt{net.createConnection(options{[},\ connectListener{]})}}
+\item
+  \hyperref[netcreateconnectionpath-connectlistener]{\texttt{net.createConnection(path{[},\ connectListener{]})}}
+  for \hyperref[ipc-support]{IPC} connections.
+\item
+  \hyperref[netcreateconnectionport-host-connectlistener]{\texttt{net.createConnection(port{[},\ host{]}{[},\ connectListener{]})}}
+  for TCP connections.
+\end{itemize}
+
+The \hyperref[netconnect]{\texttt{net.connect()}} function is an alias
+to this function.
+
+\subsubsection{\texorpdfstring{\texttt{net.createConnection(options{[},\ connectListener{]})}}{net.createConnection(options{[}, connectListener{]})}}\label{net.createconnectionoptions-connectlistener}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{options} \{Object\} Required. Will be passed to both the
+  \hyperref[new-netsocketoptions]{\texttt{new\ net.Socket({[}options{]})}}
+  call and the
+  \hyperref[socketconnectoptions-connectlistener]{\texttt{socket.connect(options{[},\ connectListener{]})}}
+  method.
+\item
+  \texttt{connectListener} \{Function\} Common parameter of the
+  \hyperref[netcreateconnection]{\texttt{net.createConnection()}}
+  functions. If supplied, will be added as a listener for the
+  \hyperref[event-connect]{\texttt{\textquotesingle{}connect\textquotesingle{}}}
+  event on the returned socket once.
+\item
+  Returns: \{net.Socket\} The newly created socket used to start the
+  connection.
+\end{itemize}
+
+For available options, see
+\hyperref[new-netsocketoptions]{\texttt{new\ net.Socket({[}options{]})}}
+and
+\hyperref[socketconnectoptions-connectlistener]{\texttt{socket.connect(options{[},\ connectListener{]})}}.
+
+Additional options:
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{timeout} \{number\} If set, will be used to call
+  \hyperref[socketsettimeouttimeout-callback]{\texttt{socket.setTimeout(timeout)}}
+  after the socket is created, but before it starts the connection.
+\end{itemize}
+
+Following is an example of a client of the echo server described in the
+\hyperref[netcreateserveroptions-connectionlistener]{\texttt{net.createServer()}}
+section:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ net }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:net\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\KeywordTok{const}\NormalTok{ client }\OperatorTok{=}\NormalTok{ net}\OperatorTok{.}\FunctionTok{createConnection}\NormalTok{(\{ }\DataTypeTok{port}\OperatorTok{:} \DecValTok{8124}\NormalTok{ \}}\OperatorTok{,}\NormalTok{ () }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+  \CommentTok{// \textquotesingle{}connect\textquotesingle{} listener.}
+  \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\StringTok{\textquotesingle{}connected to server!\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{  client}\OperatorTok{.}\FunctionTok{write}\NormalTok{(}\StringTok{\textquotesingle{}world!}\SpecialCharTok{\textbackslash{}r\textbackslash{}n}\StringTok{\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{\})}\OperatorTok{;}
+\NormalTok{client}\OperatorTok{.}\FunctionTok{on}\NormalTok{(}\StringTok{\textquotesingle{}data\textquotesingle{}}\OperatorTok{,}\NormalTok{ (data) }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+  \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(data}\OperatorTok{.}\FunctionTok{toString}\NormalTok{())}\OperatorTok{;}
+\NormalTok{  client}\OperatorTok{.}\FunctionTok{end}\NormalTok{()}\OperatorTok{;}
+\NormalTok{\})}\OperatorTok{;}
+\NormalTok{client}\OperatorTok{.}\FunctionTok{on}\NormalTok{(}\StringTok{\textquotesingle{}end\textquotesingle{}}\OperatorTok{,}\NormalTok{ () }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+  \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\StringTok{\textquotesingle{}disconnected from server\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{\})}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+To connect on the socket \texttt{/tmp/echo.sock}:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ client }\OperatorTok{=}\NormalTok{ net}\OperatorTok{.}\FunctionTok{createConnection}\NormalTok{(\{ }\DataTypeTok{path}\OperatorTok{:} \StringTok{\textquotesingle{}/tmp/echo.sock\textquotesingle{}}\NormalTok{ \})}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+\subsubsection{\texorpdfstring{\texttt{net.createConnection(path{[},\ connectListener{]})}}{net.createConnection(path{[}, connectListener{]})}}\label{net.createconnectionpath-connectlistener}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{path} \{string\} Path the socket should connect to. Will be
+  passed to
+  \hyperref[socketconnectpath-connectlistener]{\texttt{socket.connect(path{[},\ connectListener{]})}}.
+  See \hyperref[identifying-paths-for-ipc-connections]{Identifying paths
+  for IPC connections}.
+\item
+  \texttt{connectListener} \{Function\} Common parameter of the
+  \hyperref[netcreateconnection]{\texttt{net.createConnection()}}
+  functions, an ``once'' listener for the
+  \texttt{\textquotesingle{}connect\textquotesingle{}} event on the
+  initiating socket. Will be passed to
+  \hyperref[socketconnectpath-connectlistener]{\texttt{socket.connect(path{[},\ connectListener{]})}}.
+\item
+  Returns: \{net.Socket\} The newly created socket used to start the
+  connection.
+\end{itemize}
+
+Initiates an \hyperref[ipc-support]{IPC} connection.
+
+This function creates a new
+\hyperref[class-netsocket]{\texttt{net.Socket}} with all options set to
+default, immediately initiates connection with
+\hyperref[socketconnectpath-connectlistener]{\texttt{socket.connect(path{[},\ connectListener{]})}},
+then returns the \texttt{net.Socket} that starts the connection.
+
+\subsubsection{\texorpdfstring{\texttt{net.createConnection(port{[},\ host{]}{[},\ connectListener{]})}}{net.createConnection(port{[}, host{]}{[}, connectListener{]})}}\label{net.createconnectionport-host-connectlistener}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{port} \{number\} Port the socket should connect to. Will be
+  passed to
+  \hyperref[socketconnectport-host-connectlistener]{\texttt{socket.connect(port{[},\ host{]}{[},\ connectListener{]})}}.
+\item
+  \texttt{host} \{string\} Host the socket should connect to. Will be
+  passed to
+  \hyperref[socketconnectport-host-connectlistener]{\texttt{socket.connect(port{[},\ host{]}{[},\ connectListener{]})}}.
+  \textbf{Default:}
+  \texttt{\textquotesingle{}localhost\textquotesingle{}}.
+\item
+  \texttt{connectListener} \{Function\} Common parameter of the
+  \hyperref[netcreateconnection]{\texttt{net.createConnection()}}
+  functions, an ``once'' listener for the
+  \texttt{\textquotesingle{}connect\textquotesingle{}} event on the
+  initiating socket. Will be passed to
+  \hyperref[socketconnectport-host-connectlistener]{\texttt{socket.connect(port{[},\ host{]}{[},\ connectListener{]})}}.
+\item
+  Returns: \{net.Socket\} The newly created socket used to start the
+  connection.
+\end{itemize}
+
+Initiates a TCP connection.
+
+This function creates a new
+\hyperref[class-netsocket]{\texttt{net.Socket}} with all options set to
+default, immediately initiates connection with
+\hyperref[socketconnectport-host-connectlistener]{\texttt{socket.connect(port{[},\ host{]}{[},\ connectListener{]})}},
+then returns the \texttt{net.Socket} that starts the connection.
+
+\subsection{\texorpdfstring{\texttt{net.createServer({[}options{]}{[},\ connectionListener{]})}}{net.createServer({[}options{]}{[}, connectionListener{]})}}\label{net.createserveroptions-connectionlistener}
+
+\begin{itemize}
+\item
+  \texttt{options} \{Object\}
+
+  \begin{itemize}
+  \tightlist
+  \item
+    \texttt{allowHalfOpen} \{boolean\} If set to \texttt{false}, then
+    the socket will automatically end the writable side when the
+    readable side ends. \textbf{Default:} \texttt{false}.
+  \item
+    \texttt{highWaterMark} \{number\} Optionally overrides all
+    \hyperref[class-netsocket]{\texttt{net.Socket}}s'
+    \texttt{readableHighWaterMark} and \texttt{writableHighWaterMark}.
+    \textbf{Default:} See
+    \href{stream.md\#streamgetdefaulthighwatermarkobjectmode}{\texttt{stream.getDefaultHighWaterMark()}}.
+  \item
+    \texttt{pauseOnConnect} \{boolean\} Indicates whether the socket
+    should be paused on incoming connections. \textbf{Default:}
+    \texttt{false}.
+  \item
+    \texttt{noDelay} \{boolean\} If set to \texttt{true}, it disables
+    the use of Nagle's algorithm immediately after a new incoming
+    connection is received. \textbf{Default:} \texttt{false}.
+  \item
+    \texttt{keepAlive} \{boolean\} If set to \texttt{true}, it enables
+    keep-alive functionality on the socket immediately after a new
+    incoming connection is received, similarly on what is done in
+    \hyperref[socketsetkeepaliveenable-initialdelay]{\texttt{socket.setKeepAlive({[}enable{]}{[},\ initialDelay{]})}}.
+    \textbf{Default:} \texttt{false}.
+  \item
+    \texttt{keepAliveInitialDelay} \{number\} If set to a positive
+    number, it sets the initial delay before the first keepalive probe
+    is sent on an idle socket.\textbf{Default:} \texttt{0}.
+  \end{itemize}
+\item
+  \texttt{connectionListener} \{Function\} Automatically set as a
+  listener for the
+  \hyperref[event-connection]{\texttt{\textquotesingle{}connection\textquotesingle{}}}
+  event.
+\item
+  Returns: \{net.Server\}
+\end{itemize}
+
+Creates a new TCP or \hyperref[ipc-support]{IPC} server.
+
+If \texttt{allowHalfOpen} is set to \texttt{true}, when the other end of
+the socket signals the end of transmission, the server will only send
+back the end of transmission when
+\hyperref[socketenddata-encoding-callback]{\texttt{socket.end()}} is
+explicitly called. For example, in the context of TCP, when a FIN packed
+is received, a FIN packed is sent back only when
+\hyperref[socketenddata-encoding-callback]{\texttt{socket.end()}} is
+explicitly called. Until then the connection is half-closed
+(non-readable but still writable). See
+\hyperref[event-end]{\texttt{\textquotesingle{}end\textquotesingle{}}}
+event and \href{https://tools.ietf.org/html/rfc1122}{RFC 1122} (section
+4.2.2.13) for more information.
+
+If \texttt{pauseOnConnect} is set to \texttt{true}, then the socket
+associated with each incoming connection will be paused, and no data
+will be read from its handle. This allows connections to be passed
+between processes without any data being read by the original process.
+To begin reading data from a paused socket, call
+\hyperref[socketresume]{\texttt{socket.resume()}}.
+
+The server can be a TCP server or an \hyperref[ipc-support]{IPC} server,
+depending on what it \hyperref[serverlisten]{\texttt{listen()}} to.
+
+Here is an example of a TCP echo server which listens for connections on
+port 8124:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ net }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:net\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\KeywordTok{const}\NormalTok{ server }\OperatorTok{=}\NormalTok{ net}\OperatorTok{.}\FunctionTok{createServer}\NormalTok{((c) }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+  \CommentTok{// \textquotesingle{}connection\textquotesingle{} listener.}
+  \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\StringTok{\textquotesingle{}client connected\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{  c}\OperatorTok{.}\FunctionTok{on}\NormalTok{(}\StringTok{\textquotesingle{}end\textquotesingle{}}\OperatorTok{,}\NormalTok{ () }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+    \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\StringTok{\textquotesingle{}client disconnected\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{  \})}\OperatorTok{;}
+\NormalTok{  c}\OperatorTok{.}\FunctionTok{write}\NormalTok{(}\StringTok{\textquotesingle{}hello}\SpecialCharTok{\textbackslash{}r\textbackslash{}n}\StringTok{\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{  c}\OperatorTok{.}\FunctionTok{pipe}\NormalTok{(c)}\OperatorTok{;}
+\NormalTok{\})}\OperatorTok{;}
+\NormalTok{server}\OperatorTok{.}\FunctionTok{on}\NormalTok{(}\StringTok{\textquotesingle{}error\textquotesingle{}}\OperatorTok{,}\NormalTok{ (err) }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+  \ControlFlowTok{throw}\NormalTok{ err}\OperatorTok{;}
+\NormalTok{\})}\OperatorTok{;}
+\NormalTok{server}\OperatorTok{.}\FunctionTok{listen}\NormalTok{(}\DecValTok{8124}\OperatorTok{,}\NormalTok{ () }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+  \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\StringTok{\textquotesingle{}server bound\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{\})}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+Test this by using \texttt{telnet}:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\ExtensionTok{telnet}\NormalTok{ localhost 8124}
+\end{Highlighting}
+\end{Shaded}
+
+To listen on the socket \texttt{/tmp/echo.sock}:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{server}\OperatorTok{.}\FunctionTok{listen}\NormalTok{(}\StringTok{\textquotesingle{}/tmp/echo.sock\textquotesingle{}}\OperatorTok{,}\NormalTok{ () }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+  \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\StringTok{\textquotesingle{}server bound\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{\})}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+Use \texttt{nc} to connect to a Unix domain socket server:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\ExtensionTok{nc} \AttributeTok{{-}U}\NormalTok{ /tmp/echo.sock}
+\end{Highlighting}
+\end{Shaded}
+
+\subsection{\texorpdfstring{\texttt{net.getDefaultAutoSelectFamily()}}{net.getDefaultAutoSelectFamily()}}\label{net.getdefaultautoselectfamily}
+
+Gets the current default value of the \texttt{autoSelectFamily}~option
+of
+\hyperref[socketconnectoptions-connectlistener]{\texttt{socket.connect(options)}}.
+The initial default value is \texttt{true}, unless the command line
+option \texttt{-\/-no-network-family-autoselection} is provided.
+
+\begin{itemize}
+\tightlist
+\item
+  Returns: \{boolean\} The current default value of the
+  \texttt{autoSelectFamily} option.
+\end{itemize}
+
+\subsection{\texorpdfstring{\texttt{net.setDefaultAutoSelectFamily(value)}}{net.setDefaultAutoSelectFamily(value)}}\label{net.setdefaultautoselectfamilyvalue}
+
+Sets the default value of the \texttt{autoSelectFamily}~option of
+\hyperref[socketconnectoptions-connectlistener]{\texttt{socket.connect(options)}}.
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{value} \{boolean\}~The new default value. The initial default
+  value is \texttt{false}.
+\end{itemize}
+
+\subsection{\texorpdfstring{\texttt{net.getDefaultAutoSelectFamilyAttemptTimeout()}}{net.getDefaultAutoSelectFamilyAttemptTimeout()}}\label{net.getdefaultautoselectfamilyattempttimeout}
+
+Gets the current default value of the
+\texttt{autoSelectFamilyAttemptTimeout}~option of
+\hyperref[socketconnectoptions-connectlistener]{\texttt{socket.connect(options)}}.
+The initial default value is \texttt{250}.
+
+\begin{itemize}
+\tightlist
+\item
+  Returns: \{number\} The current default value of the
+  \texttt{autoSelectFamilyAttemptTimeout} option.
+\end{itemize}
+
+\subsection{\texorpdfstring{\texttt{net.setDefaultAutoSelectFamilyAttemptTimeout(value)}}{net.setDefaultAutoSelectFamilyAttemptTimeout(value)}}\label{net.setdefaultautoselectfamilyattempttimeoutvalue}
+
+Sets the default value of the
+\texttt{autoSelectFamilyAttemptTimeout}~option of
+\hyperref[socketconnectoptions-connectlistener]{\texttt{socket.connect(options)}}.
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{value} \{number\}~The new default value, which must be a
+  positive number. If the number is less than \texttt{10}, the value
+  \texttt{10} is used instead. The initial default value is
+  \texttt{250}.
+\end{itemize}
+
+\subsection{\texorpdfstring{\texttt{net.isIP(input)}}{net.isIP(input)}}\label{net.isipinput}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{input} \{string\}
+\item
+  Returns: \{integer\}
+\end{itemize}
+
+Returns \texttt{6} if \texttt{input} is an IPv6 address. Returns
+\texttt{4} if \texttt{input} is an IPv4 address in
+\href{https://en.wikipedia.org/wiki/Dot-decimal_notation}{dot-decimal
+notation} with no leading zeroes. Otherwise, returns \texttt{0}.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{net}\OperatorTok{.}\FunctionTok{isIP}\NormalTok{(}\StringTok{\textquotesingle{}::1\textquotesingle{}}\NormalTok{)}\OperatorTok{;} \CommentTok{// returns 6}
+\NormalTok{net}\OperatorTok{.}\FunctionTok{isIP}\NormalTok{(}\StringTok{\textquotesingle{}127.0.0.1\textquotesingle{}}\NormalTok{)}\OperatorTok{;} \CommentTok{// returns 4}
+\NormalTok{net}\OperatorTok{.}\FunctionTok{isIP}\NormalTok{(}\StringTok{\textquotesingle{}127.000.000.001\textquotesingle{}}\NormalTok{)}\OperatorTok{;} \CommentTok{// returns 0}
+\NormalTok{net}\OperatorTok{.}\FunctionTok{isIP}\NormalTok{(}\StringTok{\textquotesingle{}127.0.0.1/24\textquotesingle{}}\NormalTok{)}\OperatorTok{;} \CommentTok{// returns 0}
+\NormalTok{net}\OperatorTok{.}\FunctionTok{isIP}\NormalTok{(}\StringTok{\textquotesingle{}fhqwhgads\textquotesingle{}}\NormalTok{)}\OperatorTok{;} \CommentTok{// returns 0}
+\end{Highlighting}
+\end{Shaded}
+
+\subsection{\texorpdfstring{\texttt{net.isIPv4(input)}}{net.isIPv4(input)}}\label{net.isipv4input}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{input} \{string\}
+\item
+  Returns: \{boolean\}
+\end{itemize}
+
+Returns \texttt{true} if \texttt{input} is an IPv4 address in
+\href{https://en.wikipedia.org/wiki/Dot-decimal_notation}{dot-decimal
+notation} with no leading zeroes. Otherwise, returns \texttt{false}.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{net}\OperatorTok{.}\FunctionTok{isIPv4}\NormalTok{(}\StringTok{\textquotesingle{}127.0.0.1\textquotesingle{}}\NormalTok{)}\OperatorTok{;} \CommentTok{// returns true}
+\NormalTok{net}\OperatorTok{.}\FunctionTok{isIPv4}\NormalTok{(}\StringTok{\textquotesingle{}127.000.000.001\textquotesingle{}}\NormalTok{)}\OperatorTok{;} \CommentTok{// returns false}
+\NormalTok{net}\OperatorTok{.}\FunctionTok{isIPv4}\NormalTok{(}\StringTok{\textquotesingle{}127.0.0.1/24\textquotesingle{}}\NormalTok{)}\OperatorTok{;} \CommentTok{// returns false}
+\NormalTok{net}\OperatorTok{.}\FunctionTok{isIPv4}\NormalTok{(}\StringTok{\textquotesingle{}fhqwhgads\textquotesingle{}}\NormalTok{)}\OperatorTok{;} \CommentTok{// returns false}
+\end{Highlighting}
+\end{Shaded}
+
+\subsection{\texorpdfstring{\texttt{net.isIPv6(input)}}{net.isIPv6(input)}}\label{net.isipv6input}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{input} \{string\}
+\item
+  Returns: \{boolean\}
+\end{itemize}
+
+Returns \texttt{true} if \texttt{input} is an IPv6 address. Otherwise,
+returns \texttt{false}.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{net}\OperatorTok{.}\FunctionTok{isIPv6}\NormalTok{(}\StringTok{\textquotesingle{}::1\textquotesingle{}}\NormalTok{)}\OperatorTok{;} \CommentTok{// returns true}
+\NormalTok{net}\OperatorTok{.}\FunctionTok{isIPv6}\NormalTok{(}\StringTok{\textquotesingle{}fhqwhgads\textquotesingle{}}\NormalTok{)}\OperatorTok{;} \CommentTok{// returns false}
+\end{Highlighting}
+\end{Shaded}

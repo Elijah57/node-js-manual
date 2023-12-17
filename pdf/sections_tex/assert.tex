@@ -1,0 +1,2718 @@
+\section{Assert}\label{assert}
+
+\begin{quote}
+Stability: 2 - Stable
+\end{quote}
+
+The \texttt{node:assert} module provides a set of assertion functions
+for verifying invariants.
+
+\subsection{Strict assertion mode}\label{strict-assertion-mode}
+
+In strict assertion mode, non-strict methods behave like their
+corresponding strict methods. For example,
+\hyperref[assertdeepequalactual-expected-message]{\texttt{assert.deepEqual()}}
+will behave like
+\hyperref[assertdeepstrictequalactual-expected-message]{\texttt{assert.deepStrictEqual()}}.
+
+In strict assertion mode, error messages for objects display a diff. In
+legacy assertion mode, error messages for objects display the objects,
+often truncated.
+
+To use strict assertion mode:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\ImportTok{import}\NormalTok{ \{ strict }\ImportTok{as}\NormalTok{ assert \} }\ImportTok{from} \StringTok{\textquotesingle{}node:assert\textquotesingle{}}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ assert }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:assert\textquotesingle{}}\NormalTok{)}\OperatorTok{.}\AttributeTok{strict}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\ImportTok{import}\NormalTok{ assert }\ImportTok{from} \StringTok{\textquotesingle{}node:assert/strict\textquotesingle{}}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ assert }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:assert/strict\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+Example error diff:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\ImportTok{import}\NormalTok{ \{ strict }\ImportTok{as}\NormalTok{ assert \} }\ImportTok{from} \StringTok{\textquotesingle{}node:assert\textquotesingle{}}\OperatorTok{;}
+
+\NormalTok{assert}\OperatorTok{.}\FunctionTok{deepEqual}\NormalTok{([[[}\DecValTok{1}\OperatorTok{,} \DecValTok{2}\OperatorTok{,} \DecValTok{3}\NormalTok{]]}\OperatorTok{,} \DecValTok{4}\OperatorTok{,} \DecValTok{5}\NormalTok{]}\OperatorTok{,}\NormalTok{ [[[}\DecValTok{1}\OperatorTok{,} \DecValTok{2}\OperatorTok{,} \StringTok{\textquotesingle{}3\textquotesingle{}}\NormalTok{]]}\OperatorTok{,} \DecValTok{4}\OperatorTok{,} \DecValTok{5}\NormalTok{])}\OperatorTok{;}
+\CommentTok{// AssertionError: Expected inputs to be strictly deep{-}equal:}
+\CommentTok{// + actual {-} expected ... Lines skipped}
+\CommentTok{//}
+\CommentTok{//   [}
+\CommentTok{//     [}
+\CommentTok{// ...}
+\CommentTok{//       2,}
+\CommentTok{// +     3}
+\CommentTok{// {-}     \textquotesingle{}3\textquotesingle{}}
+\CommentTok{//     ],}
+\CommentTok{// ...}
+\CommentTok{//     5}
+\CommentTok{//   ]}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ assert }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:assert/strict\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+
+\NormalTok{assert}\OperatorTok{.}\FunctionTok{deepEqual}\NormalTok{([[[}\DecValTok{1}\OperatorTok{,} \DecValTok{2}\OperatorTok{,} \DecValTok{3}\NormalTok{]]}\OperatorTok{,} \DecValTok{4}\OperatorTok{,} \DecValTok{5}\NormalTok{]}\OperatorTok{,}\NormalTok{ [[[}\DecValTok{1}\OperatorTok{,} \DecValTok{2}\OperatorTok{,} \StringTok{\textquotesingle{}3\textquotesingle{}}\NormalTok{]]}\OperatorTok{,} \DecValTok{4}\OperatorTok{,} \DecValTok{5}\NormalTok{])}\OperatorTok{;}
+\CommentTok{// AssertionError: Expected inputs to be strictly deep{-}equal:}
+\CommentTok{// + actual {-} expected ... Lines skipped}
+\CommentTok{//}
+\CommentTok{//   [}
+\CommentTok{//     [}
+\CommentTok{// ...}
+\CommentTok{//       2,}
+\CommentTok{// +     3}
+\CommentTok{// {-}     \textquotesingle{}3\textquotesingle{}}
+\CommentTok{//     ],}
+\CommentTok{// ...}
+\CommentTok{//     5}
+\CommentTok{//   ]}
+\end{Highlighting}
+\end{Shaded}
+
+To deactivate the colors, use the \texttt{NO\_COLOR} or
+\texttt{NODE\_DISABLE\_COLORS} environment variables. This will also
+deactivate the colors in the REPL. For more on color support in terminal
+environments, read the tty
+\href{tty.md\#writestreamgetcolordepthenv}{\texttt{getColorDepth()}}
+documentation.
+
+\subsection{Legacy assertion mode}\label{legacy-assertion-mode}
+
+Legacy assertion mode uses the
+\href{https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Equality}{\texttt{==}
+operator} in:
+
+\begin{itemize}
+\tightlist
+\item
+  \hyperref[assertdeepequalactual-expected-message]{\texttt{assert.deepEqual()}}
+\item
+  \hyperref[assertequalactual-expected-message]{\texttt{assert.equal()}}
+\item
+  \hyperref[assertnotdeepequalactual-expected-message]{\texttt{assert.notDeepEqual()}}
+\item
+  \hyperref[assertnotequalactual-expected-message]{\texttt{assert.notEqual()}}
+\end{itemize}
+
+To use legacy assertion mode:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\ImportTok{import}\NormalTok{ assert }\ImportTok{from} \StringTok{\textquotesingle{}node:assert\textquotesingle{}}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ assert }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:assert\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+Legacy assertion mode may have surprising results, especially when using
+\hyperref[assertdeepequalactual-expected-message]{\texttt{assert.deepEqual()}}:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{// }\AlertTok{WARNING}\CommentTok{: This does not throw an AssertionError in legacy assertion mode!}
+\NormalTok{assert}\OperatorTok{.}\FunctionTok{deepEqual}\NormalTok{(}\SpecialStringTok{/a/gi}\OperatorTok{,} \KeywordTok{new} \BuiltInTok{Date}\NormalTok{())}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+\subsection{Class:
+assert.AssertionError}\label{class-assert.assertionerror}
+
+\begin{itemize}
+\tightlist
+\item
+  Extends: \{errors.Error\}
+\end{itemize}
+
+Indicates the failure of an assertion. All errors thrown by the
+\texttt{node:assert} module will be instances of the
+\texttt{AssertionError} class.
+
+\subsubsection{\texorpdfstring{\texttt{new\ assert.AssertionError(options)}}{new assert.AssertionError(options)}}\label{new-assert.assertionerroroptions}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{options} \{Object\}
+
+  \begin{itemize}
+  \tightlist
+  \item
+    \texttt{message} \{string\} If provided, the error message is set to
+    this value.
+  \item
+    \texttt{actual} \{any\} The \texttt{actual} property on the error
+    instance.
+  \item
+    \texttt{expected} \{any\} The \texttt{expected} property on the
+    error instance.
+  \item
+    \texttt{operator} \{string\} The \texttt{operator} property on the
+    error instance.
+  \item
+    \texttt{stackStartFn} \{Function\} If provided, the generated stack
+    trace omits frames before this function.
+  \end{itemize}
+\end{itemize}
+
+A subclass of \texttt{Error} that indicates the failure of an assertion.
+
+All instances contain the built-in \texttt{Error} properties
+(\texttt{message} and \texttt{name}) and:
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{actual} \{any\} Set to the \texttt{actual} argument for
+  methods such as
+  \hyperref[assertstrictequalactual-expected-message]{\texttt{assert.strictEqual()}}.
+\item
+  \texttt{expected} \{any\} Set to the \texttt{expected} value for
+  methods such as
+  \hyperref[assertstrictequalactual-expected-message]{\texttt{assert.strictEqual()}}.
+\item
+  \texttt{generatedMessage} \{boolean\} Indicates if the message was
+  auto-generated (\texttt{true}) or not.
+\item
+  \texttt{code} \{string\} Value is always \texttt{ERR\_ASSERTION} to
+  show that the error is an assertion error.
+\item
+  \texttt{operator} \{string\} Set to the passed in operator value.
+\end{itemize}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\ImportTok{import}\NormalTok{ assert }\ImportTok{from} \StringTok{\textquotesingle{}node:assert\textquotesingle{}}\OperatorTok{;}
+
+\CommentTok{// Generate an AssertionError to compare the error message later:}
+\KeywordTok{const}\NormalTok{ \{ message \} }\OperatorTok{=} \KeywordTok{new}\NormalTok{ assert}\OperatorTok{.}\FunctionTok{AssertionError}\NormalTok{(\{}
+  \DataTypeTok{actual}\OperatorTok{:} \DecValTok{1}\OperatorTok{,}
+  \DataTypeTok{expected}\OperatorTok{:} \DecValTok{2}\OperatorTok{,}
+  \DataTypeTok{operator}\OperatorTok{:} \StringTok{\textquotesingle{}strictEqual\textquotesingle{}}\OperatorTok{,}
+\NormalTok{\})}\OperatorTok{;}
+
+\CommentTok{// Verify error output:}
+\ControlFlowTok{try}\NormalTok{ \{}
+\NormalTok{  assert}\OperatorTok{.}\FunctionTok{strictEqual}\NormalTok{(}\DecValTok{1}\OperatorTok{,} \DecValTok{2}\NormalTok{)}\OperatorTok{;}
+\NormalTok{\} }\ControlFlowTok{catch}\NormalTok{ (err) \{}
+  \FunctionTok{assert}\NormalTok{(err }\KeywordTok{instanceof}\NormalTok{ assert}\OperatorTok{.}\AttributeTok{AssertionError}\NormalTok{)}\OperatorTok{;}
+\NormalTok{  assert}\OperatorTok{.}\FunctionTok{strictEqual}\NormalTok{(err}\OperatorTok{.}\AttributeTok{message}\OperatorTok{,}\NormalTok{ message)}\OperatorTok{;}
+\NormalTok{  assert}\OperatorTok{.}\FunctionTok{strictEqual}\NormalTok{(err}\OperatorTok{.}\AttributeTok{name}\OperatorTok{,} \StringTok{\textquotesingle{}AssertionError\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{  assert}\OperatorTok{.}\FunctionTok{strictEqual}\NormalTok{(err}\OperatorTok{.}\AttributeTok{actual}\OperatorTok{,} \DecValTok{1}\NormalTok{)}\OperatorTok{;}
+\NormalTok{  assert}\OperatorTok{.}\FunctionTok{strictEqual}\NormalTok{(err}\OperatorTok{.}\AttributeTok{expected}\OperatorTok{,} \DecValTok{2}\NormalTok{)}\OperatorTok{;}
+\NormalTok{  assert}\OperatorTok{.}\FunctionTok{strictEqual}\NormalTok{(err}\OperatorTok{.}\AttributeTok{code}\OperatorTok{,} \StringTok{\textquotesingle{}ERR\_ASSERTION\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{  assert}\OperatorTok{.}\FunctionTok{strictEqual}\NormalTok{(err}\OperatorTok{.}\AttributeTok{operator}\OperatorTok{,} \StringTok{\textquotesingle{}strictEqual\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{  assert}\OperatorTok{.}\FunctionTok{strictEqual}\NormalTok{(err}\OperatorTok{.}\AttributeTok{generatedMessage}\OperatorTok{,} \KeywordTok{true}\NormalTok{)}\OperatorTok{;}
+\NormalTok{\}}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ assert }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:assert\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+
+\CommentTok{// Generate an AssertionError to compare the error message later:}
+\KeywordTok{const}\NormalTok{ \{ message \} }\OperatorTok{=} \KeywordTok{new}\NormalTok{ assert}\OperatorTok{.}\FunctionTok{AssertionError}\NormalTok{(\{}
+  \DataTypeTok{actual}\OperatorTok{:} \DecValTok{1}\OperatorTok{,}
+  \DataTypeTok{expected}\OperatorTok{:} \DecValTok{2}\OperatorTok{,}
+  \DataTypeTok{operator}\OperatorTok{:} \StringTok{\textquotesingle{}strictEqual\textquotesingle{}}\OperatorTok{,}
+\NormalTok{\})}\OperatorTok{;}
+
+\CommentTok{// Verify error output:}
+\ControlFlowTok{try}\NormalTok{ \{}
+\NormalTok{  assert}\OperatorTok{.}\FunctionTok{strictEqual}\NormalTok{(}\DecValTok{1}\OperatorTok{,} \DecValTok{2}\NormalTok{)}\OperatorTok{;}
+\NormalTok{\} }\ControlFlowTok{catch}\NormalTok{ (err) \{}
+  \FunctionTok{assert}\NormalTok{(err }\KeywordTok{instanceof}\NormalTok{ assert}\OperatorTok{.}\AttributeTok{AssertionError}\NormalTok{)}\OperatorTok{;}
+\NormalTok{  assert}\OperatorTok{.}\FunctionTok{strictEqual}\NormalTok{(err}\OperatorTok{.}\AttributeTok{message}\OperatorTok{,}\NormalTok{ message)}\OperatorTok{;}
+\NormalTok{  assert}\OperatorTok{.}\FunctionTok{strictEqual}\NormalTok{(err}\OperatorTok{.}\AttributeTok{name}\OperatorTok{,} \StringTok{\textquotesingle{}AssertionError\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{  assert}\OperatorTok{.}\FunctionTok{strictEqual}\NormalTok{(err}\OperatorTok{.}\AttributeTok{actual}\OperatorTok{,} \DecValTok{1}\NormalTok{)}\OperatorTok{;}
+\NormalTok{  assert}\OperatorTok{.}\FunctionTok{strictEqual}\NormalTok{(err}\OperatorTok{.}\AttributeTok{expected}\OperatorTok{,} \DecValTok{2}\NormalTok{)}\OperatorTok{;}
+\NormalTok{  assert}\OperatorTok{.}\FunctionTok{strictEqual}\NormalTok{(err}\OperatorTok{.}\AttributeTok{code}\OperatorTok{,} \StringTok{\textquotesingle{}ERR\_ASSERTION\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{  assert}\OperatorTok{.}\FunctionTok{strictEqual}\NormalTok{(err}\OperatorTok{.}\AttributeTok{operator}\OperatorTok{,} \StringTok{\textquotesingle{}strictEqual\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{  assert}\OperatorTok{.}\FunctionTok{strictEqual}\NormalTok{(err}\OperatorTok{.}\AttributeTok{generatedMessage}\OperatorTok{,} \KeywordTok{true}\NormalTok{)}\OperatorTok{;}
+\NormalTok{\}}
+\end{Highlighting}
+\end{Shaded}
+
+\subsection{\texorpdfstring{Class:
+\texttt{assert.CallTracker}}{Class: assert.CallTracker}}\label{class-assert.calltracker}
+
+\begin{quote}
+Stability: 0 - Deprecated
+\end{quote}
+
+This feature is deprecated and will be removed in a future version.
+Please consider using alternatives such as the
+\href{test.md\#mocking}{\texttt{mock}} helper function.
+
+\subsubsection{\texorpdfstring{\texttt{new\ assert.CallTracker()}}{new assert.CallTracker()}}\label{new-assert.calltracker}
+
+Creates a new \hyperref[class-assertcalltracker]{\texttt{CallTracker}}
+object which can be used to track if functions were called a specific
+number of times. The \texttt{tracker.verify()} must be called for the
+verification to take place. The usual pattern would be to call it in a
+\href{process.md\#event-exit}{\texttt{process.on(\textquotesingle{}exit\textquotesingle{})}}
+handler.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\ImportTok{import}\NormalTok{ assert }\ImportTok{from} \StringTok{\textquotesingle{}node:assert\textquotesingle{}}\OperatorTok{;}
+\ImportTok{import} \BuiltInTok{process} \ImportTok{from} \StringTok{\textquotesingle{}node:process\textquotesingle{}}\OperatorTok{;}
+
+\KeywordTok{const}\NormalTok{ tracker }\OperatorTok{=} \KeywordTok{new}\NormalTok{ assert}\OperatorTok{.}\FunctionTok{CallTracker}\NormalTok{()}\OperatorTok{;}
+
+\KeywordTok{function} \FunctionTok{func}\NormalTok{() \{\}}
+
+\CommentTok{// callsfunc() must be called exactly 1 time before tracker.verify().}
+\KeywordTok{const}\NormalTok{ callsfunc }\OperatorTok{=}\NormalTok{ tracker}\OperatorTok{.}\FunctionTok{calls}\NormalTok{(func}\OperatorTok{,} \DecValTok{1}\NormalTok{)}\OperatorTok{;}
+
+\FunctionTok{callsfunc}\NormalTok{()}\OperatorTok{;}
+
+\CommentTok{// Calls tracker.verify() and verifies if all tracker.calls() functions have}
+\CommentTok{// been called exact times.}
+\BuiltInTok{process}\OperatorTok{.}\FunctionTok{on}\NormalTok{(}\StringTok{\textquotesingle{}exit\textquotesingle{}}\OperatorTok{,}\NormalTok{ () }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+\NormalTok{  tracker}\OperatorTok{.}\FunctionTok{verify}\NormalTok{()}\OperatorTok{;}
+\NormalTok{\})}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ assert }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:assert\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+
+\KeywordTok{const}\NormalTok{ tracker }\OperatorTok{=} \KeywordTok{new}\NormalTok{ assert}\OperatorTok{.}\FunctionTok{CallTracker}\NormalTok{()}\OperatorTok{;}
+
+\KeywordTok{function} \FunctionTok{func}\NormalTok{() \{\}}
+
+\CommentTok{// callsfunc() must be called exactly 1 time before tracker.verify().}
+\KeywordTok{const}\NormalTok{ callsfunc }\OperatorTok{=}\NormalTok{ tracker}\OperatorTok{.}\FunctionTok{calls}\NormalTok{(func}\OperatorTok{,} \DecValTok{1}\NormalTok{)}\OperatorTok{;}
+
+\FunctionTok{callsfunc}\NormalTok{()}\OperatorTok{;}
+
+\CommentTok{// Calls tracker.verify() and verifies if all tracker.calls() functions have}
+\CommentTok{// been called exact times.}
+\BuiltInTok{process}\OperatorTok{.}\FunctionTok{on}\NormalTok{(}\StringTok{\textquotesingle{}exit\textquotesingle{}}\OperatorTok{,}\NormalTok{ () }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+\NormalTok{  tracker}\OperatorTok{.}\FunctionTok{verify}\NormalTok{()}\OperatorTok{;}
+\NormalTok{\})}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+\subsubsection{\texorpdfstring{\texttt{tracker.calls({[}fn{]}{[},\ exact{]})}}{tracker.calls({[}fn{]}{[}, exact{]})}}\label{tracker.callsfn-exact}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{fn} \{Function\} \textbf{Default:} A no-op function.
+\item
+  \texttt{exact} \{number\} \textbf{Default:} \texttt{1}.
+\item
+  Returns: \{Function\} that wraps \texttt{fn}.
+\end{itemize}
+
+The wrapper function is expected to be called exactly \texttt{exact}
+times. If the function has not been called exactly \texttt{exact} times
+when \hyperref[trackerverify]{\texttt{tracker.verify()}} is called, then
+\hyperref[trackerverify]{\texttt{tracker.verify()}} will throw an error.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\ImportTok{import}\NormalTok{ assert }\ImportTok{from} \StringTok{\textquotesingle{}node:assert\textquotesingle{}}\OperatorTok{;}
+
+\CommentTok{// Creates call tracker.}
+\KeywordTok{const}\NormalTok{ tracker }\OperatorTok{=} \KeywordTok{new}\NormalTok{ assert}\OperatorTok{.}\FunctionTok{CallTracker}\NormalTok{()}\OperatorTok{;}
+
+\KeywordTok{function} \FunctionTok{func}\NormalTok{() \{\}}
+
+\CommentTok{// Returns a function that wraps func() that must be called exact times}
+\CommentTok{// before tracker.verify().}
+\KeywordTok{const}\NormalTok{ callsfunc }\OperatorTok{=}\NormalTok{ tracker}\OperatorTok{.}\FunctionTok{calls}\NormalTok{(func)}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ assert }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:assert\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+
+\CommentTok{// Creates call tracker.}
+\KeywordTok{const}\NormalTok{ tracker }\OperatorTok{=} \KeywordTok{new}\NormalTok{ assert}\OperatorTok{.}\FunctionTok{CallTracker}\NormalTok{()}\OperatorTok{;}
+
+\KeywordTok{function} \FunctionTok{func}\NormalTok{() \{\}}
+
+\CommentTok{// Returns a function that wraps func() that must be called exact times}
+\CommentTok{// before tracker.verify().}
+\KeywordTok{const}\NormalTok{ callsfunc }\OperatorTok{=}\NormalTok{ tracker}\OperatorTok{.}\FunctionTok{calls}\NormalTok{(func)}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+\subsubsection{\texorpdfstring{\texttt{tracker.getCalls(fn)}}{tracker.getCalls(fn)}}\label{tracker.getcallsfn}
+
+\begin{itemize}
+\item
+  \texttt{fn} \{Function\}.
+\item
+  Returns: \{Array\} with all the calls to a tracked function.
+\item
+  Object \{Object\}
+
+  \begin{itemize}
+  \tightlist
+  \item
+    \texttt{thisArg} \{Object\}
+  \item
+    \texttt{arguments} \{Array\} the arguments passed to the tracked
+    function
+  \end{itemize}
+\end{itemize}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\ImportTok{import}\NormalTok{ assert }\ImportTok{from} \StringTok{\textquotesingle{}node:assert\textquotesingle{}}\OperatorTok{;}
+
+\KeywordTok{const}\NormalTok{ tracker }\OperatorTok{=} \KeywordTok{new}\NormalTok{ assert}\OperatorTok{.}\FunctionTok{CallTracker}\NormalTok{()}\OperatorTok{;}
+
+\KeywordTok{function} \FunctionTok{func}\NormalTok{() \{\}}
+\KeywordTok{const}\NormalTok{ callsfunc }\OperatorTok{=}\NormalTok{ tracker}\OperatorTok{.}\FunctionTok{calls}\NormalTok{(func)}\OperatorTok{;}
+\FunctionTok{callsfunc}\NormalTok{(}\DecValTok{1}\OperatorTok{,} \DecValTok{2}\OperatorTok{,} \DecValTok{3}\NormalTok{)}\OperatorTok{;}
+
+\NormalTok{assert}\OperatorTok{.}\FunctionTok{deepStrictEqual}\NormalTok{(tracker}\OperatorTok{.}\FunctionTok{getCalls}\NormalTok{(callsfunc)}\OperatorTok{,}
+\NormalTok{                       [\{ }\DataTypeTok{thisArg}\OperatorTok{:} \KeywordTok{undefined}\OperatorTok{,} \DataTypeTok{arguments}\OperatorTok{:}\NormalTok{ [}\DecValTok{1}\OperatorTok{,} \DecValTok{2}\OperatorTok{,} \DecValTok{3}\NormalTok{] \}])}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ assert }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:assert\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+
+\CommentTok{// Creates call tracker.}
+\KeywordTok{const}\NormalTok{ tracker }\OperatorTok{=} \KeywordTok{new}\NormalTok{ assert}\OperatorTok{.}\FunctionTok{CallTracker}\NormalTok{()}\OperatorTok{;}
+
+\KeywordTok{function} \FunctionTok{func}\NormalTok{() \{\}}
+\KeywordTok{const}\NormalTok{ callsfunc }\OperatorTok{=}\NormalTok{ tracker}\OperatorTok{.}\FunctionTok{calls}\NormalTok{(func)}\OperatorTok{;}
+\FunctionTok{callsfunc}\NormalTok{(}\DecValTok{1}\OperatorTok{,} \DecValTok{2}\OperatorTok{,} \DecValTok{3}\NormalTok{)}\OperatorTok{;}
+
+\NormalTok{assert}\OperatorTok{.}\FunctionTok{deepStrictEqual}\NormalTok{(tracker}\OperatorTok{.}\FunctionTok{getCalls}\NormalTok{(callsfunc)}\OperatorTok{,}
+\NormalTok{                       [\{ }\DataTypeTok{thisArg}\OperatorTok{:} \KeywordTok{undefined}\OperatorTok{,} \DataTypeTok{arguments}\OperatorTok{:}\NormalTok{ [}\DecValTok{1}\OperatorTok{,} \DecValTok{2}\OperatorTok{,} \DecValTok{3}\NormalTok{] \}])}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+\subsubsection{\texorpdfstring{\texttt{tracker.report()}}{tracker.report()}}\label{tracker.report}
+
+\begin{itemize}
+\tightlist
+\item
+  Returns: \{Array\} of objects containing information about the wrapper
+  functions returned by
+  \hyperref[trackercallsfn-exact]{\texttt{tracker.calls()}}.
+\item
+  Object \{Object\}
+
+  \begin{itemize}
+  \tightlist
+  \item
+    \texttt{message} \{string\}
+  \item
+    \texttt{actual} \{number\} The actual number of times the function
+    was called.
+  \item
+    \texttt{expected} \{number\} The number of times the function was
+    expected to be called.
+  \item
+    \texttt{operator} \{string\} The name of the function that is
+    wrapped.
+  \item
+    \texttt{stack} \{Object\} A stack trace of the function.
+  \end{itemize}
+\end{itemize}
+
+The arrays contains information about the expected and actual number of
+calls of the functions that have not been called the expected number of
+times.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\ImportTok{import}\NormalTok{ assert }\ImportTok{from} \StringTok{\textquotesingle{}node:assert\textquotesingle{}}\OperatorTok{;}
+
+\CommentTok{// Creates call tracker.}
+\KeywordTok{const}\NormalTok{ tracker }\OperatorTok{=} \KeywordTok{new}\NormalTok{ assert}\OperatorTok{.}\FunctionTok{CallTracker}\NormalTok{()}\OperatorTok{;}
+
+\KeywordTok{function} \FunctionTok{func}\NormalTok{() \{\}}
+
+\CommentTok{// Returns a function that wraps func() that must be called exact times}
+\CommentTok{// before tracker.verify().}
+\KeywordTok{const}\NormalTok{ callsfunc }\OperatorTok{=}\NormalTok{ tracker}\OperatorTok{.}\FunctionTok{calls}\NormalTok{(func}\OperatorTok{,} \DecValTok{2}\NormalTok{)}\OperatorTok{;}
+
+\CommentTok{// Returns an array containing information on callsfunc()}
+\BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(tracker}\OperatorTok{.}\FunctionTok{report}\NormalTok{())}\OperatorTok{;}
+\CommentTok{// [}
+\CommentTok{//  \{}
+\CommentTok{//    message: \textquotesingle{}Expected the func function to be executed 2 time(s) but was}
+\CommentTok{//    executed 0 time(s).\textquotesingle{},}
+\CommentTok{//    actual: 0,}
+\CommentTok{//    expected: 2,}
+\CommentTok{//    operator: \textquotesingle{}func\textquotesingle{},}
+\CommentTok{//    stack: stack trace}
+\CommentTok{//  \}}
+\CommentTok{// ]}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ assert }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:assert\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+
+\CommentTok{// Creates call tracker.}
+\KeywordTok{const}\NormalTok{ tracker }\OperatorTok{=} \KeywordTok{new}\NormalTok{ assert}\OperatorTok{.}\FunctionTok{CallTracker}\NormalTok{()}\OperatorTok{;}
+
+\KeywordTok{function} \FunctionTok{func}\NormalTok{() \{\}}
+
+\CommentTok{// Returns a function that wraps func() that must be called exact times}
+\CommentTok{// before tracker.verify().}
+\KeywordTok{const}\NormalTok{ callsfunc }\OperatorTok{=}\NormalTok{ tracker}\OperatorTok{.}\FunctionTok{calls}\NormalTok{(func}\OperatorTok{,} \DecValTok{2}\NormalTok{)}\OperatorTok{;}
+
+\CommentTok{// Returns an array containing information on callsfunc()}
+\BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(tracker}\OperatorTok{.}\FunctionTok{report}\NormalTok{())}\OperatorTok{;}
+\CommentTok{// [}
+\CommentTok{//  \{}
+\CommentTok{//    message: \textquotesingle{}Expected the func function to be executed 2 time(s) but was}
+\CommentTok{//    executed 0 time(s).\textquotesingle{},}
+\CommentTok{//    actual: 0,}
+\CommentTok{//    expected: 2,}
+\CommentTok{//    operator: \textquotesingle{}func\textquotesingle{},}
+\CommentTok{//    stack: stack trace}
+\CommentTok{//  \}}
+\CommentTok{// ]}
+\end{Highlighting}
+\end{Shaded}
+
+\subsubsection{\texorpdfstring{\texttt{tracker.reset({[}fn{]})}}{tracker.reset({[}fn{]})}}\label{tracker.resetfn}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{fn} \{Function\} a tracked function to reset.
+\end{itemize}
+
+Reset calls of the call tracker. If a tracked function is passed as an
+argument, the calls will be reset for it. If no arguments are passed,
+all tracked functions will be reset
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\ImportTok{import}\NormalTok{ assert }\ImportTok{from} \StringTok{\textquotesingle{}node:assert\textquotesingle{}}\OperatorTok{;}
+
+\KeywordTok{const}\NormalTok{ tracker }\OperatorTok{=} \KeywordTok{new}\NormalTok{ assert}\OperatorTok{.}\FunctionTok{CallTracker}\NormalTok{()}\OperatorTok{;}
+
+\KeywordTok{function} \FunctionTok{func}\NormalTok{() \{\}}
+\KeywordTok{const}\NormalTok{ callsfunc }\OperatorTok{=}\NormalTok{ tracker}\OperatorTok{.}\FunctionTok{calls}\NormalTok{(func)}\OperatorTok{;}
+
+\FunctionTok{callsfunc}\NormalTok{()}\OperatorTok{;}
+\CommentTok{// Tracker was called once}
+\NormalTok{assert}\OperatorTok{.}\FunctionTok{strictEqual}\NormalTok{(tracker}\OperatorTok{.}\FunctionTok{getCalls}\NormalTok{(callsfunc)}\OperatorTok{.}\AttributeTok{length}\OperatorTok{,} \DecValTok{1}\NormalTok{)}\OperatorTok{;}
+
+\NormalTok{tracker}\OperatorTok{.}\FunctionTok{reset}\NormalTok{(callsfunc)}\OperatorTok{;}
+\NormalTok{assert}\OperatorTok{.}\FunctionTok{strictEqual}\NormalTok{(tracker}\OperatorTok{.}\FunctionTok{getCalls}\NormalTok{(callsfunc)}\OperatorTok{.}\AttributeTok{length}\OperatorTok{,} \DecValTok{0}\NormalTok{)}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ assert }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:assert\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+
+\KeywordTok{const}\NormalTok{ tracker }\OperatorTok{=} \KeywordTok{new}\NormalTok{ assert}\OperatorTok{.}\FunctionTok{CallTracker}\NormalTok{()}\OperatorTok{;}
+
+\KeywordTok{function} \FunctionTok{func}\NormalTok{() \{\}}
+\KeywordTok{const}\NormalTok{ callsfunc }\OperatorTok{=}\NormalTok{ tracker}\OperatorTok{.}\FunctionTok{calls}\NormalTok{(func)}\OperatorTok{;}
+
+\FunctionTok{callsfunc}\NormalTok{()}\OperatorTok{;}
+\CommentTok{// Tracker was called once}
+\NormalTok{assert}\OperatorTok{.}\FunctionTok{strictEqual}\NormalTok{(tracker}\OperatorTok{.}\FunctionTok{getCalls}\NormalTok{(callsfunc)}\OperatorTok{.}\AttributeTok{length}\OperatorTok{,} \DecValTok{1}\NormalTok{)}\OperatorTok{;}
+
+\NormalTok{tracker}\OperatorTok{.}\FunctionTok{reset}\NormalTok{(callsfunc)}\OperatorTok{;}
+\NormalTok{assert}\OperatorTok{.}\FunctionTok{strictEqual}\NormalTok{(tracker}\OperatorTok{.}\FunctionTok{getCalls}\NormalTok{(callsfunc)}\OperatorTok{.}\AttributeTok{length}\OperatorTok{,} \DecValTok{0}\NormalTok{)}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+\subsubsection{\texorpdfstring{\texttt{tracker.verify()}}{tracker.verify()}}\label{tracker.verify}
+
+Iterates through the list of functions passed to
+\hyperref[trackercallsfn-exact]{\texttt{tracker.calls()}} and will throw
+an error for functions that have not been called the expected number of
+times.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\ImportTok{import}\NormalTok{ assert }\ImportTok{from} \StringTok{\textquotesingle{}node:assert\textquotesingle{}}\OperatorTok{;}
+
+\CommentTok{// Creates call tracker.}
+\KeywordTok{const}\NormalTok{ tracker }\OperatorTok{=} \KeywordTok{new}\NormalTok{ assert}\OperatorTok{.}\FunctionTok{CallTracker}\NormalTok{()}\OperatorTok{;}
+
+\KeywordTok{function} \FunctionTok{func}\NormalTok{() \{\}}
+
+\CommentTok{// Returns a function that wraps func() that must be called exact times}
+\CommentTok{// before tracker.verify().}
+\KeywordTok{const}\NormalTok{ callsfunc }\OperatorTok{=}\NormalTok{ tracker}\OperatorTok{.}\FunctionTok{calls}\NormalTok{(func}\OperatorTok{,} \DecValTok{2}\NormalTok{)}\OperatorTok{;}
+
+\FunctionTok{callsfunc}\NormalTok{()}\OperatorTok{;}
+
+\CommentTok{// Will throw an error since callsfunc() was only called once.}
+\NormalTok{tracker}\OperatorTok{.}\FunctionTok{verify}\NormalTok{()}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ assert }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:assert\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+
+\CommentTok{// Creates call tracker.}
+\KeywordTok{const}\NormalTok{ tracker }\OperatorTok{=} \KeywordTok{new}\NormalTok{ assert}\OperatorTok{.}\FunctionTok{CallTracker}\NormalTok{()}\OperatorTok{;}
+
+\KeywordTok{function} \FunctionTok{func}\NormalTok{() \{\}}
+
+\CommentTok{// Returns a function that wraps func() that must be called exact times}
+\CommentTok{// before tracker.verify().}
+\KeywordTok{const}\NormalTok{ callsfunc }\OperatorTok{=}\NormalTok{ tracker}\OperatorTok{.}\FunctionTok{calls}\NormalTok{(func}\OperatorTok{,} \DecValTok{2}\NormalTok{)}\OperatorTok{;}
+
+\FunctionTok{callsfunc}\NormalTok{()}\OperatorTok{;}
+
+\CommentTok{// Will throw an error since callsfunc() was only called once.}
+\NormalTok{tracker}\OperatorTok{.}\FunctionTok{verify}\NormalTok{()}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+\subsection{\texorpdfstring{\texttt{assert(value{[},\ message{]})}}{assert(value{[}, message{]})}}\label{assertvalue-message}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{value} \{any\} The input that is checked for being truthy.
+\item
+  \texttt{message} \{string\textbar Error\}
+\end{itemize}
+
+An alias of \hyperref[assertokvalue-message]{\texttt{assert.ok()}}.
+
+\subsection{\texorpdfstring{\texttt{assert.deepEqual(actual,\ expected{[},\ message{]})}}{assert.deepEqual(actual, expected{[}, message{]})}}\label{assert.deepequalactual-expected-message}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{actual} \{any\}
+\item
+  \texttt{expected} \{any\}
+\item
+  \texttt{message} \{string\textbar Error\}
+\end{itemize}
+
+\textbf{Strict assertion mode}
+
+An alias of
+\hyperref[assertdeepstrictequalactual-expected-message]{\texttt{assert.deepStrictEqual()}}.
+
+\textbf{Legacy assertion mode}
+
+\begin{quote}
+Stability: 3 - Legacy: Use
+\hyperref[assertdeepstrictequalactual-expected-message]{\texttt{assert.deepStrictEqual()}}
+instead.
+\end{quote}
+
+Tests for deep equality between the \texttt{actual} and
+\texttt{expected} parameters. Consider using
+\hyperref[assertdeepstrictequalactual-expected-message]{\texttt{assert.deepStrictEqual()}}
+instead.
+\hyperref[assertdeepequalactual-expected-message]{\texttt{assert.deepEqual()}}
+can have surprising results.
+
+\emph{Deep equality} means that the enumerable ``own'' properties of
+child objects are also recursively evaluated by the following rules.
+
+\subsubsection{Comparison details}\label{comparison-details}
+
+\begin{itemize}
+\tightlist
+\item
+  Primitive values are compared with the
+  \href{https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Equality}{\texttt{==}
+  operator}, with the exception of \texttt{NaN}. It is treated as being
+  identical in case both sides are \texttt{NaN}.
+\item
+  \href{https://tc39.github.io/ecma262/\#sec-object.prototype.tostring}{Type
+  tags} of objects should be the same.
+\item
+  Only
+  \href{https://developer.mozilla.org/en-US/docs/Web/JavaScript/Enumerability_and_ownership_of_properties}{enumerable
+  ``own'' properties} are considered.
+\item
+  \href{errors.md\#class-error}{\texttt{Error}} names and messages are
+  always compared, even if these are not enumerable properties.
+\item
+  \href{https://developer.mozilla.org/en-US/docs/Glossary/Primitive\#Primitive_wrapper_objects_in_JavaScript}{Object
+  wrappers} are compared both as objects and unwrapped values.
+\item
+  \texttt{Object} properties are compared unordered.
+\item
+  \href{https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Map}{\texttt{Map}}
+  keys and
+  \href{https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Set}{\texttt{Set}}
+  items are compared unordered.
+\item
+  Recursion stops when both sides differ or both sides encounter a
+  circular reference.
+\item
+  Implementation does not test the
+  \href{https://tc39.github.io/ecma262/\#sec-ordinary-object-internal-methods-and-internal-slots}{\texttt{{[}{[}Prototype{]}{]}}}
+  of objects.
+\item
+  \href{https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Symbol}{\texttt{Symbol}}
+  properties are not compared.
+\item
+  \href{https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/WeakMap}{\texttt{WeakMap}}
+  and
+  \href{https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/WeakSet}{\texttt{WeakSet}}
+  comparison does not rely on their values.
+\item
+  \href{https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Regular_Expressions}{\texttt{RegExp}}
+  lastIndex, flags, and source are always compared, even if these are
+  not enumerable properties.
+\end{itemize}
+
+The following example does not throw an
+\hyperref[class-assertassertionerror]{\texttt{AssertionError}} because
+the primitives are compared using the
+\href{https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Equality}{\texttt{==}
+operator}.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\ImportTok{import}\NormalTok{ assert }\ImportTok{from} \StringTok{\textquotesingle{}node:assert\textquotesingle{}}\OperatorTok{;}
+\CommentTok{// }\AlertTok{WARNING}\CommentTok{: This does not throw an AssertionError!}
+
+\NormalTok{assert}\OperatorTok{.}\FunctionTok{deepEqual}\NormalTok{(}\StringTok{\textquotesingle{}+00000000\textquotesingle{}}\OperatorTok{,} \KeywordTok{false}\NormalTok{)}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ assert }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:assert\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// }\AlertTok{WARNING}\CommentTok{: This does not throw an AssertionError!}
+
+\NormalTok{assert}\OperatorTok{.}\FunctionTok{deepEqual}\NormalTok{(}\StringTok{\textquotesingle{}+00000000\textquotesingle{}}\OperatorTok{,} \KeywordTok{false}\NormalTok{)}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+``Deep'' equality means that the enumerable ``own'' properties of child
+objects are evaluated also:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\ImportTok{import}\NormalTok{ assert }\ImportTok{from} \StringTok{\textquotesingle{}node:assert\textquotesingle{}}\OperatorTok{;}
+
+\KeywordTok{const}\NormalTok{ obj1 }\OperatorTok{=}\NormalTok{ \{}
+  \DataTypeTok{a}\OperatorTok{:}\NormalTok{ \{}
+    \DataTypeTok{b}\OperatorTok{:} \DecValTok{1}\OperatorTok{,}
+\NormalTok{  \}}\OperatorTok{,}
+\NormalTok{\}}\OperatorTok{;}
+\KeywordTok{const}\NormalTok{ obj2 }\OperatorTok{=}\NormalTok{ \{}
+  \DataTypeTok{a}\OperatorTok{:}\NormalTok{ \{}
+    \DataTypeTok{b}\OperatorTok{:} \DecValTok{2}\OperatorTok{,}
+\NormalTok{  \}}\OperatorTok{,}
+\NormalTok{\}}\OperatorTok{;}
+\KeywordTok{const}\NormalTok{ obj3 }\OperatorTok{=}\NormalTok{ \{}
+  \DataTypeTok{a}\OperatorTok{:}\NormalTok{ \{}
+    \DataTypeTok{b}\OperatorTok{:} \DecValTok{1}\OperatorTok{,}
+\NormalTok{  \}}\OperatorTok{,}
+\NormalTok{\}}\OperatorTok{;}
+\KeywordTok{const}\NormalTok{ obj4 }\OperatorTok{=}\NormalTok{ \{ }\DataTypeTok{\_\_proto\_\_}\OperatorTok{:}\NormalTok{ obj1 \}}\OperatorTok{;}
+
+\NormalTok{assert}\OperatorTok{.}\FunctionTok{deepEqual}\NormalTok{(obj1}\OperatorTok{,}\NormalTok{ obj1)}\OperatorTok{;}
+\CommentTok{// OK}
+
+\CommentTok{// Values of b are different:}
+\NormalTok{assert}\OperatorTok{.}\FunctionTok{deepEqual}\NormalTok{(obj1}\OperatorTok{,}\NormalTok{ obj2)}\OperatorTok{;}
+\CommentTok{// AssertionError: \{ a: \{ b: 1 \} \} deepEqual \{ a: \{ b: 2 \} \}}
+
+\NormalTok{assert}\OperatorTok{.}\FunctionTok{deepEqual}\NormalTok{(obj1}\OperatorTok{,}\NormalTok{ obj3)}\OperatorTok{;}
+\CommentTok{// OK}
+
+\CommentTok{// Prototypes are ignored:}
+\NormalTok{assert}\OperatorTok{.}\FunctionTok{deepEqual}\NormalTok{(obj1}\OperatorTok{,}\NormalTok{ obj4)}\OperatorTok{;}
+\CommentTok{// AssertionError: \{ a: \{ b: 1 \} \} deepEqual \{\}}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ assert }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:assert\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+
+\KeywordTok{const}\NormalTok{ obj1 }\OperatorTok{=}\NormalTok{ \{}
+  \DataTypeTok{a}\OperatorTok{:}\NormalTok{ \{}
+    \DataTypeTok{b}\OperatorTok{:} \DecValTok{1}\OperatorTok{,}
+\NormalTok{  \}}\OperatorTok{,}
+\NormalTok{\}}\OperatorTok{;}
+\KeywordTok{const}\NormalTok{ obj2 }\OperatorTok{=}\NormalTok{ \{}
+  \DataTypeTok{a}\OperatorTok{:}\NormalTok{ \{}
+    \DataTypeTok{b}\OperatorTok{:} \DecValTok{2}\OperatorTok{,}
+\NormalTok{  \}}\OperatorTok{,}
+\NormalTok{\}}\OperatorTok{;}
+\KeywordTok{const}\NormalTok{ obj3 }\OperatorTok{=}\NormalTok{ \{}
+  \DataTypeTok{a}\OperatorTok{:}\NormalTok{ \{}
+    \DataTypeTok{b}\OperatorTok{:} \DecValTok{1}\OperatorTok{,}
+\NormalTok{  \}}\OperatorTok{,}
+\NormalTok{\}}\OperatorTok{;}
+\KeywordTok{const}\NormalTok{ obj4 }\OperatorTok{=}\NormalTok{ \{ }\DataTypeTok{\_\_proto\_\_}\OperatorTok{:}\NormalTok{ obj1 \}}\OperatorTok{;}
+
+\NormalTok{assert}\OperatorTok{.}\FunctionTok{deepEqual}\NormalTok{(obj1}\OperatorTok{,}\NormalTok{ obj1)}\OperatorTok{;}
+\CommentTok{// OK}
+
+\CommentTok{// Values of b are different:}
+\NormalTok{assert}\OperatorTok{.}\FunctionTok{deepEqual}\NormalTok{(obj1}\OperatorTok{,}\NormalTok{ obj2)}\OperatorTok{;}
+\CommentTok{// AssertionError: \{ a: \{ b: 1 \} \} deepEqual \{ a: \{ b: 2 \} \}}
+
+\NormalTok{assert}\OperatorTok{.}\FunctionTok{deepEqual}\NormalTok{(obj1}\OperatorTok{,}\NormalTok{ obj3)}\OperatorTok{;}
+\CommentTok{// OK}
+
+\CommentTok{// Prototypes are ignored:}
+\NormalTok{assert}\OperatorTok{.}\FunctionTok{deepEqual}\NormalTok{(obj1}\OperatorTok{,}\NormalTok{ obj4)}\OperatorTok{;}
+\CommentTok{// AssertionError: \{ a: \{ b: 1 \} \} deepEqual \{\}}
+\end{Highlighting}
+\end{Shaded}
+
+If the values are not equal, an
+\hyperref[class-assertassertionerror]{\texttt{AssertionError}} is thrown
+with a \texttt{message} property set equal to the value of the
+\texttt{message} parameter. If the \texttt{message} parameter is
+undefined, a default error message is assigned. If the \texttt{message}
+parameter is an instance of an
+\href{errors.md\#class-error}{\texttt{Error}} then it will be thrown
+instead of the
+\hyperref[class-assertassertionerror]{\texttt{AssertionError}}.
+
+\subsection{\texorpdfstring{\texttt{assert.deepStrictEqual(actual,\ expected{[},\ message{]})}}{assert.deepStrictEqual(actual, expected{[}, message{]})}}\label{assert.deepstrictequalactual-expected-message}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{actual} \{any\}
+\item
+  \texttt{expected} \{any\}
+\item
+  \texttt{message} \{string\textbar Error\}
+\end{itemize}
+
+Tests for deep equality between the \texttt{actual} and
+\texttt{expected} parameters. ``Deep'' equality means that the
+enumerable ``own'' properties of child objects are recursively evaluated
+also by the following rules.
+
+\subsubsection{Comparison details}\label{comparison-details-1}
+
+\begin{itemize}
+\tightlist
+\item
+  Primitive values are compared using
+  \href{https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object/is}{\texttt{Object.is()}}.
+\item
+  \href{https://tc39.github.io/ecma262/\#sec-object.prototype.tostring}{Type
+  tags} of objects should be the same.
+\item
+  \href{https://tc39.github.io/ecma262/\#sec-ordinary-object-internal-methods-and-internal-slots}{\texttt{{[}{[}Prototype{]}{]}}}
+  of objects are compared using the
+  \href{https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Strict_equality}{\texttt{===}
+  operator}.
+\item
+  Only
+  \href{https://developer.mozilla.org/en-US/docs/Web/JavaScript/Enumerability_and_ownership_of_properties}{enumerable
+  ``own'' properties} are considered.
+\item
+  \href{errors.md\#class-error}{\texttt{Error}} names and messages are
+  always compared, even if these are not enumerable properties.
+\item
+  Enumerable own
+  \href{https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Symbol}{\texttt{Symbol}}
+  properties are compared as well.
+\item
+  \href{https://developer.mozilla.org/en-US/docs/Glossary/Primitive\#Primitive_wrapper_objects_in_JavaScript}{Object
+  wrappers} are compared both as objects and unwrapped values.
+\item
+  \texttt{Object} properties are compared unordered.
+\item
+  \href{https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Map}{\texttt{Map}}
+  keys and
+  \href{https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Set}{\texttt{Set}}
+  items are compared unordered.
+\item
+  Recursion stops when both sides differ or both sides encounter a
+  circular reference.
+\item
+  \href{https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/WeakMap}{\texttt{WeakMap}}
+  and
+  \href{https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/WeakSet}{\texttt{WeakSet}}
+  comparison does not rely on their values. See below for further
+  details.
+\item
+  \href{https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Regular_Expressions}{\texttt{RegExp}}
+  lastIndex, flags, and source are always compared, even if these are
+  not enumerable properties.
+\end{itemize}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\ImportTok{import}\NormalTok{ assert }\ImportTok{from} \StringTok{\textquotesingle{}node:assert/strict\textquotesingle{}}\OperatorTok{;}
+
+\CommentTok{// This fails because 1 !== \textquotesingle{}1\textquotesingle{}.}
+\NormalTok{assert}\OperatorTok{.}\FunctionTok{deepStrictEqual}\NormalTok{(\{ }\DataTypeTok{a}\OperatorTok{:} \DecValTok{1}\NormalTok{ \}}\OperatorTok{,}\NormalTok{ \{ }\DataTypeTok{a}\OperatorTok{:} \StringTok{\textquotesingle{}1\textquotesingle{}}\NormalTok{ \})}\OperatorTok{;}
+\CommentTok{// AssertionError: Expected inputs to be strictly deep{-}equal:}
+\CommentTok{// + actual {-} expected}
+\CommentTok{//}
+\CommentTok{//   \{}
+\CommentTok{// +   a: 1}
+\CommentTok{// {-}   a: \textquotesingle{}1\textquotesingle{}}
+\CommentTok{//   \}}
+
+\CommentTok{// The following objects don\textquotesingle{}t have own properties}
+\KeywordTok{const}\NormalTok{ date }\OperatorTok{=} \KeywordTok{new} \BuiltInTok{Date}\NormalTok{()}\OperatorTok{;}
+\KeywordTok{const}\NormalTok{ object }\OperatorTok{=}\NormalTok{ \{\}}\OperatorTok{;}
+\KeywordTok{const}\NormalTok{ fakeDate }\OperatorTok{=}\NormalTok{ \{\}}\OperatorTok{;}
+\BuiltInTok{Object}\OperatorTok{.}\FunctionTok{setPrototypeOf}\NormalTok{(fakeDate}\OperatorTok{,} \BuiltInTok{Date}\OperatorTok{.}\AttributeTok{prototype}\NormalTok{)}\OperatorTok{;}
+
+\CommentTok{// Different [[Prototype]]:}
+\NormalTok{assert}\OperatorTok{.}\FunctionTok{deepStrictEqual}\NormalTok{(object}\OperatorTok{,}\NormalTok{ fakeDate)}\OperatorTok{;}
+\CommentTok{// AssertionError: Expected inputs to be strictly deep{-}equal:}
+\CommentTok{// + actual {-} expected}
+\CommentTok{//}
+\CommentTok{// + \{\}}
+\CommentTok{// {-} Date \{\}}
+
+\CommentTok{// Different type tags:}
+\NormalTok{assert}\OperatorTok{.}\FunctionTok{deepStrictEqual}\NormalTok{(date}\OperatorTok{,}\NormalTok{ fakeDate)}\OperatorTok{;}
+\CommentTok{// AssertionError: Expected inputs to be strictly deep{-}equal:}
+\CommentTok{// + actual {-} expected}
+\CommentTok{//}
+\CommentTok{// + 2018{-}04{-}26T00:49:08.604Z}
+\CommentTok{// {-} Date \{\}}
+
+\NormalTok{assert}\OperatorTok{.}\FunctionTok{deepStrictEqual}\NormalTok{(}\KeywordTok{NaN}\OperatorTok{,} \KeywordTok{NaN}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// OK because Object.is(NaN, NaN) is true.}
+
+\CommentTok{// Different unwrapped numbers:}
+\NormalTok{assert}\OperatorTok{.}\FunctionTok{deepStrictEqual}\NormalTok{(}\KeywordTok{new} \BuiltInTok{Number}\NormalTok{(}\DecValTok{1}\NormalTok{)}\OperatorTok{,} \KeywordTok{new} \BuiltInTok{Number}\NormalTok{(}\DecValTok{2}\NormalTok{))}\OperatorTok{;}
+\CommentTok{// AssertionError: Expected inputs to be strictly deep{-}equal:}
+\CommentTok{// + actual {-} expected}
+\CommentTok{//}
+\CommentTok{// + [Number: 1]}
+\CommentTok{// {-} [Number: 2]}
+
+\NormalTok{assert}\OperatorTok{.}\FunctionTok{deepStrictEqual}\NormalTok{(}\KeywordTok{new} \BuiltInTok{String}\NormalTok{(}\StringTok{\textquotesingle{}foo\textquotesingle{}}\NormalTok{)}\OperatorTok{,} \BuiltInTok{Object}\NormalTok{(}\StringTok{\textquotesingle{}foo\textquotesingle{}}\NormalTok{))}\OperatorTok{;}
+\CommentTok{// OK because the object and the string are identical when unwrapped.}
+
+\NormalTok{assert}\OperatorTok{.}\FunctionTok{deepStrictEqual}\NormalTok{(}\OperatorTok{{-}}\DecValTok{0}\OperatorTok{,} \OperatorTok{{-}}\DecValTok{0}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// OK}
+
+\CommentTok{// Different zeros:}
+\NormalTok{assert}\OperatorTok{.}\FunctionTok{deepStrictEqual}\NormalTok{(}\DecValTok{0}\OperatorTok{,} \OperatorTok{{-}}\DecValTok{0}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// AssertionError: Expected inputs to be strictly deep{-}equal:}
+\CommentTok{// + actual {-} expected}
+\CommentTok{//}
+\CommentTok{// + 0}
+\CommentTok{// {-} {-}0}
+
+\KeywordTok{const}\NormalTok{ symbol1 }\OperatorTok{=} \BuiltInTok{Symbol}\NormalTok{()}\OperatorTok{;}
+\KeywordTok{const}\NormalTok{ symbol2 }\OperatorTok{=} \BuiltInTok{Symbol}\NormalTok{()}\OperatorTok{;}
+\NormalTok{assert}\OperatorTok{.}\FunctionTok{deepStrictEqual}\NormalTok{(\{ [symbol1]}\OperatorTok{:} \DecValTok{1}\NormalTok{ \}}\OperatorTok{,}\NormalTok{ \{ [symbol1]}\OperatorTok{:} \DecValTok{1}\NormalTok{ \})}\OperatorTok{;}
+\CommentTok{// OK, because it is the same symbol on both objects.}
+
+\NormalTok{assert}\OperatorTok{.}\FunctionTok{deepStrictEqual}\NormalTok{(\{ [symbol1]}\OperatorTok{:} \DecValTok{1}\NormalTok{ \}}\OperatorTok{,}\NormalTok{ \{ [symbol2]}\OperatorTok{:} \DecValTok{1}\NormalTok{ \})}\OperatorTok{;}
+\CommentTok{// AssertionError [ERR\_ASSERTION]: Inputs identical but not reference equal:}
+\CommentTok{//}
+\CommentTok{// \{}
+\CommentTok{//   [Symbol()]: 1}
+\CommentTok{// \}}
+
+\KeywordTok{const}\NormalTok{ weakMap1 }\OperatorTok{=} \KeywordTok{new} \BuiltInTok{WeakMap}\NormalTok{()}\OperatorTok{;}
+\KeywordTok{const}\NormalTok{ weakMap2 }\OperatorTok{=} \KeywordTok{new} \BuiltInTok{WeakMap}\NormalTok{([[\{\}}\OperatorTok{,}\NormalTok{ \{\}]])}\OperatorTok{;}
+\KeywordTok{const}\NormalTok{ weakMap3 }\OperatorTok{=} \KeywordTok{new} \BuiltInTok{WeakMap}\NormalTok{()}\OperatorTok{;}
+\NormalTok{weakMap3}\OperatorTok{.}\AttributeTok{unequal} \OperatorTok{=} \KeywordTok{true}\OperatorTok{;}
+
+\NormalTok{assert}\OperatorTok{.}\FunctionTok{deepStrictEqual}\NormalTok{(weakMap1}\OperatorTok{,}\NormalTok{ weakMap2)}\OperatorTok{;}
+\CommentTok{// OK, because it is impossible to compare the entries}
+
+\CommentTok{// Fails because weakMap3 has a property that weakMap1 does not contain:}
+\NormalTok{assert}\OperatorTok{.}\FunctionTok{deepStrictEqual}\NormalTok{(weakMap1}\OperatorTok{,}\NormalTok{ weakMap3)}\OperatorTok{;}
+\CommentTok{// AssertionError: Expected inputs to be strictly deep{-}equal:}
+\CommentTok{// + actual {-} expected}
+\CommentTok{//}
+\CommentTok{//   WeakMap \{}
+\CommentTok{// +   [items unknown]}
+\CommentTok{// {-}   [items unknown],}
+\CommentTok{// {-}   unequal: true}
+\CommentTok{//   \}}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ assert }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:assert/strict\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+
+\CommentTok{// This fails because 1 !== \textquotesingle{}1\textquotesingle{}.}
+\NormalTok{assert}\OperatorTok{.}\FunctionTok{deepStrictEqual}\NormalTok{(\{ }\DataTypeTok{a}\OperatorTok{:} \DecValTok{1}\NormalTok{ \}}\OperatorTok{,}\NormalTok{ \{ }\DataTypeTok{a}\OperatorTok{:} \StringTok{\textquotesingle{}1\textquotesingle{}}\NormalTok{ \})}\OperatorTok{;}
+\CommentTok{// AssertionError: Expected inputs to be strictly deep{-}equal:}
+\CommentTok{// + actual {-} expected}
+\CommentTok{//}
+\CommentTok{//   \{}
+\CommentTok{// +   a: 1}
+\CommentTok{// {-}   a: \textquotesingle{}1\textquotesingle{}}
+\CommentTok{//   \}}
+
+\CommentTok{// The following objects don\textquotesingle{}t have own properties}
+\KeywordTok{const}\NormalTok{ date }\OperatorTok{=} \KeywordTok{new} \BuiltInTok{Date}\NormalTok{()}\OperatorTok{;}
+\KeywordTok{const}\NormalTok{ object }\OperatorTok{=}\NormalTok{ \{\}}\OperatorTok{;}
+\KeywordTok{const}\NormalTok{ fakeDate }\OperatorTok{=}\NormalTok{ \{\}}\OperatorTok{;}
+\BuiltInTok{Object}\OperatorTok{.}\FunctionTok{setPrototypeOf}\NormalTok{(fakeDate}\OperatorTok{,} \BuiltInTok{Date}\OperatorTok{.}\AttributeTok{prototype}\NormalTok{)}\OperatorTok{;}
+
+\CommentTok{// Different [[Prototype]]:}
+\NormalTok{assert}\OperatorTok{.}\FunctionTok{deepStrictEqual}\NormalTok{(object}\OperatorTok{,}\NormalTok{ fakeDate)}\OperatorTok{;}
+\CommentTok{// AssertionError: Expected inputs to be strictly deep{-}equal:}
+\CommentTok{// + actual {-} expected}
+\CommentTok{//}
+\CommentTok{// + \{\}}
+\CommentTok{// {-} Date \{\}}
+
+\CommentTok{// Different type tags:}
+\NormalTok{assert}\OperatorTok{.}\FunctionTok{deepStrictEqual}\NormalTok{(date}\OperatorTok{,}\NormalTok{ fakeDate)}\OperatorTok{;}
+\CommentTok{// AssertionError: Expected inputs to be strictly deep{-}equal:}
+\CommentTok{// + actual {-} expected}
+\CommentTok{//}
+\CommentTok{// + 2018{-}04{-}26T00:49:08.604Z}
+\CommentTok{// {-} Date \{\}}
+
+\NormalTok{assert}\OperatorTok{.}\FunctionTok{deepStrictEqual}\NormalTok{(}\KeywordTok{NaN}\OperatorTok{,} \KeywordTok{NaN}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// OK because Object.is(NaN, NaN) is true.}
+
+\CommentTok{// Different unwrapped numbers:}
+\NormalTok{assert}\OperatorTok{.}\FunctionTok{deepStrictEqual}\NormalTok{(}\KeywordTok{new} \BuiltInTok{Number}\NormalTok{(}\DecValTok{1}\NormalTok{)}\OperatorTok{,} \KeywordTok{new} \BuiltInTok{Number}\NormalTok{(}\DecValTok{2}\NormalTok{))}\OperatorTok{;}
+\CommentTok{// AssertionError: Expected inputs to be strictly deep{-}equal:}
+\CommentTok{// + actual {-} expected}
+\CommentTok{//}
+\CommentTok{// + [Number: 1]}
+\CommentTok{// {-} [Number: 2]}
+
+\NormalTok{assert}\OperatorTok{.}\FunctionTok{deepStrictEqual}\NormalTok{(}\KeywordTok{new} \BuiltInTok{String}\NormalTok{(}\StringTok{\textquotesingle{}foo\textquotesingle{}}\NormalTok{)}\OperatorTok{,} \BuiltInTok{Object}\NormalTok{(}\StringTok{\textquotesingle{}foo\textquotesingle{}}\NormalTok{))}\OperatorTok{;}
+\CommentTok{// OK because the object and the string are identical when unwrapped.}
+
+\NormalTok{assert}\OperatorTok{.}\FunctionTok{deepStrictEqual}\NormalTok{(}\OperatorTok{{-}}\DecValTok{0}\OperatorTok{,} \OperatorTok{{-}}\DecValTok{0}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// OK}
+
+\CommentTok{// Different zeros:}
+\NormalTok{assert}\OperatorTok{.}\FunctionTok{deepStrictEqual}\NormalTok{(}\DecValTok{0}\OperatorTok{,} \OperatorTok{{-}}\DecValTok{0}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// AssertionError: Expected inputs to be strictly deep{-}equal:}
+\CommentTok{// + actual {-} expected}
+\CommentTok{//}
+\CommentTok{// + 0}
+\CommentTok{// {-} {-}0}
+
+\KeywordTok{const}\NormalTok{ symbol1 }\OperatorTok{=} \BuiltInTok{Symbol}\NormalTok{()}\OperatorTok{;}
+\KeywordTok{const}\NormalTok{ symbol2 }\OperatorTok{=} \BuiltInTok{Symbol}\NormalTok{()}\OperatorTok{;}
+\NormalTok{assert}\OperatorTok{.}\FunctionTok{deepStrictEqual}\NormalTok{(\{ [symbol1]}\OperatorTok{:} \DecValTok{1}\NormalTok{ \}}\OperatorTok{,}\NormalTok{ \{ [symbol1]}\OperatorTok{:} \DecValTok{1}\NormalTok{ \})}\OperatorTok{;}
+\CommentTok{// OK, because it is the same symbol on both objects.}
+
+\NormalTok{assert}\OperatorTok{.}\FunctionTok{deepStrictEqual}\NormalTok{(\{ [symbol1]}\OperatorTok{:} \DecValTok{1}\NormalTok{ \}}\OperatorTok{,}\NormalTok{ \{ [symbol2]}\OperatorTok{:} \DecValTok{1}\NormalTok{ \})}\OperatorTok{;}
+\CommentTok{// AssertionError [ERR\_ASSERTION]: Inputs identical but not reference equal:}
+\CommentTok{//}
+\CommentTok{// \{}
+\CommentTok{//   [Symbol()]: 1}
+\CommentTok{// \}}
+
+\KeywordTok{const}\NormalTok{ weakMap1 }\OperatorTok{=} \KeywordTok{new} \BuiltInTok{WeakMap}\NormalTok{()}\OperatorTok{;}
+\KeywordTok{const}\NormalTok{ weakMap2 }\OperatorTok{=} \KeywordTok{new} \BuiltInTok{WeakMap}\NormalTok{([[\{\}}\OperatorTok{,}\NormalTok{ \{\}]])}\OperatorTok{;}
+\KeywordTok{const}\NormalTok{ weakMap3 }\OperatorTok{=} \KeywordTok{new} \BuiltInTok{WeakMap}\NormalTok{()}\OperatorTok{;}
+\NormalTok{weakMap3}\OperatorTok{.}\AttributeTok{unequal} \OperatorTok{=} \KeywordTok{true}\OperatorTok{;}
+
+\NormalTok{assert}\OperatorTok{.}\FunctionTok{deepStrictEqual}\NormalTok{(weakMap1}\OperatorTok{,}\NormalTok{ weakMap2)}\OperatorTok{;}
+\CommentTok{// OK, because it is impossible to compare the entries}
+
+\CommentTok{// Fails because weakMap3 has a property that weakMap1 does not contain:}
+\NormalTok{assert}\OperatorTok{.}\FunctionTok{deepStrictEqual}\NormalTok{(weakMap1}\OperatorTok{,}\NormalTok{ weakMap3)}\OperatorTok{;}
+\CommentTok{// AssertionError: Expected inputs to be strictly deep{-}equal:}
+\CommentTok{// + actual {-} expected}
+\CommentTok{//}
+\CommentTok{//   WeakMap \{}
+\CommentTok{// +   [items unknown]}
+\CommentTok{// {-}   [items unknown],}
+\CommentTok{// {-}   unequal: true}
+\CommentTok{//   \}}
+\end{Highlighting}
+\end{Shaded}
+
+If the values are not equal, an
+\hyperref[class-assertassertionerror]{\texttt{AssertionError}} is thrown
+with a \texttt{message} property set equal to the value of the
+\texttt{message} parameter. If the \texttt{message} parameter is
+undefined, a default error message is assigned. If the \texttt{message}
+parameter is an instance of an
+\href{errors.md\#class-error}{\texttt{Error}} then it will be thrown
+instead of the \texttt{AssertionError}.
+
+\subsection{\texorpdfstring{\texttt{assert.doesNotMatch(string,\ regexp{[},\ message{]})}}{assert.doesNotMatch(string, regexp{[}, message{]})}}\label{assert.doesnotmatchstring-regexp-message}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{string} \{string\}
+\item
+  \texttt{regexp} \{RegExp\}
+\item
+  \texttt{message} \{string\textbar Error\}
+\end{itemize}
+
+Expects the \texttt{string} input not to match the regular expression.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\ImportTok{import}\NormalTok{ assert }\ImportTok{from} \StringTok{\textquotesingle{}node:assert/strict\textquotesingle{}}\OperatorTok{;}
+
+\NormalTok{assert}\OperatorTok{.}\FunctionTok{doesNotMatch}\NormalTok{(}\StringTok{\textquotesingle{}I will fail\textquotesingle{}}\OperatorTok{,} \SpecialStringTok{/fail/}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// AssertionError [ERR\_ASSERTION]: The input was expected to not match the ...}
+
+\NormalTok{assert}\OperatorTok{.}\FunctionTok{doesNotMatch}\NormalTok{(}\DecValTok{123}\OperatorTok{,} \SpecialStringTok{/pass/}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// AssertionError [ERR\_ASSERTION]: The "string" argument must be of type string.}
+
+\NormalTok{assert}\OperatorTok{.}\FunctionTok{doesNotMatch}\NormalTok{(}\StringTok{\textquotesingle{}I will pass\textquotesingle{}}\OperatorTok{,} \SpecialStringTok{/different/}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// OK}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ assert }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:assert/strict\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+
+\NormalTok{assert}\OperatorTok{.}\FunctionTok{doesNotMatch}\NormalTok{(}\StringTok{\textquotesingle{}I will fail\textquotesingle{}}\OperatorTok{,} \SpecialStringTok{/fail/}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// AssertionError [ERR\_ASSERTION]: The input was expected to not match the ...}
+
+\NormalTok{assert}\OperatorTok{.}\FunctionTok{doesNotMatch}\NormalTok{(}\DecValTok{123}\OperatorTok{,} \SpecialStringTok{/pass/}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// AssertionError [ERR\_ASSERTION]: The "string" argument must be of type string.}
+
+\NormalTok{assert}\OperatorTok{.}\FunctionTok{doesNotMatch}\NormalTok{(}\StringTok{\textquotesingle{}I will pass\textquotesingle{}}\OperatorTok{,} \SpecialStringTok{/different/}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// OK}
+\end{Highlighting}
+\end{Shaded}
+
+If the values do match, or if the \texttt{string} argument is of another
+type than \texttt{string}, an
+\hyperref[class-assertassertionerror]{\texttt{AssertionError}} is thrown
+with a \texttt{message} property set equal to the value of the
+\texttt{message} parameter. If the \texttt{message} parameter is
+undefined, a default error message is assigned. If the \texttt{message}
+parameter is an instance of an
+\href{errors.md\#class-error}{\texttt{Error}} then it will be thrown
+instead of the
+\hyperref[class-assertassertionerror]{\texttt{AssertionError}}.
+
+\subsection{\texorpdfstring{\texttt{assert.doesNotReject(asyncFn{[},\ error{]}{[},\ message{]})}}{assert.doesNotReject(asyncFn{[}, error{]}{[}, message{]})}}\label{assert.doesnotrejectasyncfn-error-message}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{asyncFn} \{Function\textbar Promise\}
+\item
+  \texttt{error} \{RegExp\textbar Function\}
+\item
+  \texttt{message} \{string\}
+\end{itemize}
+
+Awaits the \texttt{asyncFn} promise or, if \texttt{asyncFn} is a
+function, immediately calls the function and awaits the returned promise
+to complete. It will then check that the promise is not rejected.
+
+If \texttt{asyncFn} is a function and it throws an error synchronously,
+\texttt{assert.doesNotReject()} will return a rejected \texttt{Promise}
+with that error. If the function does not return a promise,
+\texttt{assert.doesNotReject()} will return a rejected \texttt{Promise}
+with an
+\href{errors.md\#err_invalid_return_value}{\texttt{ERR\_INVALID\_RETURN\_VALUE}}
+error. In both cases the error handler is skipped.
+
+Using \texttt{assert.doesNotReject()} is actually not useful because
+there is little benefit in catching a rejection and then rejecting it
+again. Instead, consider adding a comment next to the specific code path
+that should not reject and keep error messages as expressive as
+possible.
+
+If specified, \texttt{error} can be a
+\href{https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Classes}{\texttt{Class}},
+\href{https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Regular_Expressions}{\texttt{RegExp}},
+or a validation function. See
+\hyperref[assertthrowsfn-error-message]{\texttt{assert.throws()}} for
+more details.
+
+Besides the async nature to await the completion behaves identically to
+\hyperref[assertdoesnotthrowfn-error-message]{\texttt{assert.doesNotThrow()}}.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\ImportTok{import}\NormalTok{ assert }\ImportTok{from} \StringTok{\textquotesingle{}node:assert/strict\textquotesingle{}}\OperatorTok{;}
+
+\ControlFlowTok{await}\NormalTok{ assert}\OperatorTok{.}\FunctionTok{doesNotReject}\NormalTok{(}
+  \KeywordTok{async}\NormalTok{ () }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+    \ControlFlowTok{throw} \KeywordTok{new} \BuiltInTok{TypeError}\NormalTok{(}\StringTok{\textquotesingle{}Wrong value\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{  \}}\OperatorTok{,}
+  \BuiltInTok{SyntaxError}\OperatorTok{,}
+\NormalTok{)}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ assert }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:assert/strict\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+
+\NormalTok{(}\KeywordTok{async}\NormalTok{ () }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+  \ControlFlowTok{await}\NormalTok{ assert}\OperatorTok{.}\FunctionTok{doesNotReject}\NormalTok{(}
+    \KeywordTok{async}\NormalTok{ () }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+      \ControlFlowTok{throw} \KeywordTok{new} \BuiltInTok{TypeError}\NormalTok{(}\StringTok{\textquotesingle{}Wrong value\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{    \}}\OperatorTok{,}
+    \BuiltInTok{SyntaxError}\OperatorTok{,}
+\NormalTok{  )}\OperatorTok{;}
+\NormalTok{\})()}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\ImportTok{import}\NormalTok{ assert }\ImportTok{from} \StringTok{\textquotesingle{}node:assert/strict\textquotesingle{}}\OperatorTok{;}
+
+\NormalTok{assert}\OperatorTok{.}\FunctionTok{doesNotReject}\NormalTok{(}\BuiltInTok{Promise}\OperatorTok{.}\FunctionTok{reject}\NormalTok{(}\KeywordTok{new} \BuiltInTok{TypeError}\NormalTok{(}\StringTok{\textquotesingle{}Wrong value\textquotesingle{}}\NormalTok{)))}
+  \OperatorTok{.}\FunctionTok{then}\NormalTok{(() }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+    \CommentTok{// ...}
+\NormalTok{  \})}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ assert }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:assert/strict\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+
+\NormalTok{assert}\OperatorTok{.}\FunctionTok{doesNotReject}\NormalTok{(}\BuiltInTok{Promise}\OperatorTok{.}\FunctionTok{reject}\NormalTok{(}\KeywordTok{new} \BuiltInTok{TypeError}\NormalTok{(}\StringTok{\textquotesingle{}Wrong value\textquotesingle{}}\NormalTok{)))}
+  \OperatorTok{.}\FunctionTok{then}\NormalTok{(() }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+    \CommentTok{// ...}
+\NormalTok{  \})}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+\subsection{\texorpdfstring{\texttt{assert.doesNotThrow(fn{[},\ error{]}{[},\ message{]})}}{assert.doesNotThrow(fn{[}, error{]}{[}, message{]})}}\label{assert.doesnotthrowfn-error-message}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{fn} \{Function\}
+\item
+  \texttt{error} \{RegExp\textbar Function\}
+\item
+  \texttt{message} \{string\}
+\end{itemize}
+
+Asserts that the function \texttt{fn} does not throw an error.
+
+Using \texttt{assert.doesNotThrow()} is actually not useful because
+there is no benefit in catching an error and then rethrowing it.
+Instead, consider adding a comment next to the specific code path that
+should not throw and keep error messages as expressive as possible.
+
+When \texttt{assert.doesNotThrow()} is called, it will immediately call
+the \texttt{fn} function.
+
+If an error is thrown and it is the same type as that specified by the
+\texttt{error} parameter, then an
+\hyperref[class-assertassertionerror]{\texttt{AssertionError}} is
+thrown. If the error is of a different type, or if the \texttt{error}
+parameter is undefined, the error is propagated back to the caller.
+
+If specified, \texttt{error} can be a
+\href{https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Classes}{\texttt{Class}},
+\href{https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Regular_Expressions}{\texttt{RegExp}},
+or a validation function. See
+\hyperref[assertthrowsfn-error-message]{\texttt{assert.throws()}} for
+more details.
+
+The following, for instance, will throw the
+\href{errors.md\#class-typeerror}{\texttt{TypeError}} because there is
+no matching error type in the assertion:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\ImportTok{import}\NormalTok{ assert }\ImportTok{from} \StringTok{\textquotesingle{}node:assert/strict\textquotesingle{}}\OperatorTok{;}
+
+\NormalTok{assert}\OperatorTok{.}\FunctionTok{doesNotThrow}\NormalTok{(}
+\NormalTok{  () }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+    \ControlFlowTok{throw} \KeywordTok{new} \BuiltInTok{TypeError}\NormalTok{(}\StringTok{\textquotesingle{}Wrong value\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{  \}}\OperatorTok{,}
+  \BuiltInTok{SyntaxError}\OperatorTok{,}
+\NormalTok{)}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ assert }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:assert/strict\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+
+\NormalTok{assert}\OperatorTok{.}\FunctionTok{doesNotThrow}\NormalTok{(}
+\NormalTok{  () }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+    \ControlFlowTok{throw} \KeywordTok{new} \BuiltInTok{TypeError}\NormalTok{(}\StringTok{\textquotesingle{}Wrong value\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{  \}}\OperatorTok{,}
+  \BuiltInTok{SyntaxError}\OperatorTok{,}
+\NormalTok{)}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+However, the following will result in an
+\hyperref[class-assertassertionerror]{\texttt{AssertionError}} with the
+message `Got unwanted exception\ldots{}':
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\ImportTok{import}\NormalTok{ assert }\ImportTok{from} \StringTok{\textquotesingle{}node:assert/strict\textquotesingle{}}\OperatorTok{;}
+
+\NormalTok{assert}\OperatorTok{.}\FunctionTok{doesNotThrow}\NormalTok{(}
+\NormalTok{  () }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+    \ControlFlowTok{throw} \KeywordTok{new} \BuiltInTok{TypeError}\NormalTok{(}\StringTok{\textquotesingle{}Wrong value\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{  \}}\OperatorTok{,}
+  \BuiltInTok{TypeError}\OperatorTok{,}
+\NormalTok{)}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ assert }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:assert/strict\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+
+\NormalTok{assert}\OperatorTok{.}\FunctionTok{doesNotThrow}\NormalTok{(}
+\NormalTok{  () }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+    \ControlFlowTok{throw} \KeywordTok{new} \BuiltInTok{TypeError}\NormalTok{(}\StringTok{\textquotesingle{}Wrong value\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{  \}}\OperatorTok{,}
+  \BuiltInTok{TypeError}\OperatorTok{,}
+\NormalTok{)}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+If an \hyperref[class-assertassertionerror]{\texttt{AssertionError}} is
+thrown and a value is provided for the \texttt{message} parameter, the
+value of \texttt{message} will be appended to the
+\hyperref[class-assertassertionerror]{\texttt{AssertionError}} message:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\ImportTok{import}\NormalTok{ assert }\ImportTok{from} \StringTok{\textquotesingle{}node:assert/strict\textquotesingle{}}\OperatorTok{;}
+
+\NormalTok{assert}\OperatorTok{.}\FunctionTok{doesNotThrow}\NormalTok{(}
+\NormalTok{  () }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+    \ControlFlowTok{throw} \KeywordTok{new} \BuiltInTok{TypeError}\NormalTok{(}\StringTok{\textquotesingle{}Wrong value\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{  \}}\OperatorTok{,}
+  \SpecialStringTok{/Wrong value/}\OperatorTok{,}
+  \StringTok{\textquotesingle{}Whoops\textquotesingle{}}\OperatorTok{,}
+\NormalTok{)}\OperatorTok{;}
+\CommentTok{// Throws: AssertionError: Got unwanted exception: Whoops}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ assert }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:assert/strict\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+
+\NormalTok{assert}\OperatorTok{.}\FunctionTok{doesNotThrow}\NormalTok{(}
+\NormalTok{  () }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+    \ControlFlowTok{throw} \KeywordTok{new} \BuiltInTok{TypeError}\NormalTok{(}\StringTok{\textquotesingle{}Wrong value\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{  \}}\OperatorTok{,}
+  \SpecialStringTok{/Wrong value/}\OperatorTok{,}
+  \StringTok{\textquotesingle{}Whoops\textquotesingle{}}\OperatorTok{,}
+\NormalTok{)}\OperatorTok{;}
+\CommentTok{// Throws: AssertionError: Got unwanted exception: Whoops}
+\end{Highlighting}
+\end{Shaded}
+
+\subsection{\texorpdfstring{\texttt{assert.equal(actual,\ expected{[},\ message{]})}}{assert.equal(actual, expected{[}, message{]})}}\label{assert.equalactual-expected-message}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{actual} \{any\}
+\item
+  \texttt{expected} \{any\}
+\item
+  \texttt{message} \{string\textbar Error\}
+\end{itemize}
+
+\textbf{Strict assertion mode}
+
+An alias of
+\hyperref[assertstrictequalactual-expected-message]{\texttt{assert.strictEqual()}}.
+
+\textbf{Legacy assertion mode}
+
+\begin{quote}
+Stability: 3 - Legacy: Use
+\hyperref[assertstrictequalactual-expected-message]{\texttt{assert.strictEqual()}}
+instead.
+\end{quote}
+
+Tests shallow, coercive equality between the \texttt{actual} and
+\texttt{expected} parameters using the
+\href{https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Equality}{\texttt{==}
+operator}. \texttt{NaN} is specially handled and treated as being
+identical if both sides are \texttt{NaN}.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\ImportTok{import}\NormalTok{ assert }\ImportTok{from} \StringTok{\textquotesingle{}node:assert\textquotesingle{}}\OperatorTok{;}
+
+\NormalTok{assert}\OperatorTok{.}\FunctionTok{equal}\NormalTok{(}\DecValTok{1}\OperatorTok{,} \DecValTok{1}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// OK, 1 == 1}
+\NormalTok{assert}\OperatorTok{.}\FunctionTok{equal}\NormalTok{(}\DecValTok{1}\OperatorTok{,} \StringTok{\textquotesingle{}1\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// OK, 1 == \textquotesingle{}1\textquotesingle{}}
+\NormalTok{assert}\OperatorTok{.}\FunctionTok{equal}\NormalTok{(}\KeywordTok{NaN}\OperatorTok{,} \KeywordTok{NaN}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// OK}
+
+\NormalTok{assert}\OperatorTok{.}\FunctionTok{equal}\NormalTok{(}\DecValTok{1}\OperatorTok{,} \DecValTok{2}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// AssertionError: 1 == 2}
+\NormalTok{assert}\OperatorTok{.}\FunctionTok{equal}\NormalTok{(\{ }\DataTypeTok{a}\OperatorTok{:}\NormalTok{ \{ }\DataTypeTok{b}\OperatorTok{:} \DecValTok{1}\NormalTok{ \} \}}\OperatorTok{,}\NormalTok{ \{ }\DataTypeTok{a}\OperatorTok{:}\NormalTok{ \{ }\DataTypeTok{b}\OperatorTok{:} \DecValTok{1}\NormalTok{ \} \})}\OperatorTok{;}
+\CommentTok{// AssertionError: \{ a: \{ b: 1 \} \} == \{ a: \{ b: 1 \} \}}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ assert }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:assert\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+
+\NormalTok{assert}\OperatorTok{.}\FunctionTok{equal}\NormalTok{(}\DecValTok{1}\OperatorTok{,} \DecValTok{1}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// OK, 1 == 1}
+\NormalTok{assert}\OperatorTok{.}\FunctionTok{equal}\NormalTok{(}\DecValTok{1}\OperatorTok{,} \StringTok{\textquotesingle{}1\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// OK, 1 == \textquotesingle{}1\textquotesingle{}}
+\NormalTok{assert}\OperatorTok{.}\FunctionTok{equal}\NormalTok{(}\KeywordTok{NaN}\OperatorTok{,} \KeywordTok{NaN}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// OK}
+
+\NormalTok{assert}\OperatorTok{.}\FunctionTok{equal}\NormalTok{(}\DecValTok{1}\OperatorTok{,} \DecValTok{2}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// AssertionError: 1 == 2}
+\NormalTok{assert}\OperatorTok{.}\FunctionTok{equal}\NormalTok{(\{ }\DataTypeTok{a}\OperatorTok{:}\NormalTok{ \{ }\DataTypeTok{b}\OperatorTok{:} \DecValTok{1}\NormalTok{ \} \}}\OperatorTok{,}\NormalTok{ \{ }\DataTypeTok{a}\OperatorTok{:}\NormalTok{ \{ }\DataTypeTok{b}\OperatorTok{:} \DecValTok{1}\NormalTok{ \} \})}\OperatorTok{;}
+\CommentTok{// AssertionError: \{ a: \{ b: 1 \} \} == \{ a: \{ b: 1 \} \}}
+\end{Highlighting}
+\end{Shaded}
+
+If the values are not equal, an
+\hyperref[class-assertassertionerror]{\texttt{AssertionError}} is thrown
+with a \texttt{message} property set equal to the value of the
+\texttt{message} parameter. If the \texttt{message} parameter is
+undefined, a default error message is assigned. If the \texttt{message}
+parameter is an instance of an
+\href{errors.md\#class-error}{\texttt{Error}} then it will be thrown
+instead of the \texttt{AssertionError}.
+
+\subsection{\texorpdfstring{\texttt{assert.fail({[}message{]})}}{assert.fail({[}message{]})}}\label{assert.failmessage}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{message} \{string\textbar Error\} \textbf{Default:}
+  \texttt{\textquotesingle{}Failed\textquotesingle{}}
+\end{itemize}
+
+Throws an \hyperref[class-assertassertionerror]{\texttt{AssertionError}}
+with the provided error message or a default error message. If the
+\texttt{message} parameter is an instance of an
+\href{errors.md\#class-error}{\texttt{Error}} then it will be thrown
+instead of the
+\hyperref[class-assertassertionerror]{\texttt{AssertionError}}.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\ImportTok{import}\NormalTok{ assert }\ImportTok{from} \StringTok{\textquotesingle{}node:assert/strict\textquotesingle{}}\OperatorTok{;}
+
+\NormalTok{assert}\OperatorTok{.}\FunctionTok{fail}\NormalTok{()}\OperatorTok{;}
+\CommentTok{// AssertionError [ERR\_ASSERTION]: Failed}
+
+\NormalTok{assert}\OperatorTok{.}\FunctionTok{fail}\NormalTok{(}\StringTok{\textquotesingle{}boom\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// AssertionError [ERR\_ASSERTION]: boom}
+
+\NormalTok{assert}\OperatorTok{.}\FunctionTok{fail}\NormalTok{(}\KeywordTok{new} \BuiltInTok{TypeError}\NormalTok{(}\StringTok{\textquotesingle{}need array\textquotesingle{}}\NormalTok{))}\OperatorTok{;}
+\CommentTok{// TypeError: need array}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ assert }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:assert/strict\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+
+\NormalTok{assert}\OperatorTok{.}\FunctionTok{fail}\NormalTok{()}\OperatorTok{;}
+\CommentTok{// AssertionError [ERR\_ASSERTION]: Failed}
+
+\NormalTok{assert}\OperatorTok{.}\FunctionTok{fail}\NormalTok{(}\StringTok{\textquotesingle{}boom\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// AssertionError [ERR\_ASSERTION]: boom}
+
+\NormalTok{assert}\OperatorTok{.}\FunctionTok{fail}\NormalTok{(}\KeywordTok{new} \BuiltInTok{TypeError}\NormalTok{(}\StringTok{\textquotesingle{}need array\textquotesingle{}}\NormalTok{))}\OperatorTok{;}
+\CommentTok{// TypeError: need array}
+\end{Highlighting}
+\end{Shaded}
+
+Using \texttt{assert.fail()} with more than two arguments is possible
+but deprecated. See below for further details.
+
+\subsection{\texorpdfstring{\texttt{assert.fail(actual,\ expected{[},\ message{[},\ operator{[},\ stackStartFn{]}{]}{]})}}{assert.fail(actual, expected{[}, message{[}, operator{[}, stackStartFn{]}{]}{]})}}\label{assert.failactual-expected-message-operator-stackstartfn}
+
+\begin{quote}
+Stability: 0 - Deprecated: Use \texttt{assert.fail({[}message{]})} or
+other assert functions instead.
+\end{quote}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{actual} \{any\}
+\item
+  \texttt{expected} \{any\}
+\item
+  \texttt{message} \{string\textbar Error\}
+\item
+  \texttt{operator} \{string\} \textbf{Default:}
+  \texttt{\textquotesingle{}!=\textquotesingle{}}
+\item
+  \texttt{stackStartFn} \{Function\} \textbf{Default:}
+  \texttt{assert.fail}
+\end{itemize}
+
+If \texttt{message} is falsy, the error message is set as the values of
+\texttt{actual} and \texttt{expected} separated by the provided
+\texttt{operator}. If just the two \texttt{actual} and \texttt{expected}
+arguments are provided, \texttt{operator} will default to
+\texttt{\textquotesingle{}!=\textquotesingle{}}. If \texttt{message} is
+provided as third argument it will be used as the error message and the
+other arguments will be stored as properties on the thrown object. If
+\texttt{stackStartFn} is provided, all stack frames above that function
+will be removed from stacktrace (see
+\href{errors.md\#errorcapturestacktracetargetobject-constructoropt}{\texttt{Error.captureStackTrace}}).
+If no arguments are given, the default message \texttt{Failed} will be
+used.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\ImportTok{import}\NormalTok{ assert }\ImportTok{from} \StringTok{\textquotesingle{}node:assert/strict\textquotesingle{}}\OperatorTok{;}
+
+\NormalTok{assert}\OperatorTok{.}\FunctionTok{fail}\NormalTok{(}\StringTok{\textquotesingle{}a\textquotesingle{}}\OperatorTok{,} \StringTok{\textquotesingle{}b\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// AssertionError [ERR\_ASSERTION]: \textquotesingle{}a\textquotesingle{} != \textquotesingle{}b\textquotesingle{}}
+
+\NormalTok{assert}\OperatorTok{.}\FunctionTok{fail}\NormalTok{(}\DecValTok{1}\OperatorTok{,} \DecValTok{2}\OperatorTok{,} \KeywordTok{undefined}\OperatorTok{,} \StringTok{\textquotesingle{}\textgreater{}\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// AssertionError [ERR\_ASSERTION]: 1 \textgreater{} 2}
+
+\NormalTok{assert}\OperatorTok{.}\FunctionTok{fail}\NormalTok{(}\DecValTok{1}\OperatorTok{,} \DecValTok{2}\OperatorTok{,} \StringTok{\textquotesingle{}fail\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// AssertionError [ERR\_ASSERTION]: fail}
+
+\NormalTok{assert}\OperatorTok{.}\FunctionTok{fail}\NormalTok{(}\DecValTok{1}\OperatorTok{,} \DecValTok{2}\OperatorTok{,} \StringTok{\textquotesingle{}whoops\textquotesingle{}}\OperatorTok{,} \StringTok{\textquotesingle{}\textgreater{}\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// AssertionError [ERR\_ASSERTION]: whoops}
+
+\NormalTok{assert}\OperatorTok{.}\FunctionTok{fail}\NormalTok{(}\DecValTok{1}\OperatorTok{,} \DecValTok{2}\OperatorTok{,} \KeywordTok{new} \BuiltInTok{TypeError}\NormalTok{(}\StringTok{\textquotesingle{}need array\textquotesingle{}}\NormalTok{))}\OperatorTok{;}
+\CommentTok{// TypeError: need array}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ assert }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:assert/strict\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+
+\NormalTok{assert}\OperatorTok{.}\FunctionTok{fail}\NormalTok{(}\StringTok{\textquotesingle{}a\textquotesingle{}}\OperatorTok{,} \StringTok{\textquotesingle{}b\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// AssertionError [ERR\_ASSERTION]: \textquotesingle{}a\textquotesingle{} != \textquotesingle{}b\textquotesingle{}}
+
+\NormalTok{assert}\OperatorTok{.}\FunctionTok{fail}\NormalTok{(}\DecValTok{1}\OperatorTok{,} \DecValTok{2}\OperatorTok{,} \KeywordTok{undefined}\OperatorTok{,} \StringTok{\textquotesingle{}\textgreater{}\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// AssertionError [ERR\_ASSERTION]: 1 \textgreater{} 2}
+
+\NormalTok{assert}\OperatorTok{.}\FunctionTok{fail}\NormalTok{(}\DecValTok{1}\OperatorTok{,} \DecValTok{2}\OperatorTok{,} \StringTok{\textquotesingle{}fail\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// AssertionError [ERR\_ASSERTION]: fail}
+
+\NormalTok{assert}\OperatorTok{.}\FunctionTok{fail}\NormalTok{(}\DecValTok{1}\OperatorTok{,} \DecValTok{2}\OperatorTok{,} \StringTok{\textquotesingle{}whoops\textquotesingle{}}\OperatorTok{,} \StringTok{\textquotesingle{}\textgreater{}\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// AssertionError [ERR\_ASSERTION]: whoops}
+
+\NormalTok{assert}\OperatorTok{.}\FunctionTok{fail}\NormalTok{(}\DecValTok{1}\OperatorTok{,} \DecValTok{2}\OperatorTok{,} \KeywordTok{new} \BuiltInTok{TypeError}\NormalTok{(}\StringTok{\textquotesingle{}need array\textquotesingle{}}\NormalTok{))}\OperatorTok{;}
+\CommentTok{// TypeError: need array}
+\end{Highlighting}
+\end{Shaded}
+
+In the last three cases \texttt{actual}, \texttt{expected}, and
+\texttt{operator} have no influence on the error message.
+
+Example use of \texttt{stackStartFn} for truncating the exception's
+stacktrace:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\ImportTok{import}\NormalTok{ assert }\ImportTok{from} \StringTok{\textquotesingle{}node:assert/strict\textquotesingle{}}\OperatorTok{;}
+
+\KeywordTok{function} \FunctionTok{suppressFrame}\NormalTok{() \{}
+\NormalTok{  assert}\OperatorTok{.}\FunctionTok{fail}\NormalTok{(}\StringTok{\textquotesingle{}a\textquotesingle{}}\OperatorTok{,} \StringTok{\textquotesingle{}b\textquotesingle{}}\OperatorTok{,} \KeywordTok{undefined}\OperatorTok{,} \StringTok{\textquotesingle{}!==\textquotesingle{}}\OperatorTok{,}\NormalTok{ suppressFrame)}\OperatorTok{;}
+\NormalTok{\}}
+\FunctionTok{suppressFrame}\NormalTok{()}\OperatorTok{;}
+\CommentTok{// AssertionError [ERR\_ASSERTION]: \textquotesingle{}a\textquotesingle{} !== \textquotesingle{}b\textquotesingle{}}
+\CommentTok{//     at repl:1:1}
+\CommentTok{//     at ContextifyScript.Script.runInThisContext (vm.js:44:33)}
+\CommentTok{//     ...}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ assert }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:assert/strict\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+
+\KeywordTok{function} \FunctionTok{suppressFrame}\NormalTok{() \{}
+\NormalTok{  assert}\OperatorTok{.}\FunctionTok{fail}\NormalTok{(}\StringTok{\textquotesingle{}a\textquotesingle{}}\OperatorTok{,} \StringTok{\textquotesingle{}b\textquotesingle{}}\OperatorTok{,} \KeywordTok{undefined}\OperatorTok{,} \StringTok{\textquotesingle{}!==\textquotesingle{}}\OperatorTok{,}\NormalTok{ suppressFrame)}\OperatorTok{;}
+\NormalTok{\}}
+\FunctionTok{suppressFrame}\NormalTok{()}\OperatorTok{;}
+\CommentTok{// AssertionError [ERR\_ASSERTION]: \textquotesingle{}a\textquotesingle{} !== \textquotesingle{}b\textquotesingle{}}
+\CommentTok{//     at repl:1:1}
+\CommentTok{//     at ContextifyScript.Script.runInThisContext (vm.js:44:33)}
+\CommentTok{//     ...}
+\end{Highlighting}
+\end{Shaded}
+
+\subsection{\texorpdfstring{\texttt{assert.ifError(value)}}{assert.ifError(value)}}\label{assert.iferrorvalue}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{value} \{any\}
+\end{itemize}
+
+Throws \texttt{value} if \texttt{value} is not \texttt{undefined} or
+\texttt{null}. This is useful when testing the \texttt{error} argument
+in callbacks. The stack trace contains all frames from the error passed
+to \texttt{ifError()} including the potential new frames for
+\texttt{ifError()} itself.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\ImportTok{import}\NormalTok{ assert }\ImportTok{from} \StringTok{\textquotesingle{}node:assert/strict\textquotesingle{}}\OperatorTok{;}
+
+\NormalTok{assert}\OperatorTok{.}\FunctionTok{ifError}\NormalTok{(}\KeywordTok{null}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// OK}
+\NormalTok{assert}\OperatorTok{.}\FunctionTok{ifError}\NormalTok{(}\DecValTok{0}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// AssertionError [ERR\_ASSERTION]: ifError got unwanted exception: 0}
+\NormalTok{assert}\OperatorTok{.}\FunctionTok{ifError}\NormalTok{(}\StringTok{\textquotesingle{}error\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// AssertionError [ERR\_ASSERTION]: ifError got unwanted exception: \textquotesingle{}error\textquotesingle{}}
+\NormalTok{assert}\OperatorTok{.}\FunctionTok{ifError}\NormalTok{(}\KeywordTok{new} \BuiltInTok{Error}\NormalTok{())}\OperatorTok{;}
+\CommentTok{// AssertionError [ERR\_ASSERTION]: ifError got unwanted exception: Error}
+
+\CommentTok{// Create some random error frames.}
+\KeywordTok{let}\NormalTok{ err}\OperatorTok{;}
+\NormalTok{(}\KeywordTok{function} \FunctionTok{errorFrame}\NormalTok{() \{}
+\NormalTok{  err }\OperatorTok{=} \KeywordTok{new} \BuiltInTok{Error}\NormalTok{(}\StringTok{\textquotesingle{}test error\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{\})()}\OperatorTok{;}
+
+\NormalTok{(}\KeywordTok{function} \FunctionTok{ifErrorFrame}\NormalTok{() \{}
+\NormalTok{  assert}\OperatorTok{.}\FunctionTok{ifError}\NormalTok{(err)}\OperatorTok{;}
+\NormalTok{\})()}\OperatorTok{;}
+\CommentTok{// AssertionError [ERR\_ASSERTION]: ifError got unwanted exception: test error}
+\CommentTok{//     at ifErrorFrame}
+\CommentTok{//     at errorFrame}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ assert }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:assert/strict\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+
+\NormalTok{assert}\OperatorTok{.}\FunctionTok{ifError}\NormalTok{(}\KeywordTok{null}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// OK}
+\NormalTok{assert}\OperatorTok{.}\FunctionTok{ifError}\NormalTok{(}\DecValTok{0}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// AssertionError [ERR\_ASSERTION]: ifError got unwanted exception: 0}
+\NormalTok{assert}\OperatorTok{.}\FunctionTok{ifError}\NormalTok{(}\StringTok{\textquotesingle{}error\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// AssertionError [ERR\_ASSERTION]: ifError got unwanted exception: \textquotesingle{}error\textquotesingle{}}
+\NormalTok{assert}\OperatorTok{.}\FunctionTok{ifError}\NormalTok{(}\KeywordTok{new} \BuiltInTok{Error}\NormalTok{())}\OperatorTok{;}
+\CommentTok{// AssertionError [ERR\_ASSERTION]: ifError got unwanted exception: Error}
+
+\CommentTok{// Create some random error frames.}
+\KeywordTok{let}\NormalTok{ err}\OperatorTok{;}
+\NormalTok{(}\KeywordTok{function} \FunctionTok{errorFrame}\NormalTok{() \{}
+\NormalTok{  err }\OperatorTok{=} \KeywordTok{new} \BuiltInTok{Error}\NormalTok{(}\StringTok{\textquotesingle{}test error\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{\})()}\OperatorTok{;}
+
+\NormalTok{(}\KeywordTok{function} \FunctionTok{ifErrorFrame}\NormalTok{() \{}
+\NormalTok{  assert}\OperatorTok{.}\FunctionTok{ifError}\NormalTok{(err)}\OperatorTok{;}
+\NormalTok{\})()}\OperatorTok{;}
+\CommentTok{// AssertionError [ERR\_ASSERTION]: ifError got unwanted exception: test error}
+\CommentTok{//     at ifErrorFrame}
+\CommentTok{//     at errorFrame}
+\end{Highlighting}
+\end{Shaded}
+
+\subsection{\texorpdfstring{\texttt{assert.match(string,\ regexp{[},\ message{]})}}{assert.match(string, regexp{[}, message{]})}}\label{assert.matchstring-regexp-message}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{string} \{string\}
+\item
+  \texttt{regexp} \{RegExp\}
+\item
+  \texttt{message} \{string\textbar Error\}
+\end{itemize}
+
+Expects the \texttt{string} input to match the regular expression.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\ImportTok{import}\NormalTok{ assert }\ImportTok{from} \StringTok{\textquotesingle{}node:assert/strict\textquotesingle{}}\OperatorTok{;}
+
+\NormalTok{assert}\OperatorTok{.}\FunctionTok{match}\NormalTok{(}\StringTok{\textquotesingle{}I will fail\textquotesingle{}}\OperatorTok{,} \SpecialStringTok{/pass/}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// AssertionError [ERR\_ASSERTION]: The input did not match the regular ...}
+
+\NormalTok{assert}\OperatorTok{.}\FunctionTok{match}\NormalTok{(}\DecValTok{123}\OperatorTok{,} \SpecialStringTok{/pass/}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// AssertionError [ERR\_ASSERTION]: The "string" argument must be of type string.}
+
+\NormalTok{assert}\OperatorTok{.}\FunctionTok{match}\NormalTok{(}\StringTok{\textquotesingle{}I will pass\textquotesingle{}}\OperatorTok{,} \SpecialStringTok{/pass/}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// OK}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ assert }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:assert/strict\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+
+\NormalTok{assert}\OperatorTok{.}\FunctionTok{match}\NormalTok{(}\StringTok{\textquotesingle{}I will fail\textquotesingle{}}\OperatorTok{,} \SpecialStringTok{/pass/}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// AssertionError [ERR\_ASSERTION]: The input did not match the regular ...}
+
+\NormalTok{assert}\OperatorTok{.}\FunctionTok{match}\NormalTok{(}\DecValTok{123}\OperatorTok{,} \SpecialStringTok{/pass/}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// AssertionError [ERR\_ASSERTION]: The "string" argument must be of type string.}
+
+\NormalTok{assert}\OperatorTok{.}\FunctionTok{match}\NormalTok{(}\StringTok{\textquotesingle{}I will pass\textquotesingle{}}\OperatorTok{,} \SpecialStringTok{/pass/}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// OK}
+\end{Highlighting}
+\end{Shaded}
+
+If the values do not match, or if the \texttt{string} argument is of
+another type than \texttt{string}, an
+\hyperref[class-assertassertionerror]{\texttt{AssertionError}} is thrown
+with a \texttt{message} property set equal to the value of the
+\texttt{message} parameter. If the \texttt{message} parameter is
+undefined, a default error message is assigned. If the \texttt{message}
+parameter is an instance of an
+\href{errors.md\#class-error}{\texttt{Error}} then it will be thrown
+instead of the
+\hyperref[class-assertassertionerror]{\texttt{AssertionError}}.
+
+\subsection{\texorpdfstring{\texttt{assert.notDeepEqual(actual,\ expected{[},\ message{]})}}{assert.notDeepEqual(actual, expected{[}, message{]})}}\label{assert.notdeepequalactual-expected-message}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{actual} \{any\}
+\item
+  \texttt{expected} \{any\}
+\item
+  \texttt{message} \{string\textbar Error\}
+\end{itemize}
+
+\textbf{Strict assertion mode}
+
+An alias of
+\hyperref[assertnotdeepstrictequalactual-expected-message]{\texttt{assert.notDeepStrictEqual()}}.
+
+\textbf{Legacy assertion mode}
+
+\begin{quote}
+Stability: 3 - Legacy: Use
+\hyperref[assertnotdeepstrictequalactual-expected-message]{\texttt{assert.notDeepStrictEqual()}}
+instead.
+\end{quote}
+
+Tests for any deep inequality. Opposite of
+\hyperref[assertdeepequalactual-expected-message]{\texttt{assert.deepEqual()}}.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\ImportTok{import}\NormalTok{ assert }\ImportTok{from} \StringTok{\textquotesingle{}node:assert\textquotesingle{}}\OperatorTok{;}
+
+\KeywordTok{const}\NormalTok{ obj1 }\OperatorTok{=}\NormalTok{ \{}
+  \DataTypeTok{a}\OperatorTok{:}\NormalTok{ \{}
+    \DataTypeTok{b}\OperatorTok{:} \DecValTok{1}\OperatorTok{,}
+\NormalTok{  \}}\OperatorTok{,}
+\NormalTok{\}}\OperatorTok{;}
+\KeywordTok{const}\NormalTok{ obj2 }\OperatorTok{=}\NormalTok{ \{}
+  \DataTypeTok{a}\OperatorTok{:}\NormalTok{ \{}
+    \DataTypeTok{b}\OperatorTok{:} \DecValTok{2}\OperatorTok{,}
+\NormalTok{  \}}\OperatorTok{,}
+\NormalTok{\}}\OperatorTok{;}
+\KeywordTok{const}\NormalTok{ obj3 }\OperatorTok{=}\NormalTok{ \{}
+  \DataTypeTok{a}\OperatorTok{:}\NormalTok{ \{}
+    \DataTypeTok{b}\OperatorTok{:} \DecValTok{1}\OperatorTok{,}
+\NormalTok{  \}}\OperatorTok{,}
+\NormalTok{\}}\OperatorTok{;}
+\KeywordTok{const}\NormalTok{ obj4 }\OperatorTok{=}\NormalTok{ \{ }\DataTypeTok{\_\_proto\_\_}\OperatorTok{:}\NormalTok{ obj1 \}}\OperatorTok{;}
+
+\NormalTok{assert}\OperatorTok{.}\FunctionTok{notDeepEqual}\NormalTok{(obj1}\OperatorTok{,}\NormalTok{ obj1)}\OperatorTok{;}
+\CommentTok{// AssertionError: \{ a: \{ b: 1 \} \} notDeepEqual \{ a: \{ b: 1 \} \}}
+
+\NormalTok{assert}\OperatorTok{.}\FunctionTok{notDeepEqual}\NormalTok{(obj1}\OperatorTok{,}\NormalTok{ obj2)}\OperatorTok{;}
+\CommentTok{// OK}
+
+\NormalTok{assert}\OperatorTok{.}\FunctionTok{notDeepEqual}\NormalTok{(obj1}\OperatorTok{,}\NormalTok{ obj3)}\OperatorTok{;}
+\CommentTok{// AssertionError: \{ a: \{ b: 1 \} \} notDeepEqual \{ a: \{ b: 1 \} \}}
+
+\NormalTok{assert}\OperatorTok{.}\FunctionTok{notDeepEqual}\NormalTok{(obj1}\OperatorTok{,}\NormalTok{ obj4)}\OperatorTok{;}
+\CommentTok{// OK}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ assert }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:assert\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+
+\KeywordTok{const}\NormalTok{ obj1 }\OperatorTok{=}\NormalTok{ \{}
+  \DataTypeTok{a}\OperatorTok{:}\NormalTok{ \{}
+    \DataTypeTok{b}\OperatorTok{:} \DecValTok{1}\OperatorTok{,}
+\NormalTok{  \}}\OperatorTok{,}
+\NormalTok{\}}\OperatorTok{;}
+\KeywordTok{const}\NormalTok{ obj2 }\OperatorTok{=}\NormalTok{ \{}
+  \DataTypeTok{a}\OperatorTok{:}\NormalTok{ \{}
+    \DataTypeTok{b}\OperatorTok{:} \DecValTok{2}\OperatorTok{,}
+\NormalTok{  \}}\OperatorTok{,}
+\NormalTok{\}}\OperatorTok{;}
+\KeywordTok{const}\NormalTok{ obj3 }\OperatorTok{=}\NormalTok{ \{}
+  \DataTypeTok{a}\OperatorTok{:}\NormalTok{ \{}
+    \DataTypeTok{b}\OperatorTok{:} \DecValTok{1}\OperatorTok{,}
+\NormalTok{  \}}\OperatorTok{,}
+\NormalTok{\}}\OperatorTok{;}
+\KeywordTok{const}\NormalTok{ obj4 }\OperatorTok{=}\NormalTok{ \{ }\DataTypeTok{\_\_proto\_\_}\OperatorTok{:}\NormalTok{ obj1 \}}\OperatorTok{;}
+
+\NormalTok{assert}\OperatorTok{.}\FunctionTok{notDeepEqual}\NormalTok{(obj1}\OperatorTok{,}\NormalTok{ obj1)}\OperatorTok{;}
+\CommentTok{// AssertionError: \{ a: \{ b: 1 \} \} notDeepEqual \{ a: \{ b: 1 \} \}}
+
+\NormalTok{assert}\OperatorTok{.}\FunctionTok{notDeepEqual}\NormalTok{(obj1}\OperatorTok{,}\NormalTok{ obj2)}\OperatorTok{;}
+\CommentTok{// OK}
+
+\NormalTok{assert}\OperatorTok{.}\FunctionTok{notDeepEqual}\NormalTok{(obj1}\OperatorTok{,}\NormalTok{ obj3)}\OperatorTok{;}
+\CommentTok{// AssertionError: \{ a: \{ b: 1 \} \} notDeepEqual \{ a: \{ b: 1 \} \}}
+
+\NormalTok{assert}\OperatorTok{.}\FunctionTok{notDeepEqual}\NormalTok{(obj1}\OperatorTok{,}\NormalTok{ obj4)}\OperatorTok{;}
+\CommentTok{// OK}
+\end{Highlighting}
+\end{Shaded}
+
+If the values are deeply equal, an
+\hyperref[class-assertassertionerror]{\texttt{AssertionError}} is thrown
+with a \texttt{message} property set equal to the value of the
+\texttt{message} parameter. If the \texttt{message} parameter is
+undefined, a default error message is assigned. If the \texttt{message}
+parameter is an instance of an
+\href{errors.md\#class-error}{\texttt{Error}} then it will be thrown
+instead of the \texttt{AssertionError}.
+
+\subsection{\texorpdfstring{\texttt{assert.notDeepStrictEqual(actual,\ expected{[},\ message{]})}}{assert.notDeepStrictEqual(actual, expected{[}, message{]})}}\label{assert.notdeepstrictequalactual-expected-message}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{actual} \{any\}
+\item
+  \texttt{expected} \{any\}
+\item
+  \texttt{message} \{string\textbar Error\}
+\end{itemize}
+
+Tests for deep strict inequality. Opposite of
+\hyperref[assertdeepstrictequalactual-expected-message]{\texttt{assert.deepStrictEqual()}}.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\ImportTok{import}\NormalTok{ assert }\ImportTok{from} \StringTok{\textquotesingle{}node:assert/strict\textquotesingle{}}\OperatorTok{;}
+
+\NormalTok{assert}\OperatorTok{.}\FunctionTok{notDeepStrictEqual}\NormalTok{(\{ }\DataTypeTok{a}\OperatorTok{:} \DecValTok{1}\NormalTok{ \}}\OperatorTok{,}\NormalTok{ \{ }\DataTypeTok{a}\OperatorTok{:} \StringTok{\textquotesingle{}1\textquotesingle{}}\NormalTok{ \})}\OperatorTok{;}
+\CommentTok{// OK}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ assert }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:assert/strict\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+
+\NormalTok{assert}\OperatorTok{.}\FunctionTok{notDeepStrictEqual}\NormalTok{(\{ }\DataTypeTok{a}\OperatorTok{:} \DecValTok{1}\NormalTok{ \}}\OperatorTok{,}\NormalTok{ \{ }\DataTypeTok{a}\OperatorTok{:} \StringTok{\textquotesingle{}1\textquotesingle{}}\NormalTok{ \})}\OperatorTok{;}
+\CommentTok{// OK}
+\end{Highlighting}
+\end{Shaded}
+
+If the values are deeply and strictly equal, an
+\hyperref[class-assertassertionerror]{\texttt{AssertionError}} is thrown
+with a \texttt{message} property set equal to the value of the
+\texttt{message} parameter. If the \texttt{message} parameter is
+undefined, a default error message is assigned. If the \texttt{message}
+parameter is an instance of an
+\href{errors.md\#class-error}{\texttt{Error}} then it will be thrown
+instead of the
+\hyperref[class-assertassertionerror]{\texttt{AssertionError}}.
+
+\subsection{\texorpdfstring{\texttt{assert.notEqual(actual,\ expected{[},\ message{]})}}{assert.notEqual(actual, expected{[}, message{]})}}\label{assert.notequalactual-expected-message}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{actual} \{any\}
+\item
+  \texttt{expected} \{any\}
+\item
+  \texttt{message} \{string\textbar Error\}
+\end{itemize}
+
+\textbf{Strict assertion mode}
+
+An alias of
+\hyperref[assertnotstrictequalactual-expected-message]{\texttt{assert.notStrictEqual()}}.
+
+\textbf{Legacy assertion mode}
+
+\begin{quote}
+Stability: 3 - Legacy: Use
+\hyperref[assertnotstrictequalactual-expected-message]{\texttt{assert.notStrictEqual()}}
+instead.
+\end{quote}
+
+Tests shallow, coercive inequality with the
+\href{https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Inequality}{\texttt{!=}
+operator}. \texttt{NaN} is specially handled and treated as being
+identical if both sides are \texttt{NaN}.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\ImportTok{import}\NormalTok{ assert }\ImportTok{from} \StringTok{\textquotesingle{}node:assert\textquotesingle{}}\OperatorTok{;}
+
+\NormalTok{assert}\OperatorTok{.}\FunctionTok{notEqual}\NormalTok{(}\DecValTok{1}\OperatorTok{,} \DecValTok{2}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// OK}
+
+\NormalTok{assert}\OperatorTok{.}\FunctionTok{notEqual}\NormalTok{(}\DecValTok{1}\OperatorTok{,} \DecValTok{1}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// AssertionError: 1 != 1}
+
+\NormalTok{assert}\OperatorTok{.}\FunctionTok{notEqual}\NormalTok{(}\DecValTok{1}\OperatorTok{,} \StringTok{\textquotesingle{}1\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// AssertionError: 1 != \textquotesingle{}1\textquotesingle{}}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ assert }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:assert\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+
+\NormalTok{assert}\OperatorTok{.}\FunctionTok{notEqual}\NormalTok{(}\DecValTok{1}\OperatorTok{,} \DecValTok{2}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// OK}
+
+\NormalTok{assert}\OperatorTok{.}\FunctionTok{notEqual}\NormalTok{(}\DecValTok{1}\OperatorTok{,} \DecValTok{1}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// AssertionError: 1 != 1}
+
+\NormalTok{assert}\OperatorTok{.}\FunctionTok{notEqual}\NormalTok{(}\DecValTok{1}\OperatorTok{,} \StringTok{\textquotesingle{}1\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// AssertionError: 1 != \textquotesingle{}1\textquotesingle{}}
+\end{Highlighting}
+\end{Shaded}
+
+If the values are equal, an
+\hyperref[class-assertassertionerror]{\texttt{AssertionError}} is thrown
+with a \texttt{message} property set equal to the value of the
+\texttt{message} parameter. If the \texttt{message} parameter is
+undefined, a default error message is assigned. If the \texttt{message}
+parameter is an instance of an
+\href{errors.md\#class-error}{\texttt{Error}} then it will be thrown
+instead of the \texttt{AssertionError}.
+
+\subsection{\texorpdfstring{\texttt{assert.notStrictEqual(actual,\ expected{[},\ message{]})}}{assert.notStrictEqual(actual, expected{[}, message{]})}}\label{assert.notstrictequalactual-expected-message}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{actual} \{any\}
+\item
+  \texttt{expected} \{any\}
+\item
+  \texttt{message} \{string\textbar Error\}
+\end{itemize}
+
+Tests strict inequality between the \texttt{actual} and
+\texttt{expected} parameters as determined by
+\href{https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object/is}{\texttt{Object.is()}}.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\ImportTok{import}\NormalTok{ assert }\ImportTok{from} \StringTok{\textquotesingle{}node:assert/strict\textquotesingle{}}\OperatorTok{;}
+
+\NormalTok{assert}\OperatorTok{.}\FunctionTok{notStrictEqual}\NormalTok{(}\DecValTok{1}\OperatorTok{,} \DecValTok{2}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// OK}
+
+\NormalTok{assert}\OperatorTok{.}\FunctionTok{notStrictEqual}\NormalTok{(}\DecValTok{1}\OperatorTok{,} \DecValTok{1}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// AssertionError [ERR\_ASSERTION]: Expected "actual" to be strictly unequal to:}
+\CommentTok{//}
+\CommentTok{// 1}
+
+\NormalTok{assert}\OperatorTok{.}\FunctionTok{notStrictEqual}\NormalTok{(}\DecValTok{1}\OperatorTok{,} \StringTok{\textquotesingle{}1\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// OK}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ assert }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:assert/strict\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+
+\NormalTok{assert}\OperatorTok{.}\FunctionTok{notStrictEqual}\NormalTok{(}\DecValTok{1}\OperatorTok{,} \DecValTok{2}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// OK}
+
+\NormalTok{assert}\OperatorTok{.}\FunctionTok{notStrictEqual}\NormalTok{(}\DecValTok{1}\OperatorTok{,} \DecValTok{1}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// AssertionError [ERR\_ASSERTION]: Expected "actual" to be strictly unequal to:}
+\CommentTok{//}
+\CommentTok{// 1}
+
+\NormalTok{assert}\OperatorTok{.}\FunctionTok{notStrictEqual}\NormalTok{(}\DecValTok{1}\OperatorTok{,} \StringTok{\textquotesingle{}1\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// OK}
+\end{Highlighting}
+\end{Shaded}
+
+If the values are strictly equal, an
+\hyperref[class-assertassertionerror]{\texttt{AssertionError}} is thrown
+with a \texttt{message} property set equal to the value of the
+\texttt{message} parameter. If the \texttt{message} parameter is
+undefined, a default error message is assigned. If the \texttt{message}
+parameter is an instance of an
+\href{errors.md\#class-error}{\texttt{Error}} then it will be thrown
+instead of the \texttt{AssertionError}.
+
+\subsection{\texorpdfstring{\texttt{assert.ok(value{[},\ message{]})}}{assert.ok(value{[}, message{]})}}\label{assert.okvalue-message}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{value} \{any\}
+\item
+  \texttt{message} \{string\textbar Error\}
+\end{itemize}
+
+Tests if \texttt{value} is truthy. It is equivalent to
+\texttt{assert.equal(!!value,\ true,\ message)}.
+
+If \texttt{value} is not truthy, an
+\hyperref[class-assertassertionerror]{\texttt{AssertionError}} is thrown
+with a \texttt{message} property set equal to the value of the
+\texttt{message} parameter. If the \texttt{message} parameter is
+\texttt{undefined}, a default error message is assigned. If the
+\texttt{message} parameter is an instance of an
+\href{errors.md\#class-error}{\texttt{Error}} then it will be thrown
+instead of the \texttt{AssertionError}. If no arguments are passed in at
+all \texttt{message} will be set to the string:
+\texttt{\textquotesingle{}No\ value\ argument\ passed\ to\ \textasciigrave{}assert.ok()\textasciigrave{}\textquotesingle{}}.
+
+Be aware that in the \texttt{repl} the error message will be different
+to the one thrown in a file! See below for further details.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\ImportTok{import}\NormalTok{ assert }\ImportTok{from} \StringTok{\textquotesingle{}node:assert/strict\textquotesingle{}}\OperatorTok{;}
+
+\NormalTok{assert}\OperatorTok{.}\FunctionTok{ok}\NormalTok{(}\KeywordTok{true}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// OK}
+\NormalTok{assert}\OperatorTok{.}\FunctionTok{ok}\NormalTok{(}\DecValTok{1}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// OK}
+
+\NormalTok{assert}\OperatorTok{.}\FunctionTok{ok}\NormalTok{()}\OperatorTok{;}
+\CommentTok{// AssertionError: No value argument passed to \textasciigrave{}assert.ok()\textasciigrave{}}
+
+\NormalTok{assert}\OperatorTok{.}\FunctionTok{ok}\NormalTok{(}\KeywordTok{false}\OperatorTok{,} \StringTok{\textquotesingle{}it}\SpecialCharTok{\textbackslash{}\textquotesingle{}}\StringTok{s false\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// AssertionError: it\textquotesingle{}s false}
+
+\CommentTok{// In the repl:}
+\NormalTok{assert}\OperatorTok{.}\FunctionTok{ok}\NormalTok{(}\KeywordTok{typeof} \DecValTok{123} \OperatorTok{===} \StringTok{\textquotesingle{}string\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// AssertionError: false == true}
+
+\CommentTok{// In a file (e.g. test.js):}
+\NormalTok{assert}\OperatorTok{.}\FunctionTok{ok}\NormalTok{(}\KeywordTok{typeof} \DecValTok{123} \OperatorTok{===} \StringTok{\textquotesingle{}string\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// AssertionError: The expression evaluated to a falsy value:}
+\CommentTok{//}
+\CommentTok{//   assert.ok(typeof 123 === \textquotesingle{}string\textquotesingle{})}
+
+\NormalTok{assert}\OperatorTok{.}\FunctionTok{ok}\NormalTok{(}\KeywordTok{false}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// AssertionError: The expression evaluated to a falsy value:}
+\CommentTok{//}
+\CommentTok{//   assert.ok(false)}
+
+\NormalTok{assert}\OperatorTok{.}\FunctionTok{ok}\NormalTok{(}\DecValTok{0}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// AssertionError: The expression evaluated to a falsy value:}
+\CommentTok{//}
+\CommentTok{//   assert.ok(0)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ assert }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:assert/strict\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+
+\NormalTok{assert}\OperatorTok{.}\FunctionTok{ok}\NormalTok{(}\KeywordTok{true}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// OK}
+\NormalTok{assert}\OperatorTok{.}\FunctionTok{ok}\NormalTok{(}\DecValTok{1}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// OK}
+
+\NormalTok{assert}\OperatorTok{.}\FunctionTok{ok}\NormalTok{()}\OperatorTok{;}
+\CommentTok{// AssertionError: No value argument passed to \textasciigrave{}assert.ok()\textasciigrave{}}
+
+\NormalTok{assert}\OperatorTok{.}\FunctionTok{ok}\NormalTok{(}\KeywordTok{false}\OperatorTok{,} \StringTok{\textquotesingle{}it}\SpecialCharTok{\textbackslash{}\textquotesingle{}}\StringTok{s false\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// AssertionError: it\textquotesingle{}s false}
+
+\CommentTok{// In the repl:}
+\NormalTok{assert}\OperatorTok{.}\FunctionTok{ok}\NormalTok{(}\KeywordTok{typeof} \DecValTok{123} \OperatorTok{===} \StringTok{\textquotesingle{}string\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// AssertionError: false == true}
+
+\CommentTok{// In a file (e.g. test.js):}
+\NormalTok{assert}\OperatorTok{.}\FunctionTok{ok}\NormalTok{(}\KeywordTok{typeof} \DecValTok{123} \OperatorTok{===} \StringTok{\textquotesingle{}string\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// AssertionError: The expression evaluated to a falsy value:}
+\CommentTok{//}
+\CommentTok{//   assert.ok(typeof 123 === \textquotesingle{}string\textquotesingle{})}
+
+\NormalTok{assert}\OperatorTok{.}\FunctionTok{ok}\NormalTok{(}\KeywordTok{false}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// AssertionError: The expression evaluated to a falsy value:}
+\CommentTok{//}
+\CommentTok{//   assert.ok(false)}
+
+\NormalTok{assert}\OperatorTok{.}\FunctionTok{ok}\NormalTok{(}\DecValTok{0}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// AssertionError: The expression evaluated to a falsy value:}
+\CommentTok{//}
+\CommentTok{//   assert.ok(0)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\ImportTok{import}\NormalTok{ assert }\ImportTok{from} \StringTok{\textquotesingle{}node:assert/strict\textquotesingle{}}\OperatorTok{;}
+
+\CommentTok{// Using \textasciigrave{}assert()\textasciigrave{} works the same:}
+\FunctionTok{assert}\NormalTok{(}\DecValTok{0}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// AssertionError: The expression evaluated to a falsy value:}
+\CommentTok{//}
+\CommentTok{//   assert(0)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ assert }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:assert\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+
+\CommentTok{// Using \textasciigrave{}assert()\textasciigrave{} works the same:}
+\FunctionTok{assert}\NormalTok{(}\DecValTok{0}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// AssertionError: The expression evaluated to a falsy value:}
+\CommentTok{//}
+\CommentTok{//   assert(0)}
+\end{Highlighting}
+\end{Shaded}
+
+\subsection{\texorpdfstring{\texttt{assert.rejects(asyncFn{[},\ error{]}{[},\ message{]})}}{assert.rejects(asyncFn{[}, error{]}{[}, message{]})}}\label{assert.rejectsasyncfn-error-message}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{asyncFn} \{Function\textbar Promise\}
+\item
+  \texttt{error}
+  \{RegExp\textbar Function\textbar Object\textbar Error\}
+\item
+  \texttt{message} \{string\}
+\end{itemize}
+
+Awaits the \texttt{asyncFn} promise or, if \texttt{asyncFn} is a
+function, immediately calls the function and awaits the returned promise
+to complete. It will then check that the promise is rejected.
+
+If \texttt{asyncFn} is a function and it throws an error synchronously,
+\texttt{assert.rejects()} will return a rejected \texttt{Promise} with
+that error. If the function does not return a promise,
+\texttt{assert.rejects()} will return a rejected \texttt{Promise} with
+an
+\href{errors.md\#err_invalid_return_value}{\texttt{ERR\_INVALID\_RETURN\_VALUE}}
+error. In both cases the error handler is skipped.
+
+Besides the async nature to await the completion behaves identically to
+\hyperref[assertthrowsfn-error-message]{\texttt{assert.throws()}}.
+
+If specified, \texttt{error} can be a
+\href{https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Classes}{\texttt{Class}},
+\href{https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Regular_Expressions}{\texttt{RegExp}},
+a validation function, an object where each property will be tested for,
+or an instance of error where each property will be tested for including
+the non-enumerable \texttt{message} and \texttt{name} properties.
+
+If specified, \texttt{message} will be the message provided by the
+\hyperref[class-assertassertionerror]{\texttt{AssertionError}} if the
+\texttt{asyncFn} fails to reject.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\ImportTok{import}\NormalTok{ assert }\ImportTok{from} \StringTok{\textquotesingle{}node:assert/strict\textquotesingle{}}\OperatorTok{;}
+
+\ControlFlowTok{await}\NormalTok{ assert}\OperatorTok{.}\FunctionTok{rejects}\NormalTok{(}
+  \KeywordTok{async}\NormalTok{ () }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+    \ControlFlowTok{throw} \KeywordTok{new} \BuiltInTok{TypeError}\NormalTok{(}\StringTok{\textquotesingle{}Wrong value\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{  \}}\OperatorTok{,}
+\NormalTok{  \{}
+    \DataTypeTok{name}\OperatorTok{:} \StringTok{\textquotesingle{}TypeError\textquotesingle{}}\OperatorTok{,}
+    \DataTypeTok{message}\OperatorTok{:} \StringTok{\textquotesingle{}Wrong value\textquotesingle{}}\OperatorTok{,}
+\NormalTok{  \}}\OperatorTok{,}
+\NormalTok{)}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ assert }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:assert/strict\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+
+\NormalTok{(}\KeywordTok{async}\NormalTok{ () }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+  \ControlFlowTok{await}\NormalTok{ assert}\OperatorTok{.}\FunctionTok{rejects}\NormalTok{(}
+    \KeywordTok{async}\NormalTok{ () }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+      \ControlFlowTok{throw} \KeywordTok{new} \BuiltInTok{TypeError}\NormalTok{(}\StringTok{\textquotesingle{}Wrong value\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{    \}}\OperatorTok{,}
+\NormalTok{    \{}
+      \DataTypeTok{name}\OperatorTok{:} \StringTok{\textquotesingle{}TypeError\textquotesingle{}}\OperatorTok{,}
+      \DataTypeTok{message}\OperatorTok{:} \StringTok{\textquotesingle{}Wrong value\textquotesingle{}}\OperatorTok{,}
+\NormalTok{    \}}\OperatorTok{,}
+\NormalTok{  )}\OperatorTok{;}
+\NormalTok{\})()}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\ImportTok{import}\NormalTok{ assert }\ImportTok{from} \StringTok{\textquotesingle{}node:assert/strict\textquotesingle{}}\OperatorTok{;}
+
+\ControlFlowTok{await}\NormalTok{ assert}\OperatorTok{.}\FunctionTok{rejects}\NormalTok{(}
+  \KeywordTok{async}\NormalTok{ () }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+    \ControlFlowTok{throw} \KeywordTok{new} \BuiltInTok{TypeError}\NormalTok{(}\StringTok{\textquotesingle{}Wrong value\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{  \}}\OperatorTok{,}
+\NormalTok{  (err) }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+\NormalTok{    assert}\OperatorTok{.}\FunctionTok{strictEqual}\NormalTok{(err}\OperatorTok{.}\AttributeTok{name}\OperatorTok{,} \StringTok{\textquotesingle{}TypeError\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{    assert}\OperatorTok{.}\FunctionTok{strictEqual}\NormalTok{(err}\OperatorTok{.}\AttributeTok{message}\OperatorTok{,} \StringTok{\textquotesingle{}Wrong value\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+    \ControlFlowTok{return} \KeywordTok{true}\OperatorTok{;}
+\NormalTok{  \}}\OperatorTok{,}
+\NormalTok{)}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ assert }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:assert/strict\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+
+\NormalTok{(}\KeywordTok{async}\NormalTok{ () }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+  \ControlFlowTok{await}\NormalTok{ assert}\OperatorTok{.}\FunctionTok{rejects}\NormalTok{(}
+    \KeywordTok{async}\NormalTok{ () }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+      \ControlFlowTok{throw} \KeywordTok{new} \BuiltInTok{TypeError}\NormalTok{(}\StringTok{\textquotesingle{}Wrong value\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{    \}}\OperatorTok{,}
+\NormalTok{    (err) }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+\NormalTok{      assert}\OperatorTok{.}\FunctionTok{strictEqual}\NormalTok{(err}\OperatorTok{.}\AttributeTok{name}\OperatorTok{,} \StringTok{\textquotesingle{}TypeError\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{      assert}\OperatorTok{.}\FunctionTok{strictEqual}\NormalTok{(err}\OperatorTok{.}\AttributeTok{message}\OperatorTok{,} \StringTok{\textquotesingle{}Wrong value\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+      \ControlFlowTok{return} \KeywordTok{true}\OperatorTok{;}
+\NormalTok{    \}}\OperatorTok{,}
+\NormalTok{  )}\OperatorTok{;}
+\NormalTok{\})()}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\ImportTok{import}\NormalTok{ assert }\ImportTok{from} \StringTok{\textquotesingle{}node:assert/strict\textquotesingle{}}\OperatorTok{;}
+
+\NormalTok{assert}\OperatorTok{.}\FunctionTok{rejects}\NormalTok{(}
+  \BuiltInTok{Promise}\OperatorTok{.}\FunctionTok{reject}\NormalTok{(}\KeywordTok{new} \BuiltInTok{Error}\NormalTok{(}\StringTok{\textquotesingle{}Wrong value\textquotesingle{}}\NormalTok{))}\OperatorTok{,}
+  \BuiltInTok{Error}\OperatorTok{,}
+\NormalTok{)}\OperatorTok{.}\FunctionTok{then}\NormalTok{(() }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+  \CommentTok{// ...}
+\NormalTok{\})}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ assert }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:assert/strict\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+
+\NormalTok{assert}\OperatorTok{.}\FunctionTok{rejects}\NormalTok{(}
+  \BuiltInTok{Promise}\OperatorTok{.}\FunctionTok{reject}\NormalTok{(}\KeywordTok{new} \BuiltInTok{Error}\NormalTok{(}\StringTok{\textquotesingle{}Wrong value\textquotesingle{}}\NormalTok{))}\OperatorTok{,}
+  \BuiltInTok{Error}\OperatorTok{,}
+\NormalTok{)}\OperatorTok{.}\FunctionTok{then}\NormalTok{(() }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+  \CommentTok{// ...}
+\NormalTok{\})}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+\texttt{error} cannot be a string. If a string is provided as the second
+argument, then \texttt{error} is assumed to be omitted and the string
+will be used for \texttt{message} instead. This can lead to easy-to-miss
+mistakes. Please read the example in
+\hyperref[assertthrowsfn-error-message]{\texttt{assert.throws()}}
+carefully if using a string as the second argument gets considered.
+
+\subsection{\texorpdfstring{\texttt{assert.strictEqual(actual,\ expected{[},\ message{]})}}{assert.strictEqual(actual, expected{[}, message{]})}}\label{assert.strictequalactual-expected-message}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{actual} \{any\}
+\item
+  \texttt{expected} \{any\}
+\item
+  \texttt{message} \{string\textbar Error\}
+\end{itemize}
+
+Tests strict equality between the \texttt{actual} and \texttt{expected}
+parameters as determined by
+\href{https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object/is}{\texttt{Object.is()}}.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\ImportTok{import}\NormalTok{ assert }\ImportTok{from} \StringTok{\textquotesingle{}node:assert/strict\textquotesingle{}}\OperatorTok{;}
+
+\NormalTok{assert}\OperatorTok{.}\FunctionTok{strictEqual}\NormalTok{(}\DecValTok{1}\OperatorTok{,} \DecValTok{2}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// AssertionError [ERR\_ASSERTION]: Expected inputs to be strictly equal:}
+\CommentTok{//}
+\CommentTok{// 1 !== 2}
+
+\NormalTok{assert}\OperatorTok{.}\FunctionTok{strictEqual}\NormalTok{(}\DecValTok{1}\OperatorTok{,} \DecValTok{1}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// OK}
+
+\NormalTok{assert}\OperatorTok{.}\FunctionTok{strictEqual}\NormalTok{(}\StringTok{\textquotesingle{}Hello foobar\textquotesingle{}}\OperatorTok{,} \StringTok{\textquotesingle{}Hello World!\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// AssertionError [ERR\_ASSERTION]: Expected inputs to be strictly equal:}
+\CommentTok{// + actual {-} expected}
+\CommentTok{//}
+\CommentTok{// + \textquotesingle{}Hello foobar\textquotesingle{}}
+\CommentTok{// {-} \textquotesingle{}Hello World!\textquotesingle{}}
+\CommentTok{//          \^{}}
+
+\KeywordTok{const}\NormalTok{ apples }\OperatorTok{=} \DecValTok{1}\OperatorTok{;}
+\KeywordTok{const}\NormalTok{ oranges }\OperatorTok{=} \DecValTok{2}\OperatorTok{;}
+\NormalTok{assert}\OperatorTok{.}\FunctionTok{strictEqual}\NormalTok{(apples}\OperatorTok{,}\NormalTok{ oranges}\OperatorTok{,} \VerbatimStringTok{\textasciigrave{}apples }\SpecialCharTok{$\{}\NormalTok{apples}\SpecialCharTok{\}}\VerbatimStringTok{ !== oranges }\SpecialCharTok{$\{}\NormalTok{oranges}\SpecialCharTok{\}}\VerbatimStringTok{\textasciigrave{}}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// AssertionError [ERR\_ASSERTION]: apples 1 !== oranges 2}
+
+\NormalTok{assert}\OperatorTok{.}\FunctionTok{strictEqual}\NormalTok{(}\DecValTok{1}\OperatorTok{,} \StringTok{\textquotesingle{}1\textquotesingle{}}\OperatorTok{,} \KeywordTok{new} \BuiltInTok{TypeError}\NormalTok{(}\StringTok{\textquotesingle{}Inputs are not identical\textquotesingle{}}\NormalTok{))}\OperatorTok{;}
+\CommentTok{// TypeError: Inputs are not identical}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ assert }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:assert/strict\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+
+\NormalTok{assert}\OperatorTok{.}\FunctionTok{strictEqual}\NormalTok{(}\DecValTok{1}\OperatorTok{,} \DecValTok{2}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// AssertionError [ERR\_ASSERTION]: Expected inputs to be strictly equal:}
+\CommentTok{//}
+\CommentTok{// 1 !== 2}
+
+\NormalTok{assert}\OperatorTok{.}\FunctionTok{strictEqual}\NormalTok{(}\DecValTok{1}\OperatorTok{,} \DecValTok{1}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// OK}
+
+\NormalTok{assert}\OperatorTok{.}\FunctionTok{strictEqual}\NormalTok{(}\StringTok{\textquotesingle{}Hello foobar\textquotesingle{}}\OperatorTok{,} \StringTok{\textquotesingle{}Hello World!\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// AssertionError [ERR\_ASSERTION]: Expected inputs to be strictly equal:}
+\CommentTok{// + actual {-} expected}
+\CommentTok{//}
+\CommentTok{// + \textquotesingle{}Hello foobar\textquotesingle{}}
+\CommentTok{// {-} \textquotesingle{}Hello World!\textquotesingle{}}
+\CommentTok{//          \^{}}
+
+\KeywordTok{const}\NormalTok{ apples }\OperatorTok{=} \DecValTok{1}\OperatorTok{;}
+\KeywordTok{const}\NormalTok{ oranges }\OperatorTok{=} \DecValTok{2}\OperatorTok{;}
+\NormalTok{assert}\OperatorTok{.}\FunctionTok{strictEqual}\NormalTok{(apples}\OperatorTok{,}\NormalTok{ oranges}\OperatorTok{,} \VerbatimStringTok{\textasciigrave{}apples }\SpecialCharTok{$\{}\NormalTok{apples}\SpecialCharTok{\}}\VerbatimStringTok{ !== oranges }\SpecialCharTok{$\{}\NormalTok{oranges}\SpecialCharTok{\}}\VerbatimStringTok{\textasciigrave{}}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// AssertionError [ERR\_ASSERTION]: apples 1 !== oranges 2}
+
+\NormalTok{assert}\OperatorTok{.}\FunctionTok{strictEqual}\NormalTok{(}\DecValTok{1}\OperatorTok{,} \StringTok{\textquotesingle{}1\textquotesingle{}}\OperatorTok{,} \KeywordTok{new} \BuiltInTok{TypeError}\NormalTok{(}\StringTok{\textquotesingle{}Inputs are not identical\textquotesingle{}}\NormalTok{))}\OperatorTok{;}
+\CommentTok{// TypeError: Inputs are not identical}
+\end{Highlighting}
+\end{Shaded}
+
+If the values are not strictly equal, an
+\hyperref[class-assertassertionerror]{\texttt{AssertionError}} is thrown
+with a \texttt{message} property set equal to the value of the
+\texttt{message} parameter. If the \texttt{message} parameter is
+undefined, a default error message is assigned. If the \texttt{message}
+parameter is an instance of an
+\href{errors.md\#class-error}{\texttt{Error}} then it will be thrown
+instead of the
+\hyperref[class-assertassertionerror]{\texttt{AssertionError}}.
+
+\subsection{\texorpdfstring{\texttt{assert.throws(fn{[},\ error{]}{[},\ message{]})}}{assert.throws(fn{[}, error{]}{[}, message{]})}}\label{assert.throwsfn-error-message}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{fn} \{Function\}
+\item
+  \texttt{error}
+  \{RegExp\textbar Function\textbar Object\textbar Error\}
+\item
+  \texttt{message} \{string\}
+\end{itemize}
+
+Expects the function \texttt{fn} to throw an error.
+
+If specified, \texttt{error} can be a
+\href{https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Classes}{\texttt{Class}},
+\href{https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Regular_Expressions}{\texttt{RegExp}},
+a validation function, a validation object where each property will be
+tested for strict deep equality, or an instance of error where each
+property will be tested for strict deep equality including the
+non-enumerable \texttt{message} and \texttt{name} properties. When using
+an object, it is also possible to use a regular expression, when
+validating against a string property. See below for examples.
+
+If specified, \texttt{message} will be appended to the message provided
+by the \texttt{AssertionError} if the \texttt{fn} call fails to throw or
+in case the error validation fails.
+
+Custom validation object/error instance:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\ImportTok{import}\NormalTok{ assert }\ImportTok{from} \StringTok{\textquotesingle{}node:assert/strict\textquotesingle{}}\OperatorTok{;}
+
+\KeywordTok{const}\NormalTok{ err }\OperatorTok{=} \KeywordTok{new} \BuiltInTok{TypeError}\NormalTok{(}\StringTok{\textquotesingle{}Wrong value\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{err}\OperatorTok{.}\AttributeTok{code} \OperatorTok{=} \DecValTok{404}\OperatorTok{;}
+\NormalTok{err}\OperatorTok{.}\AttributeTok{foo} \OperatorTok{=} \StringTok{\textquotesingle{}bar\textquotesingle{}}\OperatorTok{;}
+\NormalTok{err}\OperatorTok{.}\AttributeTok{info} \OperatorTok{=}\NormalTok{ \{}
+  \DataTypeTok{nested}\OperatorTok{:} \KeywordTok{true}\OperatorTok{,}
+  \DataTypeTok{baz}\OperatorTok{:} \StringTok{\textquotesingle{}text\textquotesingle{}}\OperatorTok{,}
+\NormalTok{\}}\OperatorTok{;}
+\NormalTok{err}\OperatorTok{.}\AttributeTok{reg} \OperatorTok{=} \SpecialStringTok{/abc/i}\OperatorTok{;}
+
+\NormalTok{assert}\OperatorTok{.}\FunctionTok{throws}\NormalTok{(}
+\NormalTok{  () }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+    \ControlFlowTok{throw}\NormalTok{ err}\OperatorTok{;}
+\NormalTok{  \}}\OperatorTok{,}
+\NormalTok{  \{}
+    \DataTypeTok{name}\OperatorTok{:} \StringTok{\textquotesingle{}TypeError\textquotesingle{}}\OperatorTok{,}
+    \DataTypeTok{message}\OperatorTok{:} \StringTok{\textquotesingle{}Wrong value\textquotesingle{}}\OperatorTok{,}
+    \DataTypeTok{info}\OperatorTok{:}\NormalTok{ \{}
+      \DataTypeTok{nested}\OperatorTok{:} \KeywordTok{true}\OperatorTok{,}
+      \DataTypeTok{baz}\OperatorTok{:} \StringTok{\textquotesingle{}text\textquotesingle{}}\OperatorTok{,}
+\NormalTok{    \}}\OperatorTok{,}
+    \CommentTok{// Only properties on the validation object will be tested for.}
+    \CommentTok{// Using nested objects requires all properties to be present. Otherwise}
+    \CommentTok{// the validation is going to fail.}
+\NormalTok{  \}}\OperatorTok{,}
+\NormalTok{)}\OperatorTok{;}
+
+\CommentTok{// Using regular expressions to validate error properties:}
+\NormalTok{assert}\OperatorTok{.}\FunctionTok{throws}\NormalTok{(}
+\NormalTok{  () }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+    \ControlFlowTok{throw}\NormalTok{ err}\OperatorTok{;}
+\NormalTok{  \}}\OperatorTok{,}
+\NormalTok{  \{}
+    \CommentTok{// The \textasciigrave{}name\textasciigrave{} and \textasciigrave{}message\textasciigrave{} properties are strings and using regular}
+    \CommentTok{// expressions on those will match against the string. If they fail, an}
+    \CommentTok{// error is thrown.}
+    \DataTypeTok{name}\OperatorTok{:} \SpecialStringTok{/}\SpecialCharTok{\^{}}\SpecialStringTok{TypeError}\SpecialCharTok{$}\SpecialStringTok{/}\OperatorTok{,}
+    \DataTypeTok{message}\OperatorTok{:} \SpecialStringTok{/Wrong/}\OperatorTok{,}
+    \DataTypeTok{foo}\OperatorTok{:} \StringTok{\textquotesingle{}bar\textquotesingle{}}\OperatorTok{,}
+    \DataTypeTok{info}\OperatorTok{:}\NormalTok{ \{}
+      \DataTypeTok{nested}\OperatorTok{:} \KeywordTok{true}\OperatorTok{,}
+      \CommentTok{// It is not possible to use regular expressions for nested properties!}
+      \DataTypeTok{baz}\OperatorTok{:} \StringTok{\textquotesingle{}text\textquotesingle{}}\OperatorTok{,}
+\NormalTok{    \}}\OperatorTok{,}
+    \CommentTok{// The \textasciigrave{}reg\textasciigrave{} property contains a regular expression and only if the}
+    \CommentTok{// validation object contains an identical regular expression, it is going}
+    \CommentTok{// to pass.}
+    \DataTypeTok{reg}\OperatorTok{:} \SpecialStringTok{/abc/i}\OperatorTok{,}
+\NormalTok{  \}}\OperatorTok{,}
+\NormalTok{)}\OperatorTok{;}
+
+\CommentTok{// Fails due to the different \textasciigrave{}message\textasciigrave{} and \textasciigrave{}name\textasciigrave{} properties:}
+\NormalTok{assert}\OperatorTok{.}\FunctionTok{throws}\NormalTok{(}
+\NormalTok{  () }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+    \KeywordTok{const}\NormalTok{ otherErr }\OperatorTok{=} \KeywordTok{new} \BuiltInTok{Error}\NormalTok{(}\StringTok{\textquotesingle{}Not found\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+    \CommentTok{// Copy all enumerable properties from \textasciigrave{}err\textasciigrave{} to \textasciigrave{}otherErr\textasciigrave{}.}
+    \ControlFlowTok{for}\NormalTok{ (}\KeywordTok{const}\NormalTok{ [key}\OperatorTok{,}\NormalTok{ value] }\KeywordTok{of} \BuiltInTok{Object}\OperatorTok{.}\FunctionTok{entries}\NormalTok{(err)) \{}
+\NormalTok{      otherErr[key] }\OperatorTok{=}\NormalTok{ value}\OperatorTok{;}
+\NormalTok{    \}}
+    \ControlFlowTok{throw}\NormalTok{ otherErr}\OperatorTok{;}
+\NormalTok{  \}}\OperatorTok{,}
+  \CommentTok{// The error\textquotesingle{}s \textasciigrave{}message\textasciigrave{} and \textasciigrave{}name\textasciigrave{} properties will also be checked when using}
+  \CommentTok{// an error as validation object.}
+\NormalTok{  err}\OperatorTok{,}
+\NormalTok{)}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ assert }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:assert/strict\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+
+\KeywordTok{const}\NormalTok{ err }\OperatorTok{=} \KeywordTok{new} \BuiltInTok{TypeError}\NormalTok{(}\StringTok{\textquotesingle{}Wrong value\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{err}\OperatorTok{.}\AttributeTok{code} \OperatorTok{=} \DecValTok{404}\OperatorTok{;}
+\NormalTok{err}\OperatorTok{.}\AttributeTok{foo} \OperatorTok{=} \StringTok{\textquotesingle{}bar\textquotesingle{}}\OperatorTok{;}
+\NormalTok{err}\OperatorTok{.}\AttributeTok{info} \OperatorTok{=}\NormalTok{ \{}
+  \DataTypeTok{nested}\OperatorTok{:} \KeywordTok{true}\OperatorTok{,}
+  \DataTypeTok{baz}\OperatorTok{:} \StringTok{\textquotesingle{}text\textquotesingle{}}\OperatorTok{,}
+\NormalTok{\}}\OperatorTok{;}
+\NormalTok{err}\OperatorTok{.}\AttributeTok{reg} \OperatorTok{=} \SpecialStringTok{/abc/i}\OperatorTok{;}
+
+\NormalTok{assert}\OperatorTok{.}\FunctionTok{throws}\NormalTok{(}
+\NormalTok{  () }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+    \ControlFlowTok{throw}\NormalTok{ err}\OperatorTok{;}
+\NormalTok{  \}}\OperatorTok{,}
+\NormalTok{  \{}
+    \DataTypeTok{name}\OperatorTok{:} \StringTok{\textquotesingle{}TypeError\textquotesingle{}}\OperatorTok{,}
+    \DataTypeTok{message}\OperatorTok{:} \StringTok{\textquotesingle{}Wrong value\textquotesingle{}}\OperatorTok{,}
+    \DataTypeTok{info}\OperatorTok{:}\NormalTok{ \{}
+      \DataTypeTok{nested}\OperatorTok{:} \KeywordTok{true}\OperatorTok{,}
+      \DataTypeTok{baz}\OperatorTok{:} \StringTok{\textquotesingle{}text\textquotesingle{}}\OperatorTok{,}
+\NormalTok{    \}}\OperatorTok{,}
+    \CommentTok{// Only properties on the validation object will be tested for.}
+    \CommentTok{// Using nested objects requires all properties to be present. Otherwise}
+    \CommentTok{// the validation is going to fail.}
+\NormalTok{  \}}\OperatorTok{,}
+\NormalTok{)}\OperatorTok{;}
+
+\CommentTok{// Using regular expressions to validate error properties:}
+\NormalTok{assert}\OperatorTok{.}\FunctionTok{throws}\NormalTok{(}
+\NormalTok{  () }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+    \ControlFlowTok{throw}\NormalTok{ err}\OperatorTok{;}
+\NormalTok{  \}}\OperatorTok{,}
+\NormalTok{  \{}
+    \CommentTok{// The \textasciigrave{}name\textasciigrave{} and \textasciigrave{}message\textasciigrave{} properties are strings and using regular}
+    \CommentTok{// expressions on those will match against the string. If they fail, an}
+    \CommentTok{// error is thrown.}
+    \DataTypeTok{name}\OperatorTok{:} \SpecialStringTok{/}\SpecialCharTok{\^{}}\SpecialStringTok{TypeError}\SpecialCharTok{$}\SpecialStringTok{/}\OperatorTok{,}
+    \DataTypeTok{message}\OperatorTok{:} \SpecialStringTok{/Wrong/}\OperatorTok{,}
+    \DataTypeTok{foo}\OperatorTok{:} \StringTok{\textquotesingle{}bar\textquotesingle{}}\OperatorTok{,}
+    \DataTypeTok{info}\OperatorTok{:}\NormalTok{ \{}
+      \DataTypeTok{nested}\OperatorTok{:} \KeywordTok{true}\OperatorTok{,}
+      \CommentTok{// It is not possible to use regular expressions for nested properties!}
+      \DataTypeTok{baz}\OperatorTok{:} \StringTok{\textquotesingle{}text\textquotesingle{}}\OperatorTok{,}
+\NormalTok{    \}}\OperatorTok{,}
+    \CommentTok{// The \textasciigrave{}reg\textasciigrave{} property contains a regular expression and only if the}
+    \CommentTok{// validation object contains an identical regular expression, it is going}
+    \CommentTok{// to pass.}
+    \DataTypeTok{reg}\OperatorTok{:} \SpecialStringTok{/abc/i}\OperatorTok{,}
+\NormalTok{  \}}\OperatorTok{,}
+\NormalTok{)}\OperatorTok{;}
+
+\CommentTok{// Fails due to the different \textasciigrave{}message\textasciigrave{} and \textasciigrave{}name\textasciigrave{} properties:}
+\NormalTok{assert}\OperatorTok{.}\FunctionTok{throws}\NormalTok{(}
+\NormalTok{  () }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+    \KeywordTok{const}\NormalTok{ otherErr }\OperatorTok{=} \KeywordTok{new} \BuiltInTok{Error}\NormalTok{(}\StringTok{\textquotesingle{}Not found\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+    \CommentTok{// Copy all enumerable properties from \textasciigrave{}err\textasciigrave{} to \textasciigrave{}otherErr\textasciigrave{}.}
+    \ControlFlowTok{for}\NormalTok{ (}\KeywordTok{const}\NormalTok{ [key}\OperatorTok{,}\NormalTok{ value] }\KeywordTok{of} \BuiltInTok{Object}\OperatorTok{.}\FunctionTok{entries}\NormalTok{(err)) \{}
+\NormalTok{      otherErr[key] }\OperatorTok{=}\NormalTok{ value}\OperatorTok{;}
+\NormalTok{    \}}
+    \ControlFlowTok{throw}\NormalTok{ otherErr}\OperatorTok{;}
+\NormalTok{  \}}\OperatorTok{,}
+  \CommentTok{// The error\textquotesingle{}s \textasciigrave{}message\textasciigrave{} and \textasciigrave{}name\textasciigrave{} properties will also be checked when using}
+  \CommentTok{// an error as validation object.}
+\NormalTok{  err}\OperatorTok{,}
+\NormalTok{)}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+Validate instanceof using constructor:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\ImportTok{import}\NormalTok{ assert }\ImportTok{from} \StringTok{\textquotesingle{}node:assert/strict\textquotesingle{}}\OperatorTok{;}
+
+\NormalTok{assert}\OperatorTok{.}\FunctionTok{throws}\NormalTok{(}
+\NormalTok{  () }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+    \ControlFlowTok{throw} \KeywordTok{new} \BuiltInTok{Error}\NormalTok{(}\StringTok{\textquotesingle{}Wrong value\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{  \}}\OperatorTok{,}
+  \BuiltInTok{Error}\OperatorTok{,}
+\NormalTok{)}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ assert }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:assert/strict\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+
+\NormalTok{assert}\OperatorTok{.}\FunctionTok{throws}\NormalTok{(}
+\NormalTok{  () }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+    \ControlFlowTok{throw} \KeywordTok{new} \BuiltInTok{Error}\NormalTok{(}\StringTok{\textquotesingle{}Wrong value\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{  \}}\OperatorTok{,}
+  \BuiltInTok{Error}\OperatorTok{,}
+\NormalTok{)}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+Validate error message using
+\href{https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Regular_Expressions}{\texttt{RegExp}}:
+
+Using a regular expression runs \texttt{.toString} on the error object,
+and will therefore also include the error name.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\ImportTok{import}\NormalTok{ assert }\ImportTok{from} \StringTok{\textquotesingle{}node:assert/strict\textquotesingle{}}\OperatorTok{;}
+
+\NormalTok{assert}\OperatorTok{.}\FunctionTok{throws}\NormalTok{(}
+\NormalTok{  () }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+    \ControlFlowTok{throw} \KeywordTok{new} \BuiltInTok{Error}\NormalTok{(}\StringTok{\textquotesingle{}Wrong value\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{  \}}\OperatorTok{,}
+  \SpecialStringTok{/}\SpecialCharTok{\^{}}\SpecialStringTok{Error: Wrong value}\SpecialCharTok{$}\SpecialStringTok{/}\OperatorTok{,}
+\NormalTok{)}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ assert }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:assert/strict\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+
+\NormalTok{assert}\OperatorTok{.}\FunctionTok{throws}\NormalTok{(}
+\NormalTok{  () }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+    \ControlFlowTok{throw} \KeywordTok{new} \BuiltInTok{Error}\NormalTok{(}\StringTok{\textquotesingle{}Wrong value\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{  \}}\OperatorTok{,}
+  \SpecialStringTok{/}\SpecialCharTok{\^{}}\SpecialStringTok{Error: Wrong value}\SpecialCharTok{$}\SpecialStringTok{/}\OperatorTok{,}
+\NormalTok{)}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+Custom error validation:
+
+The function must return \texttt{true} to indicate all internal
+validations passed. It will otherwise fail with an
+\hyperref[class-assertassertionerror]{\texttt{AssertionError}}.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\ImportTok{import}\NormalTok{ assert }\ImportTok{from} \StringTok{\textquotesingle{}node:assert/strict\textquotesingle{}}\OperatorTok{;}
+
+\NormalTok{assert}\OperatorTok{.}\FunctionTok{throws}\NormalTok{(}
+\NormalTok{  () }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+    \ControlFlowTok{throw} \KeywordTok{new} \BuiltInTok{Error}\NormalTok{(}\StringTok{\textquotesingle{}Wrong value\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{  \}}\OperatorTok{,}
+\NormalTok{  (err) }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+    \FunctionTok{assert}\NormalTok{(err }\KeywordTok{instanceof} \BuiltInTok{Error}\NormalTok{)}\OperatorTok{;}
+    \FunctionTok{assert}\NormalTok{(}\SpecialStringTok{/value/}\OperatorTok{.}\FunctionTok{test}\NormalTok{(err))}\OperatorTok{;}
+    \CommentTok{// Avoid returning anything from validation functions besides \textasciigrave{}true\textasciigrave{}.}
+    \CommentTok{// Otherwise, it\textquotesingle{}s not clear what part of the validation failed. Instead,}
+    \CommentTok{// throw an error about the specific validation that failed (as done in this}
+    \CommentTok{// example) and add as much helpful debugging information to that error as}
+    \CommentTok{// possible.}
+    \ControlFlowTok{return} \KeywordTok{true}\OperatorTok{;}
+\NormalTok{  \}}\OperatorTok{,}
+  \StringTok{\textquotesingle{}unexpected error\textquotesingle{}}\OperatorTok{,}
+\NormalTok{)}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ assert }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:assert/strict\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+
+\NormalTok{assert}\OperatorTok{.}\FunctionTok{throws}\NormalTok{(}
+\NormalTok{  () }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+    \ControlFlowTok{throw} \KeywordTok{new} \BuiltInTok{Error}\NormalTok{(}\StringTok{\textquotesingle{}Wrong value\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{  \}}\OperatorTok{,}
+\NormalTok{  (err) }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+    \FunctionTok{assert}\NormalTok{(err }\KeywordTok{instanceof} \BuiltInTok{Error}\NormalTok{)}\OperatorTok{;}
+    \FunctionTok{assert}\NormalTok{(}\SpecialStringTok{/value/}\OperatorTok{.}\FunctionTok{test}\NormalTok{(err))}\OperatorTok{;}
+    \CommentTok{// Avoid returning anything from validation functions besides \textasciigrave{}true\textasciigrave{}.}
+    \CommentTok{// Otherwise, it\textquotesingle{}s not clear what part of the validation failed. Instead,}
+    \CommentTok{// throw an error about the specific validation that failed (as done in this}
+    \CommentTok{// example) and add as much helpful debugging information to that error as}
+    \CommentTok{// possible.}
+    \ControlFlowTok{return} \KeywordTok{true}\OperatorTok{;}
+\NormalTok{  \}}\OperatorTok{,}
+  \StringTok{\textquotesingle{}unexpected error\textquotesingle{}}\OperatorTok{,}
+\NormalTok{)}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+\texttt{error} cannot be a string. If a string is provided as the second
+argument, then \texttt{error} is assumed to be omitted and the string
+will be used for \texttt{message} instead. This can lead to easy-to-miss
+mistakes. Using the same message as the thrown error message is going to
+result in an \texttt{ERR\_AMBIGUOUS\_ARGUMENT} error. Please read the
+example below carefully if using a string as the second argument gets
+considered:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\ImportTok{import}\NormalTok{ assert }\ImportTok{from} \StringTok{\textquotesingle{}node:assert/strict\textquotesingle{}}\OperatorTok{;}
+
+\KeywordTok{function} \FunctionTok{throwingFirst}\NormalTok{() \{}
+  \ControlFlowTok{throw} \KeywordTok{new} \BuiltInTok{Error}\NormalTok{(}\StringTok{\textquotesingle{}First\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{\}}
+
+\KeywordTok{function} \FunctionTok{throwingSecond}\NormalTok{() \{}
+  \ControlFlowTok{throw} \KeywordTok{new} \BuiltInTok{Error}\NormalTok{(}\StringTok{\textquotesingle{}Second\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{\}}
+
+\KeywordTok{function} \FunctionTok{notThrowing}\NormalTok{() \{\}}
+
+\CommentTok{// The second argument is a string and the input function threw an Error.}
+\CommentTok{// The first case will not throw as it does not match for the error message}
+\CommentTok{// thrown by the input function!}
+\NormalTok{assert}\OperatorTok{.}\FunctionTok{throws}\NormalTok{(throwingFirst}\OperatorTok{,} \StringTok{\textquotesingle{}Second\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// In the next example the message has no benefit over the message from the}
+\CommentTok{// error and since it is not clear if the user intended to actually match}
+\CommentTok{// against the error message, Node.js throws an \textasciigrave{}ERR\_AMBIGUOUS\_ARGUMENT\textasciigrave{} error.}
+\NormalTok{assert}\OperatorTok{.}\FunctionTok{throws}\NormalTok{(throwingSecond}\OperatorTok{,} \StringTok{\textquotesingle{}Second\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// TypeError [ERR\_AMBIGUOUS\_ARGUMENT]}
+
+\CommentTok{// The string is only used (as message) in case the function does not throw:}
+\NormalTok{assert}\OperatorTok{.}\FunctionTok{throws}\NormalTok{(notThrowing}\OperatorTok{,} \StringTok{\textquotesingle{}Second\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// AssertionError [ERR\_ASSERTION]: Missing expected exception: Second}
+
+\CommentTok{// If it was intended to match for the error message do this instead:}
+\CommentTok{// It does not throw because the error messages match.}
+\NormalTok{assert}\OperatorTok{.}\FunctionTok{throws}\NormalTok{(throwingSecond}\OperatorTok{,} \SpecialStringTok{/Second}\SpecialCharTok{$}\SpecialStringTok{/}\NormalTok{)}\OperatorTok{;}
+
+\CommentTok{// If the error message does not match, an AssertionError is thrown.}
+\NormalTok{assert}\OperatorTok{.}\FunctionTok{throws}\NormalTok{(throwingFirst}\OperatorTok{,} \SpecialStringTok{/Second}\SpecialCharTok{$}\SpecialStringTok{/}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// AssertionError [ERR\_ASSERTION]}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ assert }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:assert/strict\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+
+\KeywordTok{function} \FunctionTok{throwingFirst}\NormalTok{() \{}
+  \ControlFlowTok{throw} \KeywordTok{new} \BuiltInTok{Error}\NormalTok{(}\StringTok{\textquotesingle{}First\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{\}}
+
+\KeywordTok{function} \FunctionTok{throwingSecond}\NormalTok{() \{}
+  \ControlFlowTok{throw} \KeywordTok{new} \BuiltInTok{Error}\NormalTok{(}\StringTok{\textquotesingle{}Second\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{\}}
+
+\KeywordTok{function} \FunctionTok{notThrowing}\NormalTok{() \{\}}
+
+\CommentTok{// The second argument is a string and the input function threw an Error.}
+\CommentTok{// The first case will not throw as it does not match for the error message}
+\CommentTok{// thrown by the input function!}
+\NormalTok{assert}\OperatorTok{.}\FunctionTok{throws}\NormalTok{(throwingFirst}\OperatorTok{,} \StringTok{\textquotesingle{}Second\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// In the next example the message has no benefit over the message from the}
+\CommentTok{// error and since it is not clear if the user intended to actually match}
+\CommentTok{// against the error message, Node.js throws an \textasciigrave{}ERR\_AMBIGUOUS\_ARGUMENT\textasciigrave{} error.}
+\NormalTok{assert}\OperatorTok{.}\FunctionTok{throws}\NormalTok{(throwingSecond}\OperatorTok{,} \StringTok{\textquotesingle{}Second\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// TypeError [ERR\_AMBIGUOUS\_ARGUMENT]}
+
+\CommentTok{// The string is only used (as message) in case the function does not throw:}
+\NormalTok{assert}\OperatorTok{.}\FunctionTok{throws}\NormalTok{(notThrowing}\OperatorTok{,} \StringTok{\textquotesingle{}Second\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// AssertionError [ERR\_ASSERTION]: Missing expected exception: Second}
+
+\CommentTok{// If it was intended to match for the error message do this instead:}
+\CommentTok{// It does not throw because the error messages match.}
+\NormalTok{assert}\OperatorTok{.}\FunctionTok{throws}\NormalTok{(throwingSecond}\OperatorTok{,} \SpecialStringTok{/Second}\SpecialCharTok{$}\SpecialStringTok{/}\NormalTok{)}\OperatorTok{;}
+
+\CommentTok{// If the error message does not match, an AssertionError is thrown.}
+\NormalTok{assert}\OperatorTok{.}\FunctionTok{throws}\NormalTok{(throwingFirst}\OperatorTok{,} \SpecialStringTok{/Second}\SpecialCharTok{$}\SpecialStringTok{/}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// AssertionError [ERR\_ASSERTION]}
+\end{Highlighting}
+\end{Shaded}
+
+Due to the confusing error-prone notation, avoid a string as the second
+argument.

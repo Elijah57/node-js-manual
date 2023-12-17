@@ -1,0 +1,1226 @@
+\section{Cluster}\label{cluster}
+
+\begin{quote}
+Stability: 2 - Stable
+\end{quote}
+
+Clusters of Node.js processes can be used to run multiple instances of
+Node.js that can distribute workloads among their application threads.
+When process isolation is not needed, use the
+\href{worker_threads.md}{\texttt{worker\_threads}} module instead, which
+allows running multiple application threads within a single Node.js
+instance.
+
+The cluster module allows easy creation of child processes that all
+share server ports.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\ImportTok{import}\NormalTok{ cluster }\ImportTok{from} \StringTok{\textquotesingle{}node:cluster\textquotesingle{}}\OperatorTok{;}
+\ImportTok{import}\NormalTok{ http }\ImportTok{from} \StringTok{\textquotesingle{}node:http\textquotesingle{}}\OperatorTok{;}
+\ImportTok{import}\NormalTok{ \{ availableParallelism \} }\ImportTok{from} \StringTok{\textquotesingle{}node:os\textquotesingle{}}\OperatorTok{;}
+\ImportTok{import} \BuiltInTok{process} \ImportTok{from} \StringTok{\textquotesingle{}node:process\textquotesingle{}}\OperatorTok{;}
+
+\KeywordTok{const}\NormalTok{ numCPUs }\OperatorTok{=} \FunctionTok{availableParallelism}\NormalTok{()}\OperatorTok{;}
+
+\ControlFlowTok{if}\NormalTok{ (cluster}\OperatorTok{.}\AttributeTok{isPrimary}\NormalTok{) \{}
+  \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\VerbatimStringTok{\textasciigrave{}Primary }\SpecialCharTok{$\{}\BuiltInTok{process}\OperatorTok{.}\AttributeTok{pid}\SpecialCharTok{\}}\VerbatimStringTok{ is running\textasciigrave{}}\NormalTok{)}\OperatorTok{;}
+
+  \CommentTok{// Fork workers.}
+  \ControlFlowTok{for}\NormalTok{ (}\KeywordTok{let}\NormalTok{ i }\OperatorTok{=} \DecValTok{0}\OperatorTok{;}\NormalTok{ i }\OperatorTok{\textless{}}\NormalTok{ numCPUs}\OperatorTok{;}\NormalTok{ i}\OperatorTok{++}\NormalTok{) \{}
+\NormalTok{    cluster}\OperatorTok{.}\FunctionTok{fork}\NormalTok{()}\OperatorTok{;}
+\NormalTok{  \}}
+
+\NormalTok{  cluster}\OperatorTok{.}\FunctionTok{on}\NormalTok{(}\StringTok{\textquotesingle{}exit\textquotesingle{}}\OperatorTok{,}\NormalTok{ (worker}\OperatorTok{,}\NormalTok{ code}\OperatorTok{,}\NormalTok{ signal) }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+    \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\VerbatimStringTok{\textasciigrave{}worker }\SpecialCharTok{$\{}\NormalTok{worker}\OperatorTok{.}\AttributeTok{process}\OperatorTok{.}\AttributeTok{pid}\SpecialCharTok{\}}\VerbatimStringTok{ died\textasciigrave{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{  \})}\OperatorTok{;}
+\NormalTok{\} }\ControlFlowTok{else}\NormalTok{ \{}
+  \CommentTok{// Workers can share any TCP connection}
+  \CommentTok{// In this case it is an HTTP server}
+\NormalTok{  http}\OperatorTok{.}\FunctionTok{createServer}\NormalTok{((req}\OperatorTok{,}\NormalTok{ res) }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+\NormalTok{    res}\OperatorTok{.}\FunctionTok{writeHead}\NormalTok{(}\DecValTok{200}\NormalTok{)}\OperatorTok{;}
+\NormalTok{    res}\OperatorTok{.}\FunctionTok{end}\NormalTok{(}\StringTok{\textquotesingle{}hello world}\SpecialCharTok{\textbackslash{}n}\StringTok{\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{  \})}\OperatorTok{.}\FunctionTok{listen}\NormalTok{(}\DecValTok{8000}\NormalTok{)}\OperatorTok{;}
+
+  \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\VerbatimStringTok{\textasciigrave{}Worker }\SpecialCharTok{$\{}\BuiltInTok{process}\OperatorTok{.}\AttributeTok{pid}\SpecialCharTok{\}}\VerbatimStringTok{ started\textasciigrave{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{\}}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ cluster }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:cluster\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\KeywordTok{const}\NormalTok{ http }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:http\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\KeywordTok{const}\NormalTok{ numCPUs }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:os\textquotesingle{}}\NormalTok{)}\OperatorTok{.}\FunctionTok{availableParallelism}\NormalTok{()}\OperatorTok{;}
+\KeywordTok{const} \BuiltInTok{process} \OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:process\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+
+\ControlFlowTok{if}\NormalTok{ (cluster}\OperatorTok{.}\AttributeTok{isPrimary}\NormalTok{) \{}
+  \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\VerbatimStringTok{\textasciigrave{}Primary }\SpecialCharTok{$\{}\BuiltInTok{process}\OperatorTok{.}\AttributeTok{pid}\SpecialCharTok{\}}\VerbatimStringTok{ is running\textasciigrave{}}\NormalTok{)}\OperatorTok{;}
+
+  \CommentTok{// Fork workers.}
+  \ControlFlowTok{for}\NormalTok{ (}\KeywordTok{let}\NormalTok{ i }\OperatorTok{=} \DecValTok{0}\OperatorTok{;}\NormalTok{ i }\OperatorTok{\textless{}}\NormalTok{ numCPUs}\OperatorTok{;}\NormalTok{ i}\OperatorTok{++}\NormalTok{) \{}
+\NormalTok{    cluster}\OperatorTok{.}\FunctionTok{fork}\NormalTok{()}\OperatorTok{;}
+\NormalTok{  \}}
+
+\NormalTok{  cluster}\OperatorTok{.}\FunctionTok{on}\NormalTok{(}\StringTok{\textquotesingle{}exit\textquotesingle{}}\OperatorTok{,}\NormalTok{ (worker}\OperatorTok{,}\NormalTok{ code}\OperatorTok{,}\NormalTok{ signal) }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+    \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\VerbatimStringTok{\textasciigrave{}worker }\SpecialCharTok{$\{}\NormalTok{worker}\OperatorTok{.}\AttributeTok{process}\OperatorTok{.}\AttributeTok{pid}\SpecialCharTok{\}}\VerbatimStringTok{ died\textasciigrave{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{  \})}\OperatorTok{;}
+\NormalTok{\} }\ControlFlowTok{else}\NormalTok{ \{}
+  \CommentTok{// Workers can share any TCP connection}
+  \CommentTok{// In this case it is an HTTP server}
+\NormalTok{  http}\OperatorTok{.}\FunctionTok{createServer}\NormalTok{((req}\OperatorTok{,}\NormalTok{ res) }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+\NormalTok{    res}\OperatorTok{.}\FunctionTok{writeHead}\NormalTok{(}\DecValTok{200}\NormalTok{)}\OperatorTok{;}
+\NormalTok{    res}\OperatorTok{.}\FunctionTok{end}\NormalTok{(}\StringTok{\textquotesingle{}hello world}\SpecialCharTok{\textbackslash{}n}\StringTok{\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{  \})}\OperatorTok{.}\FunctionTok{listen}\NormalTok{(}\DecValTok{8000}\NormalTok{)}\OperatorTok{;}
+
+  \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\VerbatimStringTok{\textasciigrave{}Worker }\SpecialCharTok{$\{}\BuiltInTok{process}\OperatorTok{.}\AttributeTok{pid}\SpecialCharTok{\}}\VerbatimStringTok{ started\textasciigrave{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{\}}
+\end{Highlighting}
+\end{Shaded}
+
+Running Node.js will now share port 8000 between the workers:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{$ node server.js}
+\NormalTok{Primary 3596 is running}
+\NormalTok{Worker 4324 started}
+\NormalTok{Worker 4520 started}
+\NormalTok{Worker 6056 started}
+\NormalTok{Worker 5644 started}
+\end{Highlighting}
+\end{Shaded}
+
+On Windows, it is not yet possible to set up a named pipe server in a
+worker.
+
+\subsection{How it works}\label{how-it-works}
+
+The worker processes are spawned using the
+\href{child_process.md\#child_processforkmodulepath-args-options}{\texttt{child\_process.fork()}}
+method, so that they can communicate with the parent via IPC and pass
+server handles back and forth.
+
+The cluster module supports two methods of distributing incoming
+connections.
+
+The first one (and the default one on all platforms except Windows) is
+the round-robin approach, where the primary process listens on a port,
+accepts new connections and distributes them across the workers in a
+round-robin fashion, with some built-in smarts to avoid overloading a
+worker process.
+
+The second approach is where the primary process creates the listen
+socket and sends it to interested workers. The workers then accept
+incoming connections directly.
+
+The second approach should, in theory, give the best performance. In
+practice however, distribution tends to be very unbalanced due to
+operating system scheduler vagaries. Loads have been observed where over
+70\% of all connections ended up in just two processes, out of a total
+of eight.
+
+Because \texttt{server.listen()} hands off most of the work to the
+primary process, there are three cases where the behavior between a
+normal Node.js process and a cluster worker differs:
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\tightlist
+\item
+  \texttt{server.listen(\{fd:\ 7\})} Because the message is passed to
+  the primary, file descriptor 7 \textbf{in the parent} will be listened
+  on, and the handle passed to the worker, rather than listening to the
+  worker's idea of what the number 7 file descriptor references.
+\item
+  \texttt{server.listen(handle)} Listening on handles explicitly will
+  cause the worker to use the supplied handle, rather than talk to the
+  primary process.
+\item
+  \texttt{server.listen(0)} Normally, this will cause servers to listen
+  on a random port. However, in a cluster, each worker will receive the
+  same ``random'' port each time they do \texttt{listen(0)}. In essence,
+  the port is random the first time, but predictable thereafter. To
+  listen on a unique port, generate a port number based on the cluster
+  worker ID.
+\end{enumerate}
+
+Node.js does not provide routing logic. It is therefore important to
+design an application such that it does not rely too heavily on
+in-memory data objects for things like sessions and login.
+
+Because workers are all separate processes, they can be killed or
+re-spawned depending on a program's needs, without affecting other
+workers. As long as there are some workers still alive, the server will
+continue to accept connections. If no workers are alive, existing
+connections will be dropped and new connections will be refused. Node.js
+does not automatically manage the number of workers, however. It is the
+application's responsibility to manage the worker pool based on its own
+needs.
+
+Although a primary use case for the \texttt{node:cluster} module is
+networking, it can also be used for other use cases requiring worker
+processes.
+
+\subsection{\texorpdfstring{Class:
+\texttt{Worker}}{Class: Worker}}\label{class-worker}
+
+\begin{itemize}
+\tightlist
+\item
+  Extends: \{EventEmitter\}
+\end{itemize}
+
+A \texttt{Worker} object contains all public information and method
+about a worker. In the primary it can be obtained using
+\texttt{cluster.workers}. In a worker it can be obtained using
+\texttt{cluster.worker}.
+
+\subsubsection{\texorpdfstring{Event:
+\texttt{\textquotesingle{}disconnect\textquotesingle{}}}{Event: \textquotesingle disconnect\textquotesingle{}}}\label{event-disconnect}
+
+Similar to the
+\texttt{cluster.on(\textquotesingle{}disconnect\textquotesingle{})}
+event, but specific to this worker.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{cluster}\OperatorTok{.}\FunctionTok{fork}\NormalTok{()}\OperatorTok{.}\FunctionTok{on}\NormalTok{(}\StringTok{\textquotesingle{}disconnect\textquotesingle{}}\OperatorTok{,}\NormalTok{ () }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+  \CommentTok{// Worker has disconnected}
+\NormalTok{\})}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+\subsubsection{\texorpdfstring{Event:
+\texttt{\textquotesingle{}error\textquotesingle{}}}{Event: \textquotesingle error\textquotesingle{}}}\label{event-error}
+
+This event is the same as the one provided by
+\href{child_process.md\#child_processforkmodulepath-args-options}{\texttt{child\_process.fork()}}.
+
+Within a worker,
+\texttt{process.on(\textquotesingle{}error\textquotesingle{})} may also
+be used.
+
+\subsubsection{\texorpdfstring{Event:
+\texttt{\textquotesingle{}exit\textquotesingle{}}}{Event: \textquotesingle exit\textquotesingle{}}}\label{event-exit}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{code} \{number\} The exit code, if it exited normally.
+\item
+  \texttt{signal} \{string\} The name of the signal
+  (e.g.~\texttt{\textquotesingle{}SIGHUP\textquotesingle{}}) that caused
+  the process to be killed.
+\end{itemize}
+
+Similar to the
+\texttt{cluster.on(\textquotesingle{}exit\textquotesingle{})} event, but
+specific to this worker.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\ImportTok{import}\NormalTok{ cluster }\ImportTok{from} \StringTok{\textquotesingle{}node:cluster\textquotesingle{}}\OperatorTok{;}
+
+\ControlFlowTok{if}\NormalTok{ (cluster}\OperatorTok{.}\AttributeTok{isPrimary}\NormalTok{) \{}
+  \KeywordTok{const}\NormalTok{ worker }\OperatorTok{=}\NormalTok{ cluster}\OperatorTok{.}\FunctionTok{fork}\NormalTok{()}\OperatorTok{;}
+\NormalTok{  worker}\OperatorTok{.}\FunctionTok{on}\NormalTok{(}\StringTok{\textquotesingle{}exit\textquotesingle{}}\OperatorTok{,}\NormalTok{ (code}\OperatorTok{,}\NormalTok{ signal) }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+    \ControlFlowTok{if}\NormalTok{ (signal) \{}
+      \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\VerbatimStringTok{\textasciigrave{}worker was killed by signal: }\SpecialCharTok{$\{}\NormalTok{signal}\SpecialCharTok{\}}\VerbatimStringTok{\textasciigrave{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{    \} }\ControlFlowTok{else} \ControlFlowTok{if}\NormalTok{ (code }\OperatorTok{!==} \DecValTok{0}\NormalTok{) \{}
+      \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\VerbatimStringTok{\textasciigrave{}worker exited with error code: }\SpecialCharTok{$\{}\NormalTok{code}\SpecialCharTok{\}}\VerbatimStringTok{\textasciigrave{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{    \} }\ControlFlowTok{else}\NormalTok{ \{}
+      \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\StringTok{\textquotesingle{}worker success!\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{    \}}
+\NormalTok{  \})}\OperatorTok{;}
+\NormalTok{\}}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ cluster }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:cluster\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+
+\ControlFlowTok{if}\NormalTok{ (cluster}\OperatorTok{.}\AttributeTok{isPrimary}\NormalTok{) \{}
+  \KeywordTok{const}\NormalTok{ worker }\OperatorTok{=}\NormalTok{ cluster}\OperatorTok{.}\FunctionTok{fork}\NormalTok{()}\OperatorTok{;}
+\NormalTok{  worker}\OperatorTok{.}\FunctionTok{on}\NormalTok{(}\StringTok{\textquotesingle{}exit\textquotesingle{}}\OperatorTok{,}\NormalTok{ (code}\OperatorTok{,}\NormalTok{ signal) }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+    \ControlFlowTok{if}\NormalTok{ (signal) \{}
+      \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\VerbatimStringTok{\textasciigrave{}worker was killed by signal: }\SpecialCharTok{$\{}\NormalTok{signal}\SpecialCharTok{\}}\VerbatimStringTok{\textasciigrave{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{    \} }\ControlFlowTok{else} \ControlFlowTok{if}\NormalTok{ (code }\OperatorTok{!==} \DecValTok{0}\NormalTok{) \{}
+      \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\VerbatimStringTok{\textasciigrave{}worker exited with error code: }\SpecialCharTok{$\{}\NormalTok{code}\SpecialCharTok{\}}\VerbatimStringTok{\textasciigrave{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{    \} }\ControlFlowTok{else}\NormalTok{ \{}
+      \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\StringTok{\textquotesingle{}worker success!\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{    \}}
+\NormalTok{  \})}\OperatorTok{;}
+\NormalTok{\}}
+\end{Highlighting}
+\end{Shaded}
+
+\subsubsection{\texorpdfstring{Event:
+\texttt{\textquotesingle{}listening\textquotesingle{}}}{Event: \textquotesingle listening\textquotesingle{}}}\label{event-listening}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{address} \{Object\}
+\end{itemize}
+
+Similar to the
+\texttt{cluster.on(\textquotesingle{}listening\textquotesingle{})}
+event, but specific to this worker.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{cluster}\OperatorTok{.}\FunctionTok{fork}\NormalTok{()}\OperatorTok{.}\FunctionTok{on}\NormalTok{(}\StringTok{\textquotesingle{}listening\textquotesingle{}}\OperatorTok{,}\NormalTok{ (address) }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+  \CommentTok{// Worker is listening}
+\NormalTok{\})}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{cluster}\OperatorTok{.}\FunctionTok{fork}\NormalTok{()}\OperatorTok{.}\FunctionTok{on}\NormalTok{(}\StringTok{\textquotesingle{}listening\textquotesingle{}}\OperatorTok{,}\NormalTok{ (address) }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+  \CommentTok{// Worker is listening}
+\NormalTok{\})}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+It is not emitted in the worker.
+
+\subsubsection{\texorpdfstring{Event:
+\texttt{\textquotesingle{}message\textquotesingle{}}}{Event: \textquotesingle message\textquotesingle{}}}\label{event-message}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{message} \{Object\}
+\item
+  \texttt{handle} \{undefined\textbar Object\}
+\end{itemize}
+
+Similar to the \texttt{\textquotesingle{}message\textquotesingle{}}
+event of \texttt{cluster}, but specific to this worker.
+
+Within a worker,
+\texttt{process.on(\textquotesingle{}message\textquotesingle{})} may
+also be used.
+
+See \href{process.md\#event-message}{\texttt{process} event:
+\texttt{\textquotesingle{}message\textquotesingle{}}}.
+
+Here is an example using the message system. It keeps a count in the
+primary process of the number of HTTP requests received by the workers:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\ImportTok{import}\NormalTok{ cluster }\ImportTok{from} \StringTok{\textquotesingle{}node:cluster\textquotesingle{}}\OperatorTok{;}
+\ImportTok{import}\NormalTok{ http }\ImportTok{from} \StringTok{\textquotesingle{}node:http\textquotesingle{}}\OperatorTok{;}
+\ImportTok{import}\NormalTok{ \{ availableParallelism \} }\ImportTok{from} \StringTok{\textquotesingle{}node:os\textquotesingle{}}\OperatorTok{;}
+\ImportTok{import} \BuiltInTok{process} \ImportTok{from} \StringTok{\textquotesingle{}node:process\textquotesingle{}}\OperatorTok{;}
+
+\ControlFlowTok{if}\NormalTok{ (cluster}\OperatorTok{.}\AttributeTok{isPrimary}\NormalTok{) \{}
+
+  \CommentTok{// Keep track of http requests}
+  \KeywordTok{let}\NormalTok{ numReqs }\OperatorTok{=} \DecValTok{0}\OperatorTok{;}
+  \PreprocessorTok{setInterval}\NormalTok{(() }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+    \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\VerbatimStringTok{\textasciigrave{}numReqs = }\SpecialCharTok{$\{}\NormalTok{numReqs}\SpecialCharTok{\}}\VerbatimStringTok{\textasciigrave{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{  \}}\OperatorTok{,} \DecValTok{1000}\NormalTok{)}\OperatorTok{;}
+
+  \CommentTok{// Count requests}
+  \KeywordTok{function} \FunctionTok{messageHandler}\NormalTok{(msg) \{}
+    \ControlFlowTok{if}\NormalTok{ (msg}\OperatorTok{.}\AttributeTok{cmd} \OperatorTok{\&\&}\NormalTok{ msg}\OperatorTok{.}\AttributeTok{cmd} \OperatorTok{===} \StringTok{\textquotesingle{}notifyRequest\textquotesingle{}}\NormalTok{) \{}
+\NormalTok{      numReqs }\OperatorTok{+=} \DecValTok{1}\OperatorTok{;}
+\NormalTok{    \}}
+\NormalTok{  \}}
+
+  \CommentTok{// Start workers and listen for messages containing notifyRequest}
+  \KeywordTok{const}\NormalTok{ numCPUs }\OperatorTok{=} \FunctionTok{availableParallelism}\NormalTok{()}\OperatorTok{;}
+  \ControlFlowTok{for}\NormalTok{ (}\KeywordTok{let}\NormalTok{ i }\OperatorTok{=} \DecValTok{0}\OperatorTok{;}\NormalTok{ i }\OperatorTok{\textless{}}\NormalTok{ numCPUs}\OperatorTok{;}\NormalTok{ i}\OperatorTok{++}\NormalTok{) \{}
+\NormalTok{    cluster}\OperatorTok{.}\FunctionTok{fork}\NormalTok{()}\OperatorTok{;}
+\NormalTok{  \}}
+
+  \ControlFlowTok{for}\NormalTok{ (}\KeywordTok{const}\NormalTok{ id }\KeywordTok{in}\NormalTok{ cluster}\OperatorTok{.}\AttributeTok{workers}\NormalTok{) \{}
+\NormalTok{    cluster}\OperatorTok{.}\AttributeTok{workers}\NormalTok{[id]}\OperatorTok{.}\FunctionTok{on}\NormalTok{(}\StringTok{\textquotesingle{}message\textquotesingle{}}\OperatorTok{,}\NormalTok{ messageHandler)}\OperatorTok{;}
+\NormalTok{  \}}
+
+\NormalTok{\} }\ControlFlowTok{else}\NormalTok{ \{}
+
+  \CommentTok{// Worker processes have a http server.}
+\NormalTok{  http}\OperatorTok{.}\FunctionTok{Server}\NormalTok{((req}\OperatorTok{,}\NormalTok{ res) }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+\NormalTok{    res}\OperatorTok{.}\FunctionTok{writeHead}\NormalTok{(}\DecValTok{200}\NormalTok{)}\OperatorTok{;}
+\NormalTok{    res}\OperatorTok{.}\FunctionTok{end}\NormalTok{(}\StringTok{\textquotesingle{}hello world}\SpecialCharTok{\textbackslash{}n}\StringTok{\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+
+    \CommentTok{// Notify primary about the request}
+    \BuiltInTok{process}\OperatorTok{.}\FunctionTok{send}\NormalTok{(\{ }\DataTypeTok{cmd}\OperatorTok{:} \StringTok{\textquotesingle{}notifyRequest\textquotesingle{}}\NormalTok{ \})}\OperatorTok{;}
+\NormalTok{  \})}\OperatorTok{.}\FunctionTok{listen}\NormalTok{(}\DecValTok{8000}\NormalTok{)}\OperatorTok{;}
+\NormalTok{\}}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ cluster }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:cluster\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\KeywordTok{const}\NormalTok{ http }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:http\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\KeywordTok{const} \BuiltInTok{process} \OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:process\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+
+\ControlFlowTok{if}\NormalTok{ (cluster}\OperatorTok{.}\AttributeTok{isPrimary}\NormalTok{) \{}
+
+  \CommentTok{// Keep track of http requests}
+  \KeywordTok{let}\NormalTok{ numReqs }\OperatorTok{=} \DecValTok{0}\OperatorTok{;}
+  \PreprocessorTok{setInterval}\NormalTok{(() }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+    \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\VerbatimStringTok{\textasciigrave{}numReqs = }\SpecialCharTok{$\{}\NormalTok{numReqs}\SpecialCharTok{\}}\VerbatimStringTok{\textasciigrave{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{  \}}\OperatorTok{,} \DecValTok{1000}\NormalTok{)}\OperatorTok{;}
+
+  \CommentTok{// Count requests}
+  \KeywordTok{function} \FunctionTok{messageHandler}\NormalTok{(msg) \{}
+    \ControlFlowTok{if}\NormalTok{ (msg}\OperatorTok{.}\AttributeTok{cmd} \OperatorTok{\&\&}\NormalTok{ msg}\OperatorTok{.}\AttributeTok{cmd} \OperatorTok{===} \StringTok{\textquotesingle{}notifyRequest\textquotesingle{}}\NormalTok{) \{}
+\NormalTok{      numReqs }\OperatorTok{+=} \DecValTok{1}\OperatorTok{;}
+\NormalTok{    \}}
+\NormalTok{  \}}
+
+  \CommentTok{// Start workers and listen for messages containing notifyRequest}
+  \KeywordTok{const}\NormalTok{ numCPUs }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:os\textquotesingle{}}\NormalTok{)}\OperatorTok{.}\FunctionTok{availableParallelism}\NormalTok{()}\OperatorTok{;}
+  \ControlFlowTok{for}\NormalTok{ (}\KeywordTok{let}\NormalTok{ i }\OperatorTok{=} \DecValTok{0}\OperatorTok{;}\NormalTok{ i }\OperatorTok{\textless{}}\NormalTok{ numCPUs}\OperatorTok{;}\NormalTok{ i}\OperatorTok{++}\NormalTok{) \{}
+\NormalTok{    cluster}\OperatorTok{.}\FunctionTok{fork}\NormalTok{()}\OperatorTok{;}
+\NormalTok{  \}}
+
+  \ControlFlowTok{for}\NormalTok{ (}\KeywordTok{const}\NormalTok{ id }\KeywordTok{in}\NormalTok{ cluster}\OperatorTok{.}\AttributeTok{workers}\NormalTok{) \{}
+\NormalTok{    cluster}\OperatorTok{.}\AttributeTok{workers}\NormalTok{[id]}\OperatorTok{.}\FunctionTok{on}\NormalTok{(}\StringTok{\textquotesingle{}message\textquotesingle{}}\OperatorTok{,}\NormalTok{ messageHandler)}\OperatorTok{;}
+\NormalTok{  \}}
+
+\NormalTok{\} }\ControlFlowTok{else}\NormalTok{ \{}
+
+  \CommentTok{// Worker processes have a http server.}
+\NormalTok{  http}\OperatorTok{.}\FunctionTok{Server}\NormalTok{((req}\OperatorTok{,}\NormalTok{ res) }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+\NormalTok{    res}\OperatorTok{.}\FunctionTok{writeHead}\NormalTok{(}\DecValTok{200}\NormalTok{)}\OperatorTok{;}
+\NormalTok{    res}\OperatorTok{.}\FunctionTok{end}\NormalTok{(}\StringTok{\textquotesingle{}hello world}\SpecialCharTok{\textbackslash{}n}\StringTok{\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+
+    \CommentTok{// Notify primary about the request}
+    \BuiltInTok{process}\OperatorTok{.}\FunctionTok{send}\NormalTok{(\{ }\DataTypeTok{cmd}\OperatorTok{:} \StringTok{\textquotesingle{}notifyRequest\textquotesingle{}}\NormalTok{ \})}\OperatorTok{;}
+\NormalTok{  \})}\OperatorTok{.}\FunctionTok{listen}\NormalTok{(}\DecValTok{8000}\NormalTok{)}\OperatorTok{;}
+\NormalTok{\}}
+\end{Highlighting}
+\end{Shaded}
+
+\subsubsection{\texorpdfstring{Event:
+\texttt{\textquotesingle{}online\textquotesingle{}}}{Event: \textquotesingle online\textquotesingle{}}}\label{event-online}
+
+Similar to the
+\texttt{cluster.on(\textquotesingle{}online\textquotesingle{})} event,
+but specific to this worker.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{cluster}\OperatorTok{.}\FunctionTok{fork}\NormalTok{()}\OperatorTok{.}\FunctionTok{on}\NormalTok{(}\StringTok{\textquotesingle{}online\textquotesingle{}}\OperatorTok{,}\NormalTok{ () }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+  \CommentTok{// Worker is online}
+\NormalTok{\})}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+It is not emitted in the worker.
+
+\subsubsection{\texorpdfstring{\texttt{worker.disconnect()}}{worker.disconnect()}}\label{worker.disconnect}
+
+\begin{itemize}
+\tightlist
+\item
+  Returns: \{cluster.Worker\} A reference to \texttt{worker}.
+\end{itemize}
+
+In a worker, this function will close all servers, wait for the
+\texttt{\textquotesingle{}close\textquotesingle{}} event on those
+servers, and then disconnect the IPC channel.
+
+In the primary, an internal message is sent to the worker causing it to
+call \texttt{.disconnect()} on itself.
+
+Causes \texttt{.exitedAfterDisconnect} to be set.
+
+After a server is closed, it will no longer accept new connections, but
+connections may be accepted by any other listening worker. Existing
+connections will be allowed to close as usual. When no more connections
+exist, see \href{net.md\#event-close}{\texttt{server.close()}}, the IPC
+channel to the worker will close allowing it to die gracefully.
+
+The above applies \emph{only} to server connections, client connections
+are not automatically closed by workers, and disconnect does not wait
+for them to close before exiting.
+
+In a worker, \texttt{process.disconnect} exists, but it is not this
+function; it is
+\href{child_process.md\#subprocessdisconnect}{\texttt{disconnect()}}.
+
+Because long living server connections may block workers from
+disconnecting, it may be useful to send a message, so application
+specific actions may be taken to close them. It also may be useful to
+implement a timeout, killing a worker if the
+\texttt{\textquotesingle{}disconnect\textquotesingle{}} event has not
+been emitted after some time.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\ControlFlowTok{if}\NormalTok{ (cluster}\OperatorTok{.}\AttributeTok{isPrimary}\NormalTok{) \{}
+  \KeywordTok{const}\NormalTok{ worker }\OperatorTok{=}\NormalTok{ cluster}\OperatorTok{.}\FunctionTok{fork}\NormalTok{()}\OperatorTok{;}
+  \KeywordTok{let}\NormalTok{ timeout}\OperatorTok{;}
+
+\NormalTok{  worker}\OperatorTok{.}\FunctionTok{on}\NormalTok{(}\StringTok{\textquotesingle{}listening\textquotesingle{}}\OperatorTok{,}\NormalTok{ (address) }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+\NormalTok{    worker}\OperatorTok{.}\FunctionTok{send}\NormalTok{(}\StringTok{\textquotesingle{}shutdown\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{    worker}\OperatorTok{.}\FunctionTok{disconnect}\NormalTok{()}\OperatorTok{;}
+\NormalTok{    timeout }\OperatorTok{=} \PreprocessorTok{setTimeout}\NormalTok{(() }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+\NormalTok{      worker}\OperatorTok{.}\FunctionTok{kill}\NormalTok{()}\OperatorTok{;}
+\NormalTok{    \}}\OperatorTok{,} \DecValTok{2000}\NormalTok{)}\OperatorTok{;}
+\NormalTok{  \})}\OperatorTok{;}
+
+\NormalTok{  worker}\OperatorTok{.}\FunctionTok{on}\NormalTok{(}\StringTok{\textquotesingle{}disconnect\textquotesingle{}}\OperatorTok{,}\NormalTok{ () }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+    \PreprocessorTok{clearTimeout}\NormalTok{(timeout)}\OperatorTok{;}
+\NormalTok{  \})}\OperatorTok{;}
+
+\NormalTok{\} }\ControlFlowTok{else} \ControlFlowTok{if}\NormalTok{ (cluster}\OperatorTok{.}\AttributeTok{isWorker}\NormalTok{) \{}
+  \KeywordTok{const}\NormalTok{ net }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:net\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+  \KeywordTok{const}\NormalTok{ server }\OperatorTok{=}\NormalTok{ net}\OperatorTok{.}\FunctionTok{createServer}\NormalTok{((socket) }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+    \CommentTok{// Connections never end}
+\NormalTok{  \})}\OperatorTok{;}
+
+\NormalTok{  server}\OperatorTok{.}\FunctionTok{listen}\NormalTok{(}\DecValTok{8000}\NormalTok{)}\OperatorTok{;}
+
+  \BuiltInTok{process}\OperatorTok{.}\FunctionTok{on}\NormalTok{(}\StringTok{\textquotesingle{}message\textquotesingle{}}\OperatorTok{,}\NormalTok{ (msg) }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+    \ControlFlowTok{if}\NormalTok{ (msg }\OperatorTok{===} \StringTok{\textquotesingle{}shutdown\textquotesingle{}}\NormalTok{) \{}
+      \CommentTok{// Initiate graceful close of any connections to server}
+\NormalTok{    \}}
+\NormalTok{  \})}\OperatorTok{;}
+\NormalTok{\}}
+\end{Highlighting}
+\end{Shaded}
+
+\subsubsection{\texorpdfstring{\texttt{worker.exitedAfterDisconnect}}{worker.exitedAfterDisconnect}}\label{worker.exitedafterdisconnect}
+
+\begin{itemize}
+\tightlist
+\item
+  \{boolean\}
+\end{itemize}
+
+This property is \texttt{true} if the worker exited due to
+\texttt{.disconnect()}. If the worker exited any other way, it is
+\texttt{false}. If the worker has not exited, it is \texttt{undefined}.
+
+The boolean
+\hyperref[workerexitedafterdisconnect]{\texttt{worker.exitedAfterDisconnect}}
+allows distinguishing between voluntary and accidental exit, the primary
+may choose not to respawn a worker based on this value.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{cluster}\OperatorTok{.}\FunctionTok{on}\NormalTok{(}\StringTok{\textquotesingle{}exit\textquotesingle{}}\OperatorTok{,}\NormalTok{ (worker}\OperatorTok{,}\NormalTok{ code}\OperatorTok{,}\NormalTok{ signal) }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+  \ControlFlowTok{if}\NormalTok{ (worker}\OperatorTok{.}\AttributeTok{exitedAfterDisconnect} \OperatorTok{===} \KeywordTok{true}\NormalTok{) \{}
+    \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\StringTok{\textquotesingle{}Oh, it was just voluntary – no need to worry\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{  \}}
+\NormalTok{\})}\OperatorTok{;}
+
+\CommentTok{// kill worker}
+\NormalTok{worker}\OperatorTok{.}\FunctionTok{kill}\NormalTok{()}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+\subsubsection{\texorpdfstring{\texttt{worker.id}}{worker.id}}\label{worker.id}
+
+\begin{itemize}
+\tightlist
+\item
+  \{integer\}
+\end{itemize}
+
+Each new worker is given its own unique id, this id is stored in the
+\texttt{id}.
+
+While a worker is alive, this is the key that indexes it in
+\texttt{cluster.workers}.
+
+\subsubsection{\texorpdfstring{\texttt{worker.isConnected()}}{worker.isConnected()}}\label{worker.isconnected}
+
+This function returns \texttt{true} if the worker is connected to its
+primary via its IPC channel, \texttt{false} otherwise. A worker is
+connected to its primary after it has been created. It is disconnected
+after the \texttt{\textquotesingle{}disconnect\textquotesingle{}} event
+is emitted.
+
+\subsubsection{\texorpdfstring{\texttt{worker.isDead()}}{worker.isDead()}}\label{worker.isdead}
+
+This function returns \texttt{true} if the worker's process has
+terminated (either because of exiting or being signaled). Otherwise, it
+returns \texttt{false}.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\ImportTok{import}\NormalTok{ cluster }\ImportTok{from} \StringTok{\textquotesingle{}node:cluster\textquotesingle{}}\OperatorTok{;}
+\ImportTok{import}\NormalTok{ http }\ImportTok{from} \StringTok{\textquotesingle{}node:http\textquotesingle{}}\OperatorTok{;}
+\ImportTok{import}\NormalTok{ \{ availableParallelism \} }\ImportTok{from} \StringTok{\textquotesingle{}node:os\textquotesingle{}}\OperatorTok{;}
+\ImportTok{import} \BuiltInTok{process} \ImportTok{from} \StringTok{\textquotesingle{}node:process\textquotesingle{}}\OperatorTok{;}
+
+\KeywordTok{const}\NormalTok{ numCPUs }\OperatorTok{=} \FunctionTok{availableParallelism}\NormalTok{()}\OperatorTok{;}
+
+\ControlFlowTok{if}\NormalTok{ (cluster}\OperatorTok{.}\AttributeTok{isPrimary}\NormalTok{) \{}
+  \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\VerbatimStringTok{\textasciigrave{}Primary }\SpecialCharTok{$\{}\BuiltInTok{process}\OperatorTok{.}\AttributeTok{pid}\SpecialCharTok{\}}\VerbatimStringTok{ is running\textasciigrave{}}\NormalTok{)}\OperatorTok{;}
+
+  \CommentTok{// Fork workers.}
+  \ControlFlowTok{for}\NormalTok{ (}\KeywordTok{let}\NormalTok{ i }\OperatorTok{=} \DecValTok{0}\OperatorTok{;}\NormalTok{ i }\OperatorTok{\textless{}}\NormalTok{ numCPUs}\OperatorTok{;}\NormalTok{ i}\OperatorTok{++}\NormalTok{) \{}
+\NormalTok{    cluster}\OperatorTok{.}\FunctionTok{fork}\NormalTok{()}\OperatorTok{;}
+\NormalTok{  \}}
+
+\NormalTok{  cluster}\OperatorTok{.}\FunctionTok{on}\NormalTok{(}\StringTok{\textquotesingle{}fork\textquotesingle{}}\OperatorTok{,}\NormalTok{ (worker) }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+    \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\StringTok{\textquotesingle{}worker is dead:\textquotesingle{}}\OperatorTok{,}\NormalTok{ worker}\OperatorTok{.}\FunctionTok{isDead}\NormalTok{())}\OperatorTok{;}
+\NormalTok{  \})}\OperatorTok{;}
+
+\NormalTok{  cluster}\OperatorTok{.}\FunctionTok{on}\NormalTok{(}\StringTok{\textquotesingle{}exit\textquotesingle{}}\OperatorTok{,}\NormalTok{ (worker}\OperatorTok{,}\NormalTok{ code}\OperatorTok{,}\NormalTok{ signal) }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+    \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\StringTok{\textquotesingle{}worker is dead:\textquotesingle{}}\OperatorTok{,}\NormalTok{ worker}\OperatorTok{.}\FunctionTok{isDead}\NormalTok{())}\OperatorTok{;}
+\NormalTok{  \})}\OperatorTok{;}
+\NormalTok{\} }\ControlFlowTok{else}\NormalTok{ \{}
+  \CommentTok{// Workers can share any TCP connection. In this case, it is an HTTP server.}
+\NormalTok{  http}\OperatorTok{.}\FunctionTok{createServer}\NormalTok{((req}\OperatorTok{,}\NormalTok{ res) }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+\NormalTok{    res}\OperatorTok{.}\FunctionTok{writeHead}\NormalTok{(}\DecValTok{200}\NormalTok{)}\OperatorTok{;}
+\NormalTok{    res}\OperatorTok{.}\FunctionTok{end}\NormalTok{(}\VerbatimStringTok{\textasciigrave{}Current process}\SpecialCharTok{\textbackslash{}n}\VerbatimStringTok{ }\SpecialCharTok{$\{}\BuiltInTok{process}\OperatorTok{.}\AttributeTok{pid}\SpecialCharTok{\}}\VerbatimStringTok{\textasciigrave{}}\NormalTok{)}\OperatorTok{;}
+    \BuiltInTok{process}\OperatorTok{.}\FunctionTok{kill}\NormalTok{(}\BuiltInTok{process}\OperatorTok{.}\AttributeTok{pid}\NormalTok{)}\OperatorTok{;}
+\NormalTok{  \})}\OperatorTok{.}\FunctionTok{listen}\NormalTok{(}\DecValTok{8000}\NormalTok{)}\OperatorTok{;}
+\NormalTok{\}}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ cluster }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:cluster\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\KeywordTok{const}\NormalTok{ http }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:http\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\KeywordTok{const}\NormalTok{ numCPUs }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:os\textquotesingle{}}\NormalTok{)}\OperatorTok{.}\FunctionTok{availableParallelism}\NormalTok{()}\OperatorTok{;}
+\KeywordTok{const} \BuiltInTok{process} \OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:process\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+
+\ControlFlowTok{if}\NormalTok{ (cluster}\OperatorTok{.}\AttributeTok{isPrimary}\NormalTok{) \{}
+  \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\VerbatimStringTok{\textasciigrave{}Primary }\SpecialCharTok{$\{}\BuiltInTok{process}\OperatorTok{.}\AttributeTok{pid}\SpecialCharTok{\}}\VerbatimStringTok{ is running\textasciigrave{}}\NormalTok{)}\OperatorTok{;}
+
+  \CommentTok{// Fork workers.}
+  \ControlFlowTok{for}\NormalTok{ (}\KeywordTok{let}\NormalTok{ i }\OperatorTok{=} \DecValTok{0}\OperatorTok{;}\NormalTok{ i }\OperatorTok{\textless{}}\NormalTok{ numCPUs}\OperatorTok{;}\NormalTok{ i}\OperatorTok{++}\NormalTok{) \{}
+\NormalTok{    cluster}\OperatorTok{.}\FunctionTok{fork}\NormalTok{()}\OperatorTok{;}
+\NormalTok{  \}}
+
+\NormalTok{  cluster}\OperatorTok{.}\FunctionTok{on}\NormalTok{(}\StringTok{\textquotesingle{}fork\textquotesingle{}}\OperatorTok{,}\NormalTok{ (worker) }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+    \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\StringTok{\textquotesingle{}worker is dead:\textquotesingle{}}\OperatorTok{,}\NormalTok{ worker}\OperatorTok{.}\FunctionTok{isDead}\NormalTok{())}\OperatorTok{;}
+\NormalTok{  \})}\OperatorTok{;}
+
+\NormalTok{  cluster}\OperatorTok{.}\FunctionTok{on}\NormalTok{(}\StringTok{\textquotesingle{}exit\textquotesingle{}}\OperatorTok{,}\NormalTok{ (worker}\OperatorTok{,}\NormalTok{ code}\OperatorTok{,}\NormalTok{ signal) }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+    \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\StringTok{\textquotesingle{}worker is dead:\textquotesingle{}}\OperatorTok{,}\NormalTok{ worker}\OperatorTok{.}\FunctionTok{isDead}\NormalTok{())}\OperatorTok{;}
+\NormalTok{  \})}\OperatorTok{;}
+\NormalTok{\} }\ControlFlowTok{else}\NormalTok{ \{}
+  \CommentTok{// Workers can share any TCP connection. In this case, it is an HTTP server.}
+\NormalTok{  http}\OperatorTok{.}\FunctionTok{createServer}\NormalTok{((req}\OperatorTok{,}\NormalTok{ res) }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+\NormalTok{    res}\OperatorTok{.}\FunctionTok{writeHead}\NormalTok{(}\DecValTok{200}\NormalTok{)}\OperatorTok{;}
+\NormalTok{    res}\OperatorTok{.}\FunctionTok{end}\NormalTok{(}\VerbatimStringTok{\textasciigrave{}Current process}\SpecialCharTok{\textbackslash{}n}\VerbatimStringTok{ }\SpecialCharTok{$\{}\BuiltInTok{process}\OperatorTok{.}\AttributeTok{pid}\SpecialCharTok{\}}\VerbatimStringTok{\textasciigrave{}}\NormalTok{)}\OperatorTok{;}
+    \BuiltInTok{process}\OperatorTok{.}\FunctionTok{kill}\NormalTok{(}\BuiltInTok{process}\OperatorTok{.}\AttributeTok{pid}\NormalTok{)}\OperatorTok{;}
+\NormalTok{  \})}\OperatorTok{.}\FunctionTok{listen}\NormalTok{(}\DecValTok{8000}\NormalTok{)}\OperatorTok{;}
+\NormalTok{\}}
+\end{Highlighting}
+\end{Shaded}
+
+\subsubsection{\texorpdfstring{\texttt{worker.kill({[}signal{]})}}{worker.kill({[}signal{]})}}\label{worker.killsignal}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{signal} \{string\} Name of the kill signal to send to the
+  worker process. \textbf{Default:}
+  \texttt{\textquotesingle{}SIGTERM\textquotesingle{}}
+\end{itemize}
+
+This function will kill the worker. In the primary worker, it does this
+by disconnecting the \texttt{worker.process}, and once disconnected,
+killing with \texttt{signal}. In the worker, it does it by killing the
+process with \texttt{signal}.
+
+The \texttt{kill()} function kills the worker process without waiting
+for a graceful disconnect, it has the same behavior as
+\texttt{worker.process.kill()}.
+
+This method is aliased as \texttt{worker.destroy()} for backwards
+compatibility.
+
+In a worker, \texttt{process.kill()} exists, but it is not this
+function; it is
+\href{process.md\#processkillpid-signal}{\texttt{kill()}}.
+
+\subsubsection{\texorpdfstring{\texttt{worker.process}}{worker.process}}\label{worker.process}
+
+\begin{itemize}
+\tightlist
+\item
+  \{ChildProcess\}
+\end{itemize}
+
+All workers are created using
+\href{child_process.md\#child_processforkmodulepath-args-options}{\texttt{child\_process.fork()}},
+the returned object from this function is stored as \texttt{.process}.
+In a worker, the global \texttt{process} is stored.
+
+See:
+\href{child_process.md\#child_processforkmodulepath-args-options}{Child
+Process module}.
+
+Workers will call \texttt{process.exit(0)} if the
+\texttt{\textquotesingle{}disconnect\textquotesingle{}} event occurs on
+\texttt{process} and \texttt{.exitedAfterDisconnect} is not
+\texttt{true}. This protects against accidental disconnection.
+
+\subsubsection{\texorpdfstring{\texttt{worker.send(message{[},\ sendHandle{[},\ options{]}{]}{[},\ callback{]})}}{worker.send(message{[}, sendHandle{[}, options{]}{]}{[}, callback{]})}}\label{worker.sendmessage-sendhandle-options-callback}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{message} \{Object\}
+\item
+  \texttt{sendHandle} \{Handle\}
+\item
+  \texttt{options} \{Object\} The \texttt{options} argument, if present,
+  is an object used to parameterize the sending of certain types of
+  handles. \texttt{options} supports the following properties:
+
+  \begin{itemize}
+  \tightlist
+  \item
+    \texttt{keepOpen} \{boolean\} A value that can be used when passing
+    instances of \texttt{net.Socket}. When \texttt{true}, the socket is
+    kept open in the sending process. \textbf{Default:} \texttt{false}.
+  \end{itemize}
+\item
+  \texttt{callback} \{Function\}
+\item
+  Returns: \{boolean\}
+\end{itemize}
+
+Send a message to a worker or primary, optionally with a handle.
+
+In the primary, this sends a message to a specific worker. It is
+identical to
+\href{child_process.md\#subprocesssendmessage-sendhandle-options-callback}{\texttt{ChildProcess.send()}}.
+
+In a worker, this sends a message to the primary. It is identical to
+\texttt{process.send()}.
+
+This example will echo back all messages from the primary:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\ControlFlowTok{if}\NormalTok{ (cluster}\OperatorTok{.}\AttributeTok{isPrimary}\NormalTok{) \{}
+  \KeywordTok{const}\NormalTok{ worker }\OperatorTok{=}\NormalTok{ cluster}\OperatorTok{.}\FunctionTok{fork}\NormalTok{()}\OperatorTok{;}
+\NormalTok{  worker}\OperatorTok{.}\FunctionTok{send}\NormalTok{(}\StringTok{\textquotesingle{}hi there\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+
+\NormalTok{\} }\ControlFlowTok{else} \ControlFlowTok{if}\NormalTok{ (cluster}\OperatorTok{.}\AttributeTok{isWorker}\NormalTok{) \{}
+  \BuiltInTok{process}\OperatorTok{.}\FunctionTok{on}\NormalTok{(}\StringTok{\textquotesingle{}message\textquotesingle{}}\OperatorTok{,}\NormalTok{ (msg) }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+    \BuiltInTok{process}\OperatorTok{.}\FunctionTok{send}\NormalTok{(msg)}\OperatorTok{;}
+\NormalTok{  \})}\OperatorTok{;}
+\NormalTok{\}}
+\end{Highlighting}
+\end{Shaded}
+
+\subsection{\texorpdfstring{Event:
+\texttt{\textquotesingle{}disconnect\textquotesingle{}}}{Event: \textquotesingle disconnect\textquotesingle{}}}\label{event-disconnect-1}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{worker} \{cluster.Worker\}
+\end{itemize}
+
+Emitted after the worker IPC channel has disconnected. This can occur
+when a worker exits gracefully, is killed, or is disconnected manually
+(such as with \texttt{worker.disconnect()}).
+
+There may be a delay between the
+\texttt{\textquotesingle{}disconnect\textquotesingle{}} and
+\texttt{\textquotesingle{}exit\textquotesingle{}} events. These events
+can be used to detect if the process is stuck in a cleanup or if there
+are long-living connections.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{cluster}\OperatorTok{.}\FunctionTok{on}\NormalTok{(}\StringTok{\textquotesingle{}disconnect\textquotesingle{}}\OperatorTok{,}\NormalTok{ (worker) }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+  \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\VerbatimStringTok{\textasciigrave{}The worker \#}\SpecialCharTok{$\{}\NormalTok{worker}\OperatorTok{.}\AttributeTok{id}\SpecialCharTok{\}}\VerbatimStringTok{ has disconnected\textasciigrave{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{\})}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+\subsection{\texorpdfstring{Event:
+\texttt{\textquotesingle{}exit\textquotesingle{}}}{Event: \textquotesingle exit\textquotesingle{}}}\label{event-exit-1}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{worker} \{cluster.Worker\}
+\item
+  \texttt{code} \{number\} The exit code, if it exited normally.
+\item
+  \texttt{signal} \{string\} The name of the signal
+  (e.g.~\texttt{\textquotesingle{}SIGHUP\textquotesingle{}}) that caused
+  the process to be killed.
+\end{itemize}
+
+When any of the workers die the cluster module will emit the
+\texttt{\textquotesingle{}exit\textquotesingle{}} event.
+
+This can be used to restart the worker by calling
+\hyperref[clusterforkenv]{\texttt{.fork()}} again.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{cluster}\OperatorTok{.}\FunctionTok{on}\NormalTok{(}\StringTok{\textquotesingle{}exit\textquotesingle{}}\OperatorTok{,}\NormalTok{ (worker}\OperatorTok{,}\NormalTok{ code}\OperatorTok{,}\NormalTok{ signal) }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+  \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\StringTok{\textquotesingle{}worker \%d died (\%s). restarting...\textquotesingle{}}\OperatorTok{,}
+\NormalTok{              worker}\OperatorTok{.}\AttributeTok{process}\OperatorTok{.}\AttributeTok{pid}\OperatorTok{,}\NormalTok{ signal }\OperatorTok{||}\NormalTok{ code)}\OperatorTok{;}
+\NormalTok{  cluster}\OperatorTok{.}\FunctionTok{fork}\NormalTok{()}\OperatorTok{;}
+\NormalTok{\})}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+See \href{child_process.md\#event-exit}{\texttt{child\_process} event:
+\texttt{\textquotesingle{}exit\textquotesingle{}}}.
+
+\subsection{\texorpdfstring{Event:
+\texttt{\textquotesingle{}fork\textquotesingle{}}}{Event: \textquotesingle fork\textquotesingle{}}}\label{event-fork}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{worker} \{cluster.Worker\}
+\end{itemize}
+
+When a new worker is forked the cluster module will emit a
+\texttt{\textquotesingle{}fork\textquotesingle{}} event. This can be
+used to log worker activity, and create a custom timeout.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ timeouts }\OperatorTok{=}\NormalTok{ []}\OperatorTok{;}
+\KeywordTok{function} \FunctionTok{errorMsg}\NormalTok{() \{}
+  \BuiltInTok{console}\OperatorTok{.}\FunctionTok{error}\NormalTok{(}\StringTok{\textquotesingle{}Something must be wrong with the connection ...\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{\}}
+
+\NormalTok{cluster}\OperatorTok{.}\FunctionTok{on}\NormalTok{(}\StringTok{\textquotesingle{}fork\textquotesingle{}}\OperatorTok{,}\NormalTok{ (worker) }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+\NormalTok{  timeouts[worker}\OperatorTok{.}\AttributeTok{id}\NormalTok{] }\OperatorTok{=} \PreprocessorTok{setTimeout}\NormalTok{(errorMsg}\OperatorTok{,} \DecValTok{2000}\NormalTok{)}\OperatorTok{;}
+\NormalTok{\})}\OperatorTok{;}
+\NormalTok{cluster}\OperatorTok{.}\FunctionTok{on}\NormalTok{(}\StringTok{\textquotesingle{}listening\textquotesingle{}}\OperatorTok{,}\NormalTok{ (worker}\OperatorTok{,}\NormalTok{ address) }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+  \PreprocessorTok{clearTimeout}\NormalTok{(timeouts[worker}\OperatorTok{.}\AttributeTok{id}\NormalTok{])}\OperatorTok{;}
+\NormalTok{\})}\OperatorTok{;}
+\NormalTok{cluster}\OperatorTok{.}\FunctionTok{on}\NormalTok{(}\StringTok{\textquotesingle{}exit\textquotesingle{}}\OperatorTok{,}\NormalTok{ (worker}\OperatorTok{,}\NormalTok{ code}\OperatorTok{,}\NormalTok{ signal) }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+  \PreprocessorTok{clearTimeout}\NormalTok{(timeouts[worker}\OperatorTok{.}\AttributeTok{id}\NormalTok{])}\OperatorTok{;}
+  \FunctionTok{errorMsg}\NormalTok{()}\OperatorTok{;}
+\NormalTok{\})}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+\subsection{\texorpdfstring{Event:
+\texttt{\textquotesingle{}listening\textquotesingle{}}}{Event: \textquotesingle listening\textquotesingle{}}}\label{event-listening-1}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{worker} \{cluster.Worker\}
+\item
+  \texttt{address} \{Object\}
+\end{itemize}
+
+After calling \texttt{listen()} from a worker, when the
+\texttt{\textquotesingle{}listening\textquotesingle{}} event is emitted
+on the server, a \texttt{\textquotesingle{}listening\textquotesingle{}}
+event will also be emitted on \texttt{cluster} in the primary.
+
+The event handler is executed with two arguments, the \texttt{worker}
+contains the worker object and the \texttt{address} object contains the
+following connection properties: \texttt{address}, \texttt{port}, and
+\texttt{addressType}. This is very useful if the worker is listening on
+more than one address.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{cluster}\OperatorTok{.}\FunctionTok{on}\NormalTok{(}\StringTok{\textquotesingle{}listening\textquotesingle{}}\OperatorTok{,}\NormalTok{ (worker}\OperatorTok{,}\NormalTok{ address) }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+  \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}
+    \VerbatimStringTok{\textasciigrave{}A worker is now connected to }\SpecialCharTok{$\{}\NormalTok{address}\OperatorTok{.}\AttributeTok{address}\SpecialCharTok{\}}\VerbatimStringTok{:}\SpecialCharTok{$\{}\NormalTok{address}\OperatorTok{.}\AttributeTok{port}\SpecialCharTok{\}}\VerbatimStringTok{\textasciigrave{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{\})}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+The \texttt{addressType} is one of:
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{4} (TCPv4)
+\item
+  \texttt{6} (TCPv6)
+\item
+  \texttt{-1} (Unix domain socket)
+\item
+  \texttt{\textquotesingle{}udp4\textquotesingle{}} or
+  \texttt{\textquotesingle{}udp6\textquotesingle{}} (UDPv4 or UDPv6)
+\end{itemize}
+
+\subsection{\texorpdfstring{Event:
+\texttt{\textquotesingle{}message\textquotesingle{}}}{Event: \textquotesingle message\textquotesingle{}}}\label{event-message-1}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{worker} \{cluster.Worker\}
+\item
+  \texttt{message} \{Object\}
+\item
+  \texttt{handle} \{undefined\textbar Object\}
+\end{itemize}
+
+Emitted when the cluster primary receives a message from any worker.
+
+See \href{child_process.md\#event-message}{\texttt{child\_process}
+event: \texttt{\textquotesingle{}message\textquotesingle{}}}.
+
+\subsection{\texorpdfstring{Event:
+\texttt{\textquotesingle{}online\textquotesingle{}}}{Event: \textquotesingle online\textquotesingle{}}}\label{event-online-1}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{worker} \{cluster.Worker\}
+\end{itemize}
+
+After forking a new worker, the worker should respond with an online
+message. When the primary receives an online message it will emit this
+event. The difference between
+\texttt{\textquotesingle{}fork\textquotesingle{}} and
+\texttt{\textquotesingle{}online\textquotesingle{}} is that fork is
+emitted when the primary forks a worker, and
+\texttt{\textquotesingle{}online\textquotesingle{}} is emitted when the
+worker is running.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{cluster}\OperatorTok{.}\FunctionTok{on}\NormalTok{(}\StringTok{\textquotesingle{}online\textquotesingle{}}\OperatorTok{,}\NormalTok{ (worker) }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+  \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\StringTok{\textquotesingle{}Yay, the worker responded after it was forked\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{\})}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+\subsection{\texorpdfstring{Event:
+\texttt{\textquotesingle{}setup\textquotesingle{}}}{Event: \textquotesingle setup\textquotesingle{}}}\label{event-setup}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{settings} \{Object\}
+\end{itemize}
+
+Emitted every time
+\hyperref[clustersetupprimarysettings]{\texttt{.setupPrimary()}} is
+called.
+
+The \texttt{settings} object is the \texttt{cluster.settings} object at
+the time
+\hyperref[clustersetupprimarysettings]{\texttt{.setupPrimary()}} was
+called and is advisory only, since multiple calls to
+\hyperref[clustersetupprimarysettings]{\texttt{.setupPrimary()}} can be
+made in a single tick.
+
+If accuracy is important, use \texttt{cluster.settings}.
+
+\subsection{\texorpdfstring{\texttt{cluster.disconnect({[}callback{]})}}{cluster.disconnect({[}callback{]})}}\label{cluster.disconnectcallback}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{callback} \{Function\} Called when all workers are
+  disconnected and handles are closed.
+\end{itemize}
+
+Calls \texttt{.disconnect()} on each worker in \texttt{cluster.workers}.
+
+When they are disconnected all internal handles will be closed, allowing
+the primary process to die gracefully if no other event is waiting.
+
+The method takes an optional callback argument which will be called when
+finished.
+
+This can only be called from the primary process.
+
+\subsection{\texorpdfstring{\texttt{cluster.fork({[}env{]})}}{cluster.fork({[}env{]})}}\label{cluster.forkenv}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{env} \{Object\} Key/value pairs to add to worker process
+  environment.
+\item
+  Returns: \{cluster.Worker\}
+\end{itemize}
+
+Spawn a new worker process.
+
+This can only be called from the primary process.
+
+\subsection{\texorpdfstring{\texttt{cluster.isMaster}}{cluster.isMaster}}\label{cluster.ismaster}
+
+\begin{quote}
+Stability: 0 - Deprecated
+\end{quote}
+
+Deprecated alias for
+\hyperref[clusterisprimary]{\texttt{cluster.isPrimary}}.
+
+\subsection{\texorpdfstring{\texttt{cluster.isPrimary}}{cluster.isPrimary}}\label{cluster.isprimary}
+
+\begin{itemize}
+\tightlist
+\item
+  \{boolean\}
+\end{itemize}
+
+True if the process is a primary. This is determined by the
+\texttt{process.env.NODE\_UNIQUE\_ID}. If
+\texttt{process.env.NODE\_UNIQUE\_ID} is undefined, then
+\texttt{isPrimary} is \texttt{true}.
+
+\subsection{\texorpdfstring{\texttt{cluster.isWorker}}{cluster.isWorker}}\label{cluster.isworker}
+
+\begin{itemize}
+\tightlist
+\item
+  \{boolean\}
+\end{itemize}
+
+True if the process is not a primary (it is the negation of
+\texttt{cluster.isPrimary}).
+
+\subsection{\texorpdfstring{\texttt{cluster.schedulingPolicy}}{cluster.schedulingPolicy}}\label{cluster.schedulingpolicy}
+
+The scheduling policy, either \texttt{cluster.SCHED\_RR} for round-robin
+or \texttt{cluster.SCHED\_NONE} to leave it to the operating system.
+This is a global setting and effectively frozen once either the first
+worker is spawned, or
+\hyperref[clustersetupprimarysettings]{\texttt{.setupPrimary()}} is
+called, whichever comes first.
+
+\texttt{SCHED\_RR} is the default on all operating systems except
+Windows. Windows will change to \texttt{SCHED\_RR} once libuv is able to
+effectively distribute IOCP handles without incurring a large
+performance hit.
+
+\texttt{cluster.schedulingPolicy} can also be set through the
+\texttt{NODE\_CLUSTER\_SCHED\_POLICY} environment variable. Valid values
+are \texttt{\textquotesingle{}rr\textquotesingle{}} and
+\texttt{\textquotesingle{}none\textquotesingle{}}.
+
+\subsection{\texorpdfstring{\texttt{cluster.settings}}{cluster.settings}}\label{cluster.settings}
+
+\begin{itemize}
+\tightlist
+\item
+  \{Object\}
+
+  \begin{itemize}
+  \tightlist
+  \item
+    \texttt{execArgv} \{string{[}{]}\} List of string arguments passed
+    to the Node.js executable. \textbf{Default:}
+    \texttt{process.execArgv}.
+  \item
+    \texttt{exec} \{string\} File path to worker file. \textbf{Default:}
+    \texttt{process.argv{[}1{]}}.
+  \item
+    \texttt{args} \{string{[}{]}\} String arguments passed to worker.
+    \textbf{Default:} \texttt{process.argv.slice(2)}.
+  \item
+    \texttt{cwd} \{string\} Current working directory of the worker
+    process. \textbf{Default:} \texttt{undefined} (inherits from parent
+    process).
+  \item
+    \texttt{serialization} \{string\} Specify the kind of serialization
+    used for sending messages between processes. Possible values are
+    \texttt{\textquotesingle{}json\textquotesingle{}} and
+    \texttt{\textquotesingle{}advanced\textquotesingle{}}. See
+    \href{child_process.md\#advanced-serialization}{Advanced
+    serialization for \texttt{child\_process}} for more details.
+    \textbf{Default:} \texttt{false}.
+  \item
+    \texttt{silent} \{boolean\} Whether or not to send output to
+    parent's stdio. \textbf{Default:} \texttt{false}.
+  \item
+    \texttt{stdio} \{Array\} Configures the stdio of forked processes.
+    Because the cluster module relies on IPC to function, this
+    configuration must contain an
+    \texttt{\textquotesingle{}ipc\textquotesingle{}} entry. When this
+    option is provided, it overrides \texttt{silent}. See
+    \href{child_process.md\#child_processspawncommand-args-options}{\texttt{child\_process.spawn()}}'s
+    \href{child_process.md\#optionsstdio}{\texttt{stdio}}.
+  \item
+    \texttt{uid} \{number\} Sets the user identity of the process. (See
+    setuid(2).)
+  \item
+    \texttt{gid} \{number\} Sets the group identity of the process. (See
+    setgid(2).)
+  \item
+    \texttt{inspectPort} \{number\textbar Function\} Sets inspector port
+    of worker. This can be a number, or a function that takes no
+    arguments and returns a number. By default each worker gets its own
+    port, incremented from the primary's \texttt{process.debugPort}.
+  \item
+    \texttt{windowsHide} \{boolean\} Hide the forked processes console
+    window that would normally be created on Windows systems.
+    \textbf{Default:} \texttt{false}.
+  \end{itemize}
+\end{itemize}
+
+After calling
+\hyperref[clustersetupprimarysettings]{\texttt{.setupPrimary()}} (or
+\hyperref[clusterforkenv]{\texttt{.fork()}}) this settings object will
+contain the settings, including the default values.
+
+This object is not intended to be changed or set manually.
+
+\subsection{\texorpdfstring{\texttt{cluster.setupMaster({[}settings{]})}}{cluster.setupMaster({[}settings{]})}}\label{cluster.setupmastersettings}
+
+\begin{quote}
+Stability: 0 - Deprecated
+\end{quote}
+
+Deprecated alias for
+\hyperref[clustersetupprimarysettings]{\texttt{.setupPrimary()}}.
+
+\subsection{\texorpdfstring{\texttt{cluster.setupPrimary({[}settings{]})}}{cluster.setupPrimary({[}settings{]})}}\label{cluster.setupprimarysettings}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{settings} \{Object\} See
+  \hyperref[clustersettings]{\texttt{cluster.settings}}.
+\end{itemize}
+
+\texttt{setupPrimary} is used to change the default `fork' behavior.
+Once called, the settings will be present in \texttt{cluster.settings}.
+
+Any settings changes only affect future calls to
+\hyperref[clusterforkenv]{\texttt{.fork()}} and have no effect on
+workers that are already running.
+
+The only attribute of a worker that cannot be set via
+\texttt{.setupPrimary()} is the \texttt{env} passed to
+\hyperref[clusterforkenv]{\texttt{.fork()}}.
+
+The defaults above apply to the first call only; the defaults for later
+calls are the current values at the time of
+\texttt{cluster.setupPrimary()} is called.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\ImportTok{import}\NormalTok{ cluster }\ImportTok{from} \StringTok{\textquotesingle{}node:cluster\textquotesingle{}}\OperatorTok{;}
+
+\NormalTok{cluster}\OperatorTok{.}\FunctionTok{setupPrimary}\NormalTok{(\{}
+  \DataTypeTok{exec}\OperatorTok{:} \StringTok{\textquotesingle{}worker.js\textquotesingle{}}\OperatorTok{,}
+  \DataTypeTok{args}\OperatorTok{:}\NormalTok{ [}\StringTok{\textquotesingle{}{-}{-}use\textquotesingle{}}\OperatorTok{,} \StringTok{\textquotesingle{}https\textquotesingle{}}\NormalTok{]}\OperatorTok{,}
+  \DataTypeTok{silent}\OperatorTok{:} \KeywordTok{true}\OperatorTok{,}
+\NormalTok{\})}\OperatorTok{;}
+\NormalTok{cluster}\OperatorTok{.}\FunctionTok{fork}\NormalTok{()}\OperatorTok{;} \CommentTok{// https worker}
+\NormalTok{cluster}\OperatorTok{.}\FunctionTok{setupPrimary}\NormalTok{(\{}
+  \DataTypeTok{exec}\OperatorTok{:} \StringTok{\textquotesingle{}worker.js\textquotesingle{}}\OperatorTok{,}
+  \DataTypeTok{args}\OperatorTok{:}\NormalTok{ [}\StringTok{\textquotesingle{}{-}{-}use\textquotesingle{}}\OperatorTok{,} \StringTok{\textquotesingle{}http\textquotesingle{}}\NormalTok{]}\OperatorTok{,}
+\NormalTok{\})}\OperatorTok{;}
+\NormalTok{cluster}\OperatorTok{.}\FunctionTok{fork}\NormalTok{()}\OperatorTok{;} \CommentTok{// http worker}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ cluster }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:cluster\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+
+\NormalTok{cluster}\OperatorTok{.}\FunctionTok{setupPrimary}\NormalTok{(\{}
+  \DataTypeTok{exec}\OperatorTok{:} \StringTok{\textquotesingle{}worker.js\textquotesingle{}}\OperatorTok{,}
+  \DataTypeTok{args}\OperatorTok{:}\NormalTok{ [}\StringTok{\textquotesingle{}{-}{-}use\textquotesingle{}}\OperatorTok{,} \StringTok{\textquotesingle{}https\textquotesingle{}}\NormalTok{]}\OperatorTok{,}
+  \DataTypeTok{silent}\OperatorTok{:} \KeywordTok{true}\OperatorTok{,}
+\NormalTok{\})}\OperatorTok{;}
+\NormalTok{cluster}\OperatorTok{.}\FunctionTok{fork}\NormalTok{()}\OperatorTok{;} \CommentTok{// https worker}
+\NormalTok{cluster}\OperatorTok{.}\FunctionTok{setupPrimary}\NormalTok{(\{}
+  \DataTypeTok{exec}\OperatorTok{:} \StringTok{\textquotesingle{}worker.js\textquotesingle{}}\OperatorTok{,}
+  \DataTypeTok{args}\OperatorTok{:}\NormalTok{ [}\StringTok{\textquotesingle{}{-}{-}use\textquotesingle{}}\OperatorTok{,} \StringTok{\textquotesingle{}http\textquotesingle{}}\NormalTok{]}\OperatorTok{,}
+\NormalTok{\})}\OperatorTok{;}
+\NormalTok{cluster}\OperatorTok{.}\FunctionTok{fork}\NormalTok{()}\OperatorTok{;} \CommentTok{// http worker}
+\end{Highlighting}
+\end{Shaded}
+
+This can only be called from the primary process.
+
+\subsection{\texorpdfstring{\texttt{cluster.worker}}{cluster.worker}}\label{cluster.worker}
+
+\begin{itemize}
+\tightlist
+\item
+  \{Object\}
+\end{itemize}
+
+A reference to the current worker object. Not available in the primary
+process.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\ImportTok{import}\NormalTok{ cluster }\ImportTok{from} \StringTok{\textquotesingle{}node:cluster\textquotesingle{}}\OperatorTok{;}
+
+\ControlFlowTok{if}\NormalTok{ (cluster}\OperatorTok{.}\AttributeTok{isPrimary}\NormalTok{) \{}
+  \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\StringTok{\textquotesingle{}I am primary\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{  cluster}\OperatorTok{.}\FunctionTok{fork}\NormalTok{()}\OperatorTok{;}
+\NormalTok{  cluster}\OperatorTok{.}\FunctionTok{fork}\NormalTok{()}\OperatorTok{;}
+\NormalTok{\} }\ControlFlowTok{else} \ControlFlowTok{if}\NormalTok{ (cluster}\OperatorTok{.}\AttributeTok{isWorker}\NormalTok{) \{}
+  \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\VerbatimStringTok{\textasciigrave{}I am worker \#}\SpecialCharTok{$\{}\NormalTok{cluster}\OperatorTok{.}\AttributeTok{worker}\OperatorTok{.}\AttributeTok{id}\SpecialCharTok{\}}\VerbatimStringTok{\textasciigrave{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{\}}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ cluster }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:cluster\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+
+\ControlFlowTok{if}\NormalTok{ (cluster}\OperatorTok{.}\AttributeTok{isPrimary}\NormalTok{) \{}
+  \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\StringTok{\textquotesingle{}I am primary\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{  cluster}\OperatorTok{.}\FunctionTok{fork}\NormalTok{()}\OperatorTok{;}
+\NormalTok{  cluster}\OperatorTok{.}\FunctionTok{fork}\NormalTok{()}\OperatorTok{;}
+\NormalTok{\} }\ControlFlowTok{else} \ControlFlowTok{if}\NormalTok{ (cluster}\OperatorTok{.}\AttributeTok{isWorker}\NormalTok{) \{}
+  \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\VerbatimStringTok{\textasciigrave{}I am worker \#}\SpecialCharTok{$\{}\NormalTok{cluster}\OperatorTok{.}\AttributeTok{worker}\OperatorTok{.}\AttributeTok{id}\SpecialCharTok{\}}\VerbatimStringTok{\textasciigrave{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{\}}
+\end{Highlighting}
+\end{Shaded}
+
+\subsection{\texorpdfstring{\texttt{cluster.workers}}{cluster.workers}}\label{cluster.workers}
+
+\begin{itemize}
+\tightlist
+\item
+  \{Object\}
+\end{itemize}
+
+A hash that stores the active worker objects, keyed by \texttt{id}
+field. This makes it easy to loop through all the workers. It is only
+available in the primary process.
+
+A worker is removed from \texttt{cluster.workers} after the worker has
+disconnected \emph{and} exited. The order between these two events
+cannot be determined in advance. However, it is guaranteed that the
+removal from the \texttt{cluster.workers} list happens before the last
+\texttt{\textquotesingle{}disconnect\textquotesingle{}} or
+\texttt{\textquotesingle{}exit\textquotesingle{}} event is emitted.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\ImportTok{import}\NormalTok{ cluster }\ImportTok{from} \StringTok{\textquotesingle{}node:cluster\textquotesingle{}}\OperatorTok{;}
+
+\ControlFlowTok{for}\NormalTok{ (}\KeywordTok{const}\NormalTok{ worker }\KeywordTok{of} \BuiltInTok{Object}\OperatorTok{.}\FunctionTok{values}\NormalTok{(cluster}\OperatorTok{.}\AttributeTok{workers}\NormalTok{)) \{}
+\NormalTok{  worker}\OperatorTok{.}\FunctionTok{send}\NormalTok{(}\StringTok{\textquotesingle{}big announcement to all workers\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{\}}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ cluster }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:cluster\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+
+\ControlFlowTok{for}\NormalTok{ (}\KeywordTok{const}\NormalTok{ worker }\KeywordTok{of} \BuiltInTok{Object}\OperatorTok{.}\FunctionTok{values}\NormalTok{(cluster}\OperatorTok{.}\AttributeTok{workers}\NormalTok{)) \{}
+\NormalTok{  worker}\OperatorTok{.}\FunctionTok{send}\NormalTok{(}\StringTok{\textquotesingle{}big announcement to all workers\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{\}}
+\end{Highlighting}
+\end{Shaded}

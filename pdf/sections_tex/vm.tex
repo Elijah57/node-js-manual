@@ -1,0 +1,2040 @@
+\section{VM (executing JavaScript)}\label{vm-executing-javascript}
+
+\begin{quote}
+Stability: 2 - Stable
+\end{quote}
+
+The \texttt{node:vm} module enables compiling and running code within V8
+Virtual Machine contexts.
+
+The \texttt{node:vm} module is not a security mechanism. Do not use it
+to run untrusted code.
+
+JavaScript code can be compiled and run immediately or compiled, saved,
+and run later.
+
+A common use case is to run the code in a different V8 Context. This
+means invoked code has a different global object than the invoking code.
+
+One can provide the context by
+\hyperref[what-does-it-mean-to-contextify-an-object]{\emph{contextifying}}
+an object. The invoked code treats any property in the context like a
+global variable. Any changes to global variables caused by the invoked
+code are reflected in the context object.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ vm }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:vm\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+
+\KeywordTok{const}\NormalTok{ x }\OperatorTok{=} \DecValTok{1}\OperatorTok{;}
+
+\KeywordTok{const}\NormalTok{ context }\OperatorTok{=}\NormalTok{ \{ }\DataTypeTok{x}\OperatorTok{:} \DecValTok{2}\NormalTok{ \}}\OperatorTok{;}
+\NormalTok{vm}\OperatorTok{.}\FunctionTok{createContext}\NormalTok{(context)}\OperatorTok{;} \CommentTok{// Contextify the object.}
+
+\KeywordTok{const}\NormalTok{ code }\OperatorTok{=} \StringTok{\textquotesingle{}x += 40; var y = 17;\textquotesingle{}}\OperatorTok{;}
+\CommentTok{// \textasciigrave{}x\textasciigrave{} and \textasciigrave{}y\textasciigrave{} are global variables in the context.}
+\CommentTok{// Initially, x has the value 2 because that is the value of context.x.}
+\NormalTok{vm}\OperatorTok{.}\FunctionTok{runInContext}\NormalTok{(code}\OperatorTok{,}\NormalTok{ context)}\OperatorTok{;}
+
+\BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(context}\OperatorTok{.}\AttributeTok{x}\NormalTok{)}\OperatorTok{;} \CommentTok{// 42}
+\BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(context}\OperatorTok{.}\AttributeTok{y}\NormalTok{)}\OperatorTok{;} \CommentTok{// 17}
+
+\BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(x)}\OperatorTok{;} \CommentTok{// 1; y is not defined.}
+\end{Highlighting}
+\end{Shaded}
+
+\subsection{\texorpdfstring{Class:
+\texttt{vm.Script}}{Class: vm.Script}}\label{class-vm.script}
+
+Instances of the \texttt{vm.Script} class contain precompiled scripts
+that can be executed in specific contexts.
+
+\subsubsection{\texorpdfstring{\texttt{new\ vm.Script(code{[},\ options{]})}}{new vm.Script(code{[}, options{]})}}\label{new-vm.scriptcode-options}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{code} \{string\} The JavaScript code to compile.
+\item
+  \texttt{options} \{Object\textbar string\}
+
+  \begin{itemize}
+  \tightlist
+  \item
+    \texttt{filename} \{string\} Specifies the filename used in stack
+    traces produced by this script. \textbf{Default:}
+    \texttt{\textquotesingle{}evalmachine.\textless{}anonymous\textgreater{}\textquotesingle{}}.
+  \item
+    \texttt{lineOffset} \{number\} Specifies the line number offset that
+    is displayed in stack traces produced by this script.
+    \textbf{Default:} \texttt{0}.
+  \item
+    \texttt{columnOffset} \{number\} Specifies the first-line column
+    number offset that is displayed in stack traces produced by this
+    script. \textbf{Default:} \texttt{0}.
+  \item
+    \texttt{cachedData} \{Buffer\textbar TypedArray\textbar DataView\}
+    Provides an optional \texttt{Buffer} or \texttt{TypedArray}, or
+    \texttt{DataView} with V8's code cache data for the supplied source.
+    When supplied, the \texttt{cachedDataRejected} value will be set to
+    either \texttt{true} or \texttt{false} depending on acceptance of
+    the data by V8.
+  \item
+    \texttt{produceCachedData} \{boolean\} When \texttt{true} and no
+    \texttt{cachedData} is present, V8 will attempt to produce code
+    cache data for \texttt{code}. Upon success, a \texttt{Buffer} with
+    V8's code cache data will be produced and stored in the
+    \texttt{cachedData} property of the returned \texttt{vm.Script}
+    instance. The \texttt{cachedDataProduced} value will be set to
+    either \texttt{true} or \texttt{false} depending on whether code
+    cache data is produced successfully. This option is
+    \textbf{deprecated} in favor of \texttt{script.createCachedData()}.
+    \textbf{Default:} \texttt{false}.
+  \item
+    \texttt{importModuleDynamically} \{Function\} Called during
+    evaluation of this module when \texttt{import()} is called. If this
+    option is not specified, calls to \texttt{import()} will reject with
+    \href{errors.md\#err_vm_dynamic_import_callback_missing}{\texttt{ERR\_VM\_DYNAMIC\_IMPORT\_CALLBACK\_MISSING}}.
+    This option is part of the experimental modules API. We do not
+    recommend using it in a production environment. If
+    \texttt{-\/-experimental-vm-modules} isn't set, this callback will
+    be ignored and calls to \texttt{import()} will reject with
+    \href{errors.md\#err_vm_dynamic_import_callback_missing_flag}{\texttt{ERR\_VM\_DYNAMIC\_IMPORT\_CALLBACK\_MISSING\_FLAG}}.
+
+    \begin{itemize}
+    \tightlist
+    \item
+      \texttt{specifier} \{string\} specifier passed to
+      \texttt{import()}
+    \item
+      \texttt{script} \{vm.Script\}
+    \item
+      \texttt{importAttributes} \{Object\} The \texttt{"with"} value
+      passed to the
+      \href{https://tc39.es/proposal-import-attributes/\#sec-evaluate-import-call}{\texttt{optionsExpression}}
+      optional parameter, or an empty object if no value was provided.
+    \item
+      Returns: \{Module Namespace Object\textbar vm.Module\} Returning a
+      \texttt{vm.Module} is recommended in order to take advantage of
+      error tracking, and to avoid issues with namespaces that contain
+      \texttt{then} function exports.
+    \end{itemize}
+  \end{itemize}
+\end{itemize}
+
+If \texttt{options} is a string, then it specifies the filename.
+
+Creating a new \texttt{vm.Script} object compiles \texttt{code} but does
+not run it. The compiled \texttt{vm.Script} can be run later multiple
+times. The \texttt{code} is not bound to any global object; rather, it
+is bound before each run, just for that run.
+
+\subsubsection{\texorpdfstring{\texttt{script.cachedDataRejected}}{script.cachedDataRejected}}\label{script.cacheddatarejected}
+
+\begin{itemize}
+\tightlist
+\item
+  \{boolean\textbar undefined\}
+\end{itemize}
+
+When \texttt{cachedData} is supplied to create the \texttt{vm.Script},
+this value will be set to either \texttt{true} or \texttt{false}
+depending on acceptance of the data by V8. Otherwise the value is
+\texttt{undefined}.
+
+\subsubsection{\texorpdfstring{\texttt{script.createCachedData()}}{script.createCachedData()}}\label{script.createcacheddata}
+
+\begin{itemize}
+\tightlist
+\item
+  Returns: \{Buffer\}
+\end{itemize}
+
+Creates a code cache that can be used with the \texttt{Script}
+constructor's \texttt{cachedData} option. Returns a \texttt{Buffer}.
+This method may be called at any time and any number of times.
+
+The code cache of the \texttt{Script} doesn't contain any JavaScript
+observable states. The code cache is safe to be saved along side the
+script source and used to construct new \texttt{Script} instances
+multiple times.
+
+Functions in the \texttt{Script} source can be marked as lazily compiled
+and they are not compiled at construction of the \texttt{Script}. These
+functions are going to be compiled when they are invoked the first time.
+The code cache serializes the metadata that V8 currently knows about the
+\texttt{Script} that it can use to speed up future compilations.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ script }\OperatorTok{=} \KeywordTok{new}\NormalTok{ vm}\OperatorTok{.}\FunctionTok{Script}\NormalTok{(}\VerbatimStringTok{\textasciigrave{}}
+\VerbatimStringTok{function add(a, b) \{}
+\VerbatimStringTok{  return a + b;}
+\VerbatimStringTok{\}}
+
+\VerbatimStringTok{const x = add(1, 2);}
+\VerbatimStringTok{\textasciigrave{}}\NormalTok{)}\OperatorTok{;}
+
+\KeywordTok{const}\NormalTok{ cacheWithoutAdd }\OperatorTok{=}\NormalTok{ script}\OperatorTok{.}\FunctionTok{createCachedData}\NormalTok{()}\OperatorTok{;}
+\CommentTok{// In \textasciigrave{}cacheWithoutAdd\textasciigrave{} the function \textasciigrave{}add()\textasciigrave{} is marked for full compilation}
+\CommentTok{// upon invocation.}
+
+\NormalTok{script}\OperatorTok{.}\FunctionTok{runInThisContext}\NormalTok{()}\OperatorTok{;}
+
+\KeywordTok{const}\NormalTok{ cacheWithAdd }\OperatorTok{=}\NormalTok{ script}\OperatorTok{.}\FunctionTok{createCachedData}\NormalTok{()}\OperatorTok{;}
+\CommentTok{// \textasciigrave{}cacheWithAdd\textasciigrave{} contains fully compiled function \textasciigrave{}add()\textasciigrave{}.}
+\end{Highlighting}
+\end{Shaded}
+
+\subsubsection{\texorpdfstring{\texttt{script.runInContext(contextifiedObject{[},\ options{]})}}{script.runInContext(contextifiedObject{[}, options{]})}}\label{script.runincontextcontextifiedobject-options}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{contextifiedObject} \{Object\} A
+  \hyperref[what-does-it-mean-to-contextify-an-object]{contextified}
+  object as returned by the \texttt{vm.createContext()} method.
+\item
+  \texttt{options} \{Object\}
+
+  \begin{itemize}
+  \tightlist
+  \item
+    \texttt{displayErrors} \{boolean\} When \texttt{true}, if an
+    \href{errors.md\#class-error}{\texttt{Error}} occurs while compiling
+    the \texttt{code}, the line of code causing the error is attached to
+    the stack trace. \textbf{Default:} \texttt{true}.
+  \item
+    \texttt{timeout} \{integer\} Specifies the number of milliseconds to
+    execute \texttt{code} before terminating execution. If execution is
+    terminated, an \href{errors.md\#class-error}{\texttt{Error}} will be
+    thrown. This value must be a strictly positive integer.
+  \item
+    \texttt{breakOnSigint} \{boolean\} If \texttt{true}, receiving
+    \texttt{SIGINT} (Ctrl+C) will terminate execution and throw an
+    \href{errors.md\#class-error}{\texttt{Error}}. Existing handlers for
+    the event that have been attached via
+    \texttt{process.on(\textquotesingle{}SIGINT\textquotesingle{})} are
+    disabled during script execution, but continue to work after that.
+    \textbf{Default:} \texttt{false}.
+  \end{itemize}
+\item
+  Returns: \{any\} the result of the very last statement executed in the
+  script.
+\end{itemize}
+
+Runs the compiled code contained by the \texttt{vm.Script} object within
+the given \texttt{contextifiedObject} and returns the result. Running
+code does not have access to local scope.
+
+The following example compiles code that increments a global variable,
+sets the value of another global variable, then execute the code
+multiple times. The globals are contained in the \texttt{context}
+object.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ vm }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:vm\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+
+\KeywordTok{const}\NormalTok{ context }\OperatorTok{=}\NormalTok{ \{}
+  \DataTypeTok{animal}\OperatorTok{:} \StringTok{\textquotesingle{}cat\textquotesingle{}}\OperatorTok{,}
+  \DataTypeTok{count}\OperatorTok{:} \DecValTok{2}\OperatorTok{,}
+\NormalTok{\}}\OperatorTok{;}
+
+\KeywordTok{const}\NormalTok{ script }\OperatorTok{=} \KeywordTok{new}\NormalTok{ vm}\OperatorTok{.}\FunctionTok{Script}\NormalTok{(}\StringTok{\textquotesingle{}count += 1; name = "kitty";\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+
+\NormalTok{vm}\OperatorTok{.}\FunctionTok{createContext}\NormalTok{(context)}\OperatorTok{;}
+\ControlFlowTok{for}\NormalTok{ (}\KeywordTok{let}\NormalTok{ i }\OperatorTok{=} \DecValTok{0}\OperatorTok{;}\NormalTok{ i }\OperatorTok{\textless{}} \DecValTok{10}\OperatorTok{;} \OperatorTok{++}\NormalTok{i) \{}
+\NormalTok{  script}\OperatorTok{.}\FunctionTok{runInContext}\NormalTok{(context)}\OperatorTok{;}
+\NormalTok{\}}
+
+\BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(context)}\OperatorTok{;}
+\CommentTok{// Prints: \{ animal: \textquotesingle{}cat\textquotesingle{}, count: 12, name: \textquotesingle{}kitty\textquotesingle{} \}}
+\end{Highlighting}
+\end{Shaded}
+
+Using the \texttt{timeout} or \texttt{breakOnSigint} options will result
+in new event loops and corresponding threads being started, which have a
+non-zero performance overhead.
+
+\subsubsection{\texorpdfstring{\texttt{script.runInNewContext({[}contextObject{[},\ options{]}{]})}}{script.runInNewContext({[}contextObject{[}, options{]}{]})}}\label{script.runinnewcontextcontextobject-options}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{contextObject} \{Object\} An object that will be
+  \hyperref[what-does-it-mean-to-contextify-an-object]{contextified}. If
+  \texttt{undefined}, a new object will be created.
+\item
+  \texttt{options} \{Object\}
+
+  \begin{itemize}
+  \tightlist
+  \item
+    \texttt{displayErrors} \{boolean\} When \texttt{true}, if an
+    \href{errors.md\#class-error}{\texttt{Error}} occurs while compiling
+    the \texttt{code}, the line of code causing the error is attached to
+    the stack trace. \textbf{Default:} \texttt{true}.
+  \item
+    \texttt{timeout} \{integer\} Specifies the number of milliseconds to
+    execute \texttt{code} before terminating execution. If execution is
+    terminated, an \href{errors.md\#class-error}{\texttt{Error}} will be
+    thrown. This value must be a strictly positive integer.
+  \item
+    \texttt{breakOnSigint} \{boolean\} If \texttt{true}, receiving
+    \texttt{SIGINT} (Ctrl+C) will terminate execution and throw an
+    \href{errors.md\#class-error}{\texttt{Error}}. Existing handlers for
+    the event that have been attached via
+    \texttt{process.on(\textquotesingle{}SIGINT\textquotesingle{})} are
+    disabled during script execution, but continue to work after that.
+    \textbf{Default:} \texttt{false}.
+  \item
+    \texttt{contextName} \{string\} Human-readable name of the newly
+    created context. \textbf{Default:}
+    \texttt{\textquotesingle{}VM\ Context\ i\textquotesingle{}}, where
+    \texttt{i} is an ascending numerical index of the created context.
+  \item
+    \texttt{contextOrigin} \{string\}
+    \href{https://developer.mozilla.org/en-US/docs/Glossary/Origin}{Origin}
+    corresponding to the newly created context for display purposes. The
+    origin should be formatted like a URL, but with only the scheme,
+    host, and port (if necessary), like the value of the
+    \href{url.md\#urlorigin}{\texttt{url.origin}} property of a
+    \href{url.md\#class-url}{\texttt{URL}} object. Most notably, this
+    string should omit the trailing slash, as that denotes a path.
+    \textbf{Default:} \texttt{\textquotesingle{}\textquotesingle{}}.
+  \item
+    \texttt{contextCodeGeneration} \{Object\}
+
+    \begin{itemize}
+    \tightlist
+    \item
+      \texttt{strings} \{boolean\} If set to false any calls to
+      \texttt{eval} or function constructors (\texttt{Function},
+      \texttt{GeneratorFunction}, etc) will throw an \texttt{EvalError}.
+      \textbf{Default:} \texttt{true}.
+    \item
+      \texttt{wasm} \{boolean\} If set to false any attempt to compile a
+      WebAssembly module will throw a \texttt{WebAssembly.CompileError}.
+      \textbf{Default:} \texttt{true}.
+    \end{itemize}
+  \item
+    \texttt{microtaskMode} \{string\} If set to \texttt{afterEvaluate},
+    microtasks (tasks scheduled through \texttt{Promise}s and
+    \texttt{async\ function}s) will be run immediately after the script
+    has run. They are included in the \texttt{timeout} and
+    \texttt{breakOnSigint} scopes in that case.
+  \end{itemize}
+\item
+  Returns: \{any\} the result of the very last statement executed in the
+  script.
+\end{itemize}
+
+First contextifies the given \texttt{contextObject}, runs the compiled
+code contained by the \texttt{vm.Script} object within the created
+context, and returns the result. Running code does not have access to
+local scope.
+
+The following example compiles code that sets a global variable, then
+executes the code multiple times in different contexts. The globals are
+set on and contained within each individual \texttt{context}.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ vm }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:vm\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+
+\KeywordTok{const}\NormalTok{ script }\OperatorTok{=} \KeywordTok{new}\NormalTok{ vm}\OperatorTok{.}\FunctionTok{Script}\NormalTok{(}\StringTok{\textquotesingle{}globalVar = "set"\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+
+\KeywordTok{const}\NormalTok{ contexts }\OperatorTok{=}\NormalTok{ [\{\}}\OperatorTok{,}\NormalTok{ \{\}}\OperatorTok{,}\NormalTok{ \{\}]}\OperatorTok{;}
+\NormalTok{contexts}\OperatorTok{.}\FunctionTok{forEach}\NormalTok{((context) }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+\NormalTok{  script}\OperatorTok{.}\FunctionTok{runInNewContext}\NormalTok{(context)}\OperatorTok{;}
+\NormalTok{\})}\OperatorTok{;}
+
+\BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(contexts)}\OperatorTok{;}
+\CommentTok{// Prints: [\{ globalVar: \textquotesingle{}set\textquotesingle{} \}, \{ globalVar: \textquotesingle{}set\textquotesingle{} \}, \{ globalVar: \textquotesingle{}set\textquotesingle{} \}]}
+\end{Highlighting}
+\end{Shaded}
+
+\subsubsection{\texorpdfstring{\texttt{script.runInThisContext({[}options{]})}}{script.runInThisContext({[}options{]})}}\label{script.runinthiscontextoptions}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{options} \{Object\}
+
+  \begin{itemize}
+  \tightlist
+  \item
+    \texttt{displayErrors} \{boolean\} When \texttt{true}, if an
+    \href{errors.md\#class-error}{\texttt{Error}} occurs while compiling
+    the \texttt{code}, the line of code causing the error is attached to
+    the stack trace. \textbf{Default:} \texttt{true}.
+  \item
+    \texttt{timeout} \{integer\} Specifies the number of milliseconds to
+    execute \texttt{code} before terminating execution. If execution is
+    terminated, an \href{errors.md\#class-error}{\texttt{Error}} will be
+    thrown. This value must be a strictly positive integer.
+  \item
+    \texttt{breakOnSigint} \{boolean\} If \texttt{true}, receiving
+    \texttt{SIGINT} (Ctrl+C) will terminate execution and throw an
+    \href{errors.md\#class-error}{\texttt{Error}}. Existing handlers for
+    the event that have been attached via
+    \texttt{process.on(\textquotesingle{}SIGINT\textquotesingle{})} are
+    disabled during script execution, but continue to work after that.
+    \textbf{Default:} \texttt{false}.
+  \end{itemize}
+\item
+  Returns: \{any\} the result of the very last statement executed in the
+  script.
+\end{itemize}
+
+Runs the compiled code contained by the \texttt{vm.Script} within the
+context of the current \texttt{global} object. Running code does not
+have access to local scope, but \emph{does} have access to the current
+\texttt{global} object.
+
+The following example compiles code that increments a \texttt{global}
+variable then executes that code multiple times:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ vm }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:vm\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+
+\BuiltInTok{global}\OperatorTok{.}\AttributeTok{globalVar} \OperatorTok{=} \DecValTok{0}\OperatorTok{;}
+
+\KeywordTok{const}\NormalTok{ script }\OperatorTok{=} \KeywordTok{new}\NormalTok{ vm}\OperatorTok{.}\FunctionTok{Script}\NormalTok{(}\StringTok{\textquotesingle{}globalVar += 1\textquotesingle{}}\OperatorTok{,}\NormalTok{ \{ }\DataTypeTok{filename}\OperatorTok{:} \StringTok{\textquotesingle{}myfile.vm\textquotesingle{}}\NormalTok{ \})}\OperatorTok{;}
+
+\ControlFlowTok{for}\NormalTok{ (}\KeywordTok{let}\NormalTok{ i }\OperatorTok{=} \DecValTok{0}\OperatorTok{;}\NormalTok{ i }\OperatorTok{\textless{}} \DecValTok{1000}\OperatorTok{;} \OperatorTok{++}\NormalTok{i) \{}
+\NormalTok{  script}\OperatorTok{.}\FunctionTok{runInThisContext}\NormalTok{()}\OperatorTok{;}
+\NormalTok{\}}
+
+\BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(globalVar)}\OperatorTok{;}
+
+\CommentTok{// 1000}
+\end{Highlighting}
+\end{Shaded}
+
+\subsubsection{\texorpdfstring{\texttt{script.sourceMapURL}}{script.sourceMapURL}}\label{script.sourcemapurl}
+
+\begin{itemize}
+\tightlist
+\item
+  \{string\textbar undefined\}
+\end{itemize}
+
+When the script is compiled from a source that contains a source map
+magic comment, this property will be set to the URL of the source map.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\ImportTok{import}\NormalTok{ vm }\ImportTok{from} \StringTok{\textquotesingle{}node:vm\textquotesingle{}}\OperatorTok{;}
+
+\KeywordTok{const}\NormalTok{ script }\OperatorTok{=} \KeywordTok{new}\NormalTok{ vm}\OperatorTok{.}\FunctionTok{Script}\NormalTok{(}\VerbatimStringTok{\textasciigrave{}}
+\VerbatimStringTok{function myFunc() \{\}}
+\VerbatimStringTok{//\# sourceMappingURL=sourcemap.json}
+\VerbatimStringTok{\textasciigrave{}}\NormalTok{)}\OperatorTok{;}
+
+\BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(script}\OperatorTok{.}\AttributeTok{sourceMapURL}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// Prints: sourcemap.json}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ vm }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:vm\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+
+\KeywordTok{const}\NormalTok{ script }\OperatorTok{=} \KeywordTok{new}\NormalTok{ vm}\OperatorTok{.}\FunctionTok{Script}\NormalTok{(}\VerbatimStringTok{\textasciigrave{}}
+\VerbatimStringTok{function myFunc() \{\}}
+\VerbatimStringTok{//\# sourceMappingURL=sourcemap.json}
+\VerbatimStringTok{\textasciigrave{}}\NormalTok{)}\OperatorTok{;}
+
+\BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(script}\OperatorTok{.}\AttributeTok{sourceMapURL}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// Prints: sourcemap.json}
+\end{Highlighting}
+\end{Shaded}
+
+\subsection{\texorpdfstring{Class:
+\texttt{vm.Module}}{Class: vm.Module}}\label{class-vm.module}
+
+\begin{quote}
+Stability: 1 - Experimental
+\end{quote}
+
+This feature is only available with the
+\texttt{-\/-experimental-vm-modules} command flag enabled.
+
+The \texttt{vm.Module} class provides a low-level interface for using
+ECMAScript modules in VM contexts. It is the counterpart of the
+\texttt{vm.Script} class that closely mirrors
+\href{https://262.ecma-international.org/14.0/\#sec-abstract-module-records}{Module
+Record}s as defined in the ECMAScript specification.
+
+Unlike \texttt{vm.Script} however, every \texttt{vm.Module} object is
+bound to a context from its creation. Operations on \texttt{vm.Module}
+objects are intrinsically asynchronous, in contrast with the synchronous
+nature of \texttt{vm.Script} objects. The use of `async' functions can
+help with manipulating \texttt{vm.Module} objects.
+
+Using a \texttt{vm.Module} object requires three distinct steps:
+creation/parsing, linking, and evaluation. These three steps are
+illustrated in the following example.
+
+This implementation lies at a lower level than the
+\href{esm.md\#modules-ecmascript-modules}{ECMAScript Module loader}.
+There is also no way to interact with the Loader yet, though support is
+planned.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\ImportTok{import}\NormalTok{ vm }\ImportTok{from} \StringTok{\textquotesingle{}node:vm\textquotesingle{}}\OperatorTok{;}
+
+\KeywordTok{const}\NormalTok{ contextifiedObject }\OperatorTok{=}\NormalTok{ vm}\OperatorTok{.}\FunctionTok{createContext}\NormalTok{(\{}
+  \DataTypeTok{secret}\OperatorTok{:} \DecValTok{42}\OperatorTok{,}
+  \DataTypeTok{print}\OperatorTok{:} \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\OperatorTok{,}
+\NormalTok{\})}\OperatorTok{;}
+
+\CommentTok{// Step 1}
+\CommentTok{//}
+\CommentTok{// Create a Module by constructing a new \textasciigrave{}vm.SourceTextModule\textasciigrave{} object. This}
+\CommentTok{// parses the provided source text, throwing a \textasciigrave{}SyntaxError\textasciigrave{} if anything goes}
+\CommentTok{// wrong. By default, a Module is created in the top context. But here, we}
+\CommentTok{// specify \textasciigrave{}contextifiedObject\textasciigrave{} as the context this Module belongs to.}
+\CommentTok{//}
+\CommentTok{// Here, we attempt to obtain the default export from the module "foo", and}
+\CommentTok{// put it into local binding "secret".}
+
+\KeywordTok{const}\NormalTok{ bar }\OperatorTok{=} \KeywordTok{new}\NormalTok{ vm}\OperatorTok{.}\FunctionTok{SourceTextModule}\NormalTok{(}\VerbatimStringTok{\textasciigrave{}}
+\VerbatimStringTok{  import s from \textquotesingle{}foo\textquotesingle{};}
+\VerbatimStringTok{  s;}
+\VerbatimStringTok{  print(s);}
+\VerbatimStringTok{\textasciigrave{}}\OperatorTok{,}\NormalTok{ \{ }\DataTypeTok{context}\OperatorTok{:}\NormalTok{ contextifiedObject \})}\OperatorTok{;}
+
+\CommentTok{// Step 2}
+\CommentTok{//}
+\CommentTok{// "Link" the imported dependencies of this Module to it.}
+\CommentTok{//}
+\CommentTok{// The provided linking callback (the "linker") accepts two arguments: the}
+\CommentTok{// parent module (\textasciigrave{}bar\textasciigrave{} in this case) and the string that is the specifier of}
+\CommentTok{// the imported module. The callback is expected to return a Module that}
+\CommentTok{// corresponds to the provided specifier, with certain requirements documented}
+\CommentTok{// in \textasciigrave{}module.link()\textasciigrave{}.}
+\CommentTok{//}
+\CommentTok{// If linking has not started for the returned Module, the same linker}
+\CommentTok{// callback will be called on the returned Module.}
+\CommentTok{//}
+\CommentTok{// Even top{-}level Modules without dependencies must be explicitly linked. The}
+\CommentTok{// callback provided would never be called, however.}
+\CommentTok{//}
+\CommentTok{// The link() method returns a Promise that will be resolved when all the}
+\CommentTok{// Promises returned by the linker resolve.}
+\CommentTok{//}
+\CommentTok{// Note: This is a contrived example in that the linker function creates a new}
+\CommentTok{// "foo" module every time it is called. In a full{-}fledged module system, a}
+\CommentTok{// cache would probably be used to avoid duplicated modules.}
+
+\KeywordTok{async} \KeywordTok{function} \FunctionTok{linker}\NormalTok{(specifier}\OperatorTok{,}\NormalTok{ referencingModule) \{}
+  \ControlFlowTok{if}\NormalTok{ (specifier }\OperatorTok{===} \StringTok{\textquotesingle{}foo\textquotesingle{}}\NormalTok{) \{}
+    \ControlFlowTok{return} \KeywordTok{new}\NormalTok{ vm}\OperatorTok{.}\FunctionTok{SourceTextModule}\NormalTok{(}\VerbatimStringTok{\textasciigrave{}}
+\VerbatimStringTok{      // The "secret" variable refers to the global variable we added to}
+\VerbatimStringTok{      // "contextifiedObject" when creating the context.}
+\VerbatimStringTok{      export default secret;}
+\VerbatimStringTok{    \textasciigrave{}}\OperatorTok{,}\NormalTok{ \{ }\DataTypeTok{context}\OperatorTok{:}\NormalTok{ referencingModule}\OperatorTok{.}\AttributeTok{context}\NormalTok{ \})}\OperatorTok{;}
+
+    \CommentTok{// Using \textasciigrave{}contextifiedObject\textasciigrave{} instead of \textasciigrave{}referencingModule.context\textasciigrave{}}
+    \CommentTok{// here would work as well.}
+\NormalTok{  \}}
+  \ControlFlowTok{throw} \KeywordTok{new} \BuiltInTok{Error}\NormalTok{(}\VerbatimStringTok{\textasciigrave{}Unable to resolve dependency: }\SpecialCharTok{$\{}\NormalTok{specifier}\SpecialCharTok{\}}\VerbatimStringTok{\textasciigrave{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{\}}
+\ControlFlowTok{await}\NormalTok{ bar}\OperatorTok{.}\FunctionTok{link}\NormalTok{(linker)}\OperatorTok{;}
+
+\CommentTok{// Step 3}
+\CommentTok{//}
+\CommentTok{// Evaluate the Module. The evaluate() method returns a promise which will}
+\CommentTok{// resolve after the module has finished evaluating.}
+
+\CommentTok{// Prints 42.}
+\ControlFlowTok{await}\NormalTok{ bar}\OperatorTok{.}\FunctionTok{evaluate}\NormalTok{()}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ vm }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:vm\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+
+\KeywordTok{const}\NormalTok{ contextifiedObject }\OperatorTok{=}\NormalTok{ vm}\OperatorTok{.}\FunctionTok{createContext}\NormalTok{(\{}
+  \DataTypeTok{secret}\OperatorTok{:} \DecValTok{42}\OperatorTok{,}
+  \DataTypeTok{print}\OperatorTok{:} \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\OperatorTok{,}
+\NormalTok{\})}\OperatorTok{;}
+
+\NormalTok{(}\KeywordTok{async}\NormalTok{ () }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+  \CommentTok{// Step 1}
+  \CommentTok{//}
+  \CommentTok{// Create a Module by constructing a new \textasciigrave{}vm.SourceTextModule\textasciigrave{} object. This}
+  \CommentTok{// parses the provided source text, throwing a \textasciigrave{}SyntaxError\textasciigrave{} if anything goes}
+  \CommentTok{// wrong. By default, a Module is created in the top context. But here, we}
+  \CommentTok{// specify \textasciigrave{}contextifiedObject\textasciigrave{} as the context this Module belongs to.}
+  \CommentTok{//}
+  \CommentTok{// Here, we attempt to obtain the default export from the module "foo", and}
+  \CommentTok{// put it into local binding "secret".}
+
+  \KeywordTok{const}\NormalTok{ bar }\OperatorTok{=} \KeywordTok{new}\NormalTok{ vm}\OperatorTok{.}\FunctionTok{SourceTextModule}\NormalTok{(}\VerbatimStringTok{\textasciigrave{}}
+\VerbatimStringTok{    import s from \textquotesingle{}foo\textquotesingle{};}
+\VerbatimStringTok{    s;}
+\VerbatimStringTok{    print(s);}
+\VerbatimStringTok{  \textasciigrave{}}\OperatorTok{,}\NormalTok{ \{ }\DataTypeTok{context}\OperatorTok{:}\NormalTok{ contextifiedObject \})}\OperatorTok{;}
+
+  \CommentTok{// Step 2}
+  \CommentTok{//}
+  \CommentTok{// "Link" the imported dependencies of this Module to it.}
+  \CommentTok{//}
+  \CommentTok{// The provided linking callback (the "linker") accepts two arguments: the}
+  \CommentTok{// parent module (\textasciigrave{}bar\textasciigrave{} in this case) and the string that is the specifier of}
+  \CommentTok{// the imported module. The callback is expected to return a Module that}
+  \CommentTok{// corresponds to the provided specifier, with certain requirements documented}
+  \CommentTok{// in \textasciigrave{}module.link()\textasciigrave{}.}
+  \CommentTok{//}
+  \CommentTok{// If linking has not started for the returned Module, the same linker}
+  \CommentTok{// callback will be called on the returned Module.}
+  \CommentTok{//}
+  \CommentTok{// Even top{-}level Modules without dependencies must be explicitly linked. The}
+  \CommentTok{// callback provided would never be called, however.}
+  \CommentTok{//}
+  \CommentTok{// The link() method returns a Promise that will be resolved when all the}
+  \CommentTok{// Promises returned by the linker resolve.}
+  \CommentTok{//}
+  \CommentTok{// Note: This is a contrived example in that the linker function creates a new}
+  \CommentTok{// "foo" module every time it is called. In a full{-}fledged module system, a}
+  \CommentTok{// cache would probably be used to avoid duplicated modules.}
+
+  \KeywordTok{async} \KeywordTok{function} \FunctionTok{linker}\NormalTok{(specifier}\OperatorTok{,}\NormalTok{ referencingModule) \{}
+    \ControlFlowTok{if}\NormalTok{ (specifier }\OperatorTok{===} \StringTok{\textquotesingle{}foo\textquotesingle{}}\NormalTok{) \{}
+      \ControlFlowTok{return} \KeywordTok{new}\NormalTok{ vm}\OperatorTok{.}\FunctionTok{SourceTextModule}\NormalTok{(}\VerbatimStringTok{\textasciigrave{}}
+\VerbatimStringTok{        // The "secret" variable refers to the global variable we added to}
+\VerbatimStringTok{        // "contextifiedObject" when creating the context.}
+\VerbatimStringTok{        export default secret;}
+\VerbatimStringTok{      \textasciigrave{}}\OperatorTok{,}\NormalTok{ \{ }\DataTypeTok{context}\OperatorTok{:}\NormalTok{ referencingModule}\OperatorTok{.}\AttributeTok{context}\NormalTok{ \})}\OperatorTok{;}
+
+      \CommentTok{// Using \textasciigrave{}contextifiedObject\textasciigrave{} instead of \textasciigrave{}referencingModule.context\textasciigrave{}}
+      \CommentTok{// here would work as well.}
+\NormalTok{    \}}
+    \ControlFlowTok{throw} \KeywordTok{new} \BuiltInTok{Error}\NormalTok{(}\VerbatimStringTok{\textasciigrave{}Unable to resolve dependency: }\SpecialCharTok{$\{}\NormalTok{specifier}\SpecialCharTok{\}}\VerbatimStringTok{\textasciigrave{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{  \}}
+  \ControlFlowTok{await}\NormalTok{ bar}\OperatorTok{.}\FunctionTok{link}\NormalTok{(linker)}\OperatorTok{;}
+
+  \CommentTok{// Step 3}
+  \CommentTok{//}
+  \CommentTok{// Evaluate the Module. The evaluate() method returns a promise which will}
+  \CommentTok{// resolve after the module has finished evaluating.}
+
+  \CommentTok{// Prints 42.}
+  \ControlFlowTok{await}\NormalTok{ bar}\OperatorTok{.}\FunctionTok{evaluate}\NormalTok{()}\OperatorTok{;}
+\NormalTok{\})()}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+\subsubsection{\texorpdfstring{\texttt{module.dependencySpecifiers}}{module.dependencySpecifiers}}\label{module.dependencyspecifiers}
+
+\begin{itemize}
+\tightlist
+\item
+  \{string{[}{]}\}
+\end{itemize}
+
+The specifiers of all dependencies of this module. The returned array is
+frozen to disallow any changes to it.
+
+Corresponds to the \texttt{{[}{[}RequestedModules{]}{]}} field of
+\href{https://tc39.es/ecma262/\#sec-cyclic-module-records}{Cyclic Module
+Record}s in the ECMAScript specification.
+
+\subsubsection{\texorpdfstring{\texttt{module.error}}{module.error}}\label{module.error}
+
+\begin{itemize}
+\tightlist
+\item
+  \{any\}
+\end{itemize}
+
+If the \texttt{module.status} is
+\texttt{\textquotesingle{}errored\textquotesingle{}}, this property
+contains the exception thrown by the module during evaluation. If the
+status is anything else, accessing this property will result in a thrown
+exception.
+
+The value \texttt{undefined} cannot be used for cases where there is not
+a thrown exception due to possible ambiguity with
+\texttt{throw\ undefined;}.
+
+Corresponds to the \texttt{{[}{[}EvaluationError{]}{]}} field of
+\href{https://tc39.es/ecma262/\#sec-cyclic-module-records}{Cyclic Module
+Record}s in the ECMAScript specification.
+
+\subsubsection{\texorpdfstring{\texttt{module.evaluate({[}options{]})}}{module.evaluate({[}options{]})}}\label{module.evaluateoptions}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{options} \{Object\}
+
+  \begin{itemize}
+  \tightlist
+  \item
+    \texttt{timeout} \{integer\} Specifies the number of milliseconds to
+    evaluate before terminating execution. If execution is interrupted,
+    an \href{errors.md\#class-error}{\texttt{Error}} will be thrown.
+    This value must be a strictly positive integer.
+  \item
+    \texttt{breakOnSigint} \{boolean\} If \texttt{true}, receiving
+    \texttt{SIGINT} (Ctrl+C) will terminate execution and throw an
+    \href{errors.md\#class-error}{\texttt{Error}}. Existing handlers for
+    the event that have been attached via
+    \texttt{process.on(\textquotesingle{}SIGINT\textquotesingle{})} are
+    disabled during script execution, but continue to work after that.
+    \textbf{Default:} \texttt{false}.
+  \end{itemize}
+\item
+  Returns: \{Promise\} Fulfills with \texttt{undefined} upon success.
+\end{itemize}
+
+Evaluate the module.
+
+This must be called after the module has been linked; otherwise it will
+reject. It could be called also when the module has already been
+evaluated, in which case it will either do nothing if the initial
+evaluation ended in success (\texttt{module.status} is
+\texttt{\textquotesingle{}evaluated\textquotesingle{}}) or it will
+re-throw the exception that the initial evaluation resulted in
+(\texttt{module.status} is
+\texttt{\textquotesingle{}errored\textquotesingle{}}).
+
+This method cannot be called while the module is being evaluated
+(\texttt{module.status} is
+\texttt{\textquotesingle{}evaluating\textquotesingle{}}).
+
+Corresponds to the
+\href{https://tc39.es/ecma262/\#sec-moduleevaluation}{Evaluate()
+concrete method} field of
+\href{https://tc39.es/ecma262/\#sec-cyclic-module-records}{Cyclic Module
+Record}s in the ECMAScript specification.
+
+\subsubsection{\texorpdfstring{\texttt{module.identifier}}{module.identifier}}\label{module.identifier}
+
+\begin{itemize}
+\tightlist
+\item
+  \{string\}
+\end{itemize}
+
+The identifier of the current module, as set in the constructor.
+
+\subsubsection{\texorpdfstring{\texttt{module.link(linker)}}{module.link(linker)}}\label{module.linklinker}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{linker} \{Function\}
+
+  \begin{itemize}
+  \item
+    \texttt{specifier} \{string\} The specifier of the requested module:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\ImportTok{import}\NormalTok{ foo }\ImportTok{from} \StringTok{\textquotesingle{}foo\textquotesingle{}}\OperatorTok{;}
+\CommentTok{//              \^{}\^{}\^{}\^{}\^{} the module specifier}
+\end{Highlighting}
+\end{Shaded}
+  \item
+    \texttt{referencingModule} \{vm.Module\} The \texttt{Module} object
+    \texttt{link()} is called on.
+  \item
+    \texttt{extra} \{Object\}
+
+    \begin{itemize}
+    \item
+      \texttt{attributes} \{Object\} The data from the attribute:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\ImportTok{import}\NormalTok{ foo }\ImportTok{from} \StringTok{\textquotesingle{}foo\textquotesingle{}} \ControlFlowTok{with}\NormalTok{ \{ }\DataTypeTok{name}\OperatorTok{:} \StringTok{\textquotesingle{}value\textquotesingle{}}\NormalTok{ \}}\OperatorTok{;}
+\CommentTok{//                         \^{}\^{}\^{}\^{}\^{}\^{}\^{}\^{}\^{}\^{}\^{}\^{}\^{}\^{}\^{}\^{}\^{} the attribute}
+\end{Highlighting}
+\end{Shaded}
+
+      Per ECMA-262, hosts are expected to trigger an error if an
+      unsupported attribute is present.
+    \item
+      \texttt{assert} \{Object\} Alias for \texttt{extra.attributes}.
+    \end{itemize}
+  \item
+    Returns: \{vm.Module\textbar Promise\}
+  \end{itemize}
+\item
+  Returns: \{Promise\}
+\end{itemize}
+
+Link module dependencies. This method must be called before evaluation,
+and can only be called once per module.
+
+The function is expected to return a \texttt{Module} object or a
+\texttt{Promise} that eventually resolves to a \texttt{Module} object.
+The returned \texttt{Module} must satisfy the following two invariants:
+
+\begin{itemize}
+\tightlist
+\item
+  It must belong to the same context as the parent \texttt{Module}.
+\item
+  Its \texttt{status} must not be
+  \texttt{\textquotesingle{}errored\textquotesingle{}}.
+\end{itemize}
+
+If the returned \texttt{Module}'s \texttt{status} is
+\texttt{\textquotesingle{}unlinked\textquotesingle{}}, this method will
+be recursively called on the returned \texttt{Module} with the same
+provided \texttt{linker} function.
+
+\texttt{link()} returns a \texttt{Promise} that will either get resolved
+when all linking instances resolve to a valid \texttt{Module}, or
+rejected if the linker function either throws an exception or returns an
+invalid \texttt{Module}.
+
+The linker function roughly corresponds to the implementation-defined
+\href{https://tc39.es/ecma262/\#sec-hostresolveimportedmodule}{HostResolveImportedModule}
+abstract operation in the ECMAScript specification, with a few key
+differences:
+
+\begin{itemize}
+\tightlist
+\item
+  The linker function is allowed to be asynchronous while
+  \href{https://tc39.es/ecma262/\#sec-hostresolveimportedmodule}{HostResolveImportedModule}
+  is synchronous.
+\end{itemize}
+
+The actual
+\href{https://tc39.es/ecma262/\#sec-hostresolveimportedmodule}{HostResolveImportedModule}
+implementation used during module linking is one that returns the
+modules linked during linking. Since at that point all modules would
+have been fully linked already, the
+\href{https://tc39.es/ecma262/\#sec-hostresolveimportedmodule}{HostResolveImportedModule}
+implementation is fully synchronous per specification.
+
+Corresponds to the
+\href{https://tc39.es/ecma262/\#sec-moduledeclarationlinking}{Link()
+concrete method} field of
+\href{https://tc39.es/ecma262/\#sec-cyclic-module-records}{Cyclic Module
+Record}s in the ECMAScript specification.
+
+\subsubsection{\texorpdfstring{\texttt{module.namespace}}{module.namespace}}\label{module.namespace}
+
+\begin{itemize}
+\tightlist
+\item
+  \{Object\}
+\end{itemize}
+
+The namespace object of the module. This is only available after linking
+(\texttt{module.link()}) has completed.
+
+Corresponds to the
+\href{https://tc39.es/ecma262/\#sec-getmodulenamespace}{GetModuleNamespace}
+abstract operation in the ECMAScript specification.
+
+\subsubsection{\texorpdfstring{\texttt{module.status}}{module.status}}\label{module.status}
+
+\begin{itemize}
+\tightlist
+\item
+  \{string\}
+\end{itemize}
+
+The current status of the module. Will be one of:
+
+\begin{itemize}
+\item
+  \texttt{\textquotesingle{}unlinked\textquotesingle{}}:
+  \texttt{module.link()} has not yet been called.
+\item
+  \texttt{\textquotesingle{}linking\textquotesingle{}}:
+  \texttt{module.link()} has been called, but not all Promises returned
+  by the linker function have been resolved yet.
+\item
+  \texttt{\textquotesingle{}linked\textquotesingle{}}: The module has
+  been linked successfully, and all of its dependencies are linked, but
+  \texttt{module.evaluate()} has not yet been called.
+\item
+  \texttt{\textquotesingle{}evaluating\textquotesingle{}}: The module is
+  being evaluated through a \texttt{module.evaluate()} on itself or a
+  parent module.
+\item
+  \texttt{\textquotesingle{}evaluated\textquotesingle{}}: The module has
+  been successfully evaluated.
+\item
+  \texttt{\textquotesingle{}errored\textquotesingle{}}: The module has
+  been evaluated, but an exception was thrown.
+\end{itemize}
+
+Other than \texttt{\textquotesingle{}errored\textquotesingle{}}, this
+status string corresponds to the specification's
+\href{https://tc39.es/ecma262/\#sec-cyclic-module-records}{Cyclic Module
+Record}'s \texttt{{[}{[}Status{]}{]}} field.
+\texttt{\textquotesingle{}errored\textquotesingle{}} corresponds to
+\texttt{\textquotesingle{}evaluated\textquotesingle{}} in the
+specification, but with \texttt{{[}{[}EvaluationError{]}{]}} set to a
+value that is not \texttt{undefined}.
+
+\subsection{\texorpdfstring{Class:
+\texttt{vm.SourceTextModule}}{Class: vm.SourceTextModule}}\label{class-vm.sourcetextmodule}
+
+\begin{quote}
+Stability: 1 - Experimental
+\end{quote}
+
+This feature is only available with the
+\texttt{-\/-experimental-vm-modules} command flag enabled.
+
+\begin{itemize}
+\tightlist
+\item
+  Extends: \{vm.Module\}
+\end{itemize}
+
+The \texttt{vm.SourceTextModule} class provides the
+\href{https://tc39.es/ecma262/\#sec-source-text-module-records}{Source
+Text Module Record} as defined in the ECMAScript specification.
+
+\subsubsection{\texorpdfstring{\texttt{new\ vm.SourceTextModule(code{[},\ options{]})}}{new vm.SourceTextModule(code{[}, options{]})}}\label{new-vm.sourcetextmodulecode-options}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{code} \{string\} JavaScript Module code to parse
+\item
+  \texttt{options}
+
+  \begin{itemize}
+  \tightlist
+  \item
+    \texttt{identifier} \{string\} String used in stack traces.
+    \textbf{Default:}
+    \texttt{\textquotesingle{}vm:module(i)\textquotesingle{}} where
+    \texttt{i} is a context-specific ascending index.
+  \item
+    \texttt{cachedData} \{Buffer\textbar TypedArray\textbar DataView\}
+    Provides an optional \texttt{Buffer} or \texttt{TypedArray}, or
+    \texttt{DataView} with V8's code cache data for the supplied source.
+    The \texttt{code} must be the same as the module from which this
+    \texttt{cachedData} was created.
+  \item
+    \texttt{context} \{Object\} The
+    \hyperref[what-does-it-mean-to-contextify-an-object]{contextified}
+    object as returned by the \texttt{vm.createContext()} method, to
+    compile and evaluate this \texttt{Module} in. If no context is
+    specified, the module is evaluated in the current execution context.
+  \item
+    \texttt{lineOffset} \{integer\} Specifies the line number offset
+    that is displayed in stack traces produced by this \texttt{Module}.
+    \textbf{Default:} \texttt{0}.
+  \item
+    \texttt{columnOffset} \{integer\} Specifies the first-line column
+    number offset that is displayed in stack traces produced by this
+    \texttt{Module}. \textbf{Default:} \texttt{0}.
+  \item
+    \texttt{initializeImportMeta} \{Function\} Called during evaluation
+    of this \texttt{Module} to initialize the \texttt{import.meta}.
+
+    \begin{itemize}
+    \tightlist
+    \item
+      \texttt{meta} \{import.meta\}
+    \item
+      \texttt{module} \{vm.SourceTextModule\}
+    \end{itemize}
+  \item
+    \texttt{importModuleDynamically} \{Function\} Called during
+    evaluation of this module when \texttt{import()} is called. If this
+    option is not specified, calls to \texttt{import()} will reject with
+    \href{errors.md\#err_vm_dynamic_import_callback_missing}{\texttt{ERR\_VM\_DYNAMIC\_IMPORT\_CALLBACK\_MISSING}}.
+    If \texttt{-\/-experimental-vm-modules} isn't set, this callback
+    will be ignored and calls to \texttt{import()} will reject with
+    \href{errors.md\#err_vm_dynamic_import_callback_missing_flag}{\texttt{ERR\_VM\_DYNAMIC\_IMPORT\_CALLBACK\_MISSING\_FLAG}}.
+
+    \begin{itemize}
+    \tightlist
+    \item
+      \texttt{specifier} \{string\} specifier passed to
+      \texttt{import()}
+    \item
+      \texttt{module} \{vm.Module\}
+    \item
+      \texttt{importAttributes} \{Object\} The \texttt{"with"} value
+      passed to the
+      \href{https://tc39.es/proposal-import-attributes/\#sec-evaluate-import-call}{\texttt{optionsExpression}}
+      optional parameter, or an empty object if no value was provided.
+    \item
+      Returns: \{Module Namespace Object\textbar vm.Module\} Returning a
+      \texttt{vm.Module} is recommended in order to take advantage of
+      error tracking, and to avoid issues with namespaces that contain
+      \texttt{then} function exports.
+    \end{itemize}
+  \end{itemize}
+\end{itemize}
+
+Creates a new \texttt{SourceTextModule} instance.
+
+Properties assigned to the \texttt{import.meta} object that are objects
+may allow the module to access information outside the specified
+\texttt{context}. Use \texttt{vm.runInContext()} to create objects in a
+specific context.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\ImportTok{import}\NormalTok{ vm }\ImportTok{from} \StringTok{\textquotesingle{}node:vm\textquotesingle{}}\OperatorTok{;}
+
+\KeywordTok{const}\NormalTok{ contextifiedObject }\OperatorTok{=}\NormalTok{ vm}\OperatorTok{.}\FunctionTok{createContext}\NormalTok{(\{ }\DataTypeTok{secret}\OperatorTok{:} \DecValTok{42}\NormalTok{ \})}\OperatorTok{;}
+
+\KeywordTok{const}\NormalTok{ module }\OperatorTok{=} \KeywordTok{new}\NormalTok{ vm}\OperatorTok{.}\FunctionTok{SourceTextModule}\NormalTok{(}
+  \StringTok{\textquotesingle{}Object.getPrototypeOf(import.meta.prop).secret = secret;\textquotesingle{}}\OperatorTok{,}
+\NormalTok{  \{}
+    \FunctionTok{initializeImportMeta}\NormalTok{(meta) \{}
+      \CommentTok{// Note: this object is created in the top context. As such,}
+      \CommentTok{// Object.getPrototypeOf(import.meta.prop) points to the}
+      \CommentTok{// Object.prototype in the top context rather than that in}
+      \CommentTok{// the contextified object.}
+\NormalTok{      meta}\OperatorTok{.}\AttributeTok{prop} \OperatorTok{=}\NormalTok{ \{\}}\OperatorTok{;}
+\NormalTok{    \}}\OperatorTok{,}
+\NormalTok{  \})}\OperatorTok{;}
+\CommentTok{// Since module has no dependencies, the linker function will never be called.}
+\ControlFlowTok{await}\NormalTok{ module}\OperatorTok{.}\FunctionTok{link}\NormalTok{(() }\KeywordTok{=\textgreater{}}\NormalTok{ \{\})}\OperatorTok{;}
+\ControlFlowTok{await}\NormalTok{ module}\OperatorTok{.}\FunctionTok{evaluate}\NormalTok{()}\OperatorTok{;}
+
+\CommentTok{// Now, Object.prototype.secret will be equal to 42.}
+\CommentTok{//}
+\CommentTok{// To fix this problem, replace}
+\CommentTok{//     meta.prop = \{\};}
+\CommentTok{// above with}
+\CommentTok{//     meta.prop = vm.runInContext(\textquotesingle{}\{\}\textquotesingle{}, contextifiedObject);}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ vm }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:vm\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\KeywordTok{const}\NormalTok{ contextifiedObject }\OperatorTok{=}\NormalTok{ vm}\OperatorTok{.}\FunctionTok{createContext}\NormalTok{(\{ }\DataTypeTok{secret}\OperatorTok{:} \DecValTok{42}\NormalTok{ \})}\OperatorTok{;}
+\NormalTok{(}\KeywordTok{async}\NormalTok{ () }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+  \KeywordTok{const}\NormalTok{ module }\OperatorTok{=} \KeywordTok{new}\NormalTok{ vm}\OperatorTok{.}\FunctionTok{SourceTextModule}\NormalTok{(}
+    \StringTok{\textquotesingle{}Object.getPrototypeOf(import.meta.prop).secret = secret;\textquotesingle{}}\OperatorTok{,}
+\NormalTok{    \{}
+      \FunctionTok{initializeImportMeta}\NormalTok{(meta) \{}
+        \CommentTok{// Note: this object is created in the top context. As such,}
+        \CommentTok{// Object.getPrototypeOf(import.meta.prop) points to the}
+        \CommentTok{// Object.prototype in the top context rather than that in}
+        \CommentTok{// the contextified object.}
+\NormalTok{        meta}\OperatorTok{.}\AttributeTok{prop} \OperatorTok{=}\NormalTok{ \{\}}\OperatorTok{;}
+\NormalTok{      \}}\OperatorTok{,}
+\NormalTok{    \})}\OperatorTok{;}
+  \CommentTok{// Since module has no dependencies, the linker function will never be called.}
+  \ControlFlowTok{await}\NormalTok{ module}\OperatorTok{.}\FunctionTok{link}\NormalTok{(() }\KeywordTok{=\textgreater{}}\NormalTok{ \{\})}\OperatorTok{;}
+  \ControlFlowTok{await}\NormalTok{ module}\OperatorTok{.}\FunctionTok{evaluate}\NormalTok{()}\OperatorTok{;}
+  \CommentTok{// Now, Object.prototype.secret will be equal to 42.}
+  \CommentTok{//}
+  \CommentTok{// To fix this problem, replace}
+  \CommentTok{//     meta.prop = \{\};}
+  \CommentTok{// above with}
+  \CommentTok{//     meta.prop = vm.runInContext(\textquotesingle{}\{\}\textquotesingle{}, contextifiedObject);}
+\NormalTok{\})()}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+\subsubsection{\texorpdfstring{\texttt{sourceTextModule.createCachedData()}}{sourceTextModule.createCachedData()}}\label{sourcetextmodule.createcacheddata}
+
+\begin{itemize}
+\tightlist
+\item
+  Returns: \{Buffer\}
+\end{itemize}
+
+Creates a code cache that can be used with the \texttt{SourceTextModule}
+constructor's \texttt{cachedData} option. Returns a \texttt{Buffer}.
+This method may be called any number of times before the module has been
+evaluated.
+
+The code cache of the \texttt{SourceTextModule} doesn't contain any
+JavaScript observable states. The code cache is safe to be saved along
+side the script source and used to construct new
+\texttt{SourceTextModule} instances multiple times.
+
+Functions in the \texttt{SourceTextModule} source can be marked as
+lazily compiled and they are not compiled at construction of the
+\texttt{SourceTextModule}. These functions are going to be compiled when
+they are invoked the first time. The code cache serializes the metadata
+that V8 currently knows about the \texttt{SourceTextModule} that it can
+use to speed up future compilations.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{// Create an initial module}
+\KeywordTok{const}\NormalTok{ module }\OperatorTok{=} \KeywordTok{new}\NormalTok{ vm}\OperatorTok{.}\FunctionTok{SourceTextModule}\NormalTok{(}\StringTok{\textquotesingle{}const a = 1;\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+
+\CommentTok{// Create cached data from this module}
+\KeywordTok{const}\NormalTok{ cachedData }\OperatorTok{=}\NormalTok{ module}\OperatorTok{.}\FunctionTok{createCachedData}\NormalTok{()}\OperatorTok{;}
+
+\CommentTok{// Create a new module using the cached data. The code must be the same.}
+\KeywordTok{const}\NormalTok{ module2 }\OperatorTok{=} \KeywordTok{new}\NormalTok{ vm}\OperatorTok{.}\FunctionTok{SourceTextModule}\NormalTok{(}\StringTok{\textquotesingle{}const a = 1;\textquotesingle{}}\OperatorTok{,}\NormalTok{ \{ cachedData \})}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+\subsection{\texorpdfstring{Class:
+\texttt{vm.SyntheticModule}}{Class: vm.SyntheticModule}}\label{class-vm.syntheticmodule}
+
+\begin{quote}
+Stability: 1 - Experimental
+\end{quote}
+
+This feature is only available with the
+\texttt{-\/-experimental-vm-modules} command flag enabled.
+
+\begin{itemize}
+\tightlist
+\item
+  Extends: \{vm.Module\}
+\end{itemize}
+
+The \texttt{vm.SyntheticModule} class provides the
+\href{https://heycam.github.io/webidl/\#synthetic-module-records}{Synthetic
+Module Record} as defined in the WebIDL specification. The purpose of
+synthetic modules is to provide a generic interface for exposing
+non-JavaScript sources to ECMAScript module graphs.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ vm }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:vm\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+
+\KeywordTok{const}\NormalTok{ source }\OperatorTok{=} \StringTok{\textquotesingle{}\{ "a": 1 \}\textquotesingle{}}\OperatorTok{;}
+\KeywordTok{const}\NormalTok{ module }\OperatorTok{=} \KeywordTok{new}\NormalTok{ vm}\OperatorTok{.}\FunctionTok{SyntheticModule}\NormalTok{([}\StringTok{\textquotesingle{}default\textquotesingle{}}\NormalTok{]}\OperatorTok{,} \KeywordTok{function}\NormalTok{() \{}
+  \KeywordTok{const}\NormalTok{ obj }\OperatorTok{=} \BuiltInTok{JSON}\OperatorTok{.}\FunctionTok{parse}\NormalTok{(source)}\OperatorTok{;}
+  \KeywordTok{this}\OperatorTok{.}\FunctionTok{setExport}\NormalTok{(}\StringTok{\textquotesingle{}default\textquotesingle{}}\OperatorTok{,}\NormalTok{ obj)}\OperatorTok{;}
+\NormalTok{\})}\OperatorTok{;}
+
+\CommentTok{// Use \textasciigrave{}module\textasciigrave{} in linking...}
+\end{Highlighting}
+\end{Shaded}
+
+\subsubsection{\texorpdfstring{\texttt{new\ vm.SyntheticModule(exportNames,\ evaluateCallback{[},\ options{]})}}{new vm.SyntheticModule(exportNames, evaluateCallback{[}, options{]})}}\label{new-vm.syntheticmoduleexportnames-evaluatecallback-options}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{exportNames} \{string{[}{]}\} Array of names that will be
+  exported from the module.
+\item
+  \texttt{evaluateCallback} \{Function\} Called when the module is
+  evaluated.
+\item
+  \texttt{options}
+
+  \begin{itemize}
+  \tightlist
+  \item
+    \texttt{identifier} \{string\} String used in stack traces.
+    \textbf{Default:}
+    \texttt{\textquotesingle{}vm:module(i)\textquotesingle{}} where
+    \texttt{i} is a context-specific ascending index.
+  \item
+    \texttt{context} \{Object\} The
+    \hyperref[what-does-it-mean-to-contextify-an-object]{contextified}
+    object as returned by the \texttt{vm.createContext()} method, to
+    compile and evaluate this \texttt{Module} in.
+  \end{itemize}
+\end{itemize}
+
+Creates a new \texttt{SyntheticModule} instance.
+
+Objects assigned to the exports of this instance may allow importers of
+the module to access information outside the specified \texttt{context}.
+Use \texttt{vm.runInContext()} to create objects in a specific context.
+
+\subsubsection{\texorpdfstring{\texttt{syntheticModule.setExport(name,\ value)}}{syntheticModule.setExport(name, value)}}\label{syntheticmodule.setexportname-value}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{name} \{string\} Name of the export to set.
+\item
+  \texttt{value} \{any\} The value to set the export to.
+\end{itemize}
+
+This method is used after the module is linked to set the values of
+exports. If it is called before the module is linked, an
+\href{errors.md\#err_vm_module_status}{\texttt{ERR\_VM\_MODULE\_STATUS}}
+error will be thrown.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\ImportTok{import}\NormalTok{ vm }\ImportTok{from} \StringTok{\textquotesingle{}node:vm\textquotesingle{}}\OperatorTok{;}
+
+\KeywordTok{const}\NormalTok{ m }\OperatorTok{=} \KeywordTok{new}\NormalTok{ vm}\OperatorTok{.}\FunctionTok{SyntheticModule}\NormalTok{([}\StringTok{\textquotesingle{}x\textquotesingle{}}\NormalTok{]}\OperatorTok{,}\NormalTok{ () }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+\NormalTok{  m}\OperatorTok{.}\FunctionTok{setExport}\NormalTok{(}\StringTok{\textquotesingle{}x\textquotesingle{}}\OperatorTok{,} \DecValTok{1}\NormalTok{)}\OperatorTok{;}
+\NormalTok{\})}\OperatorTok{;}
+
+\ControlFlowTok{await}\NormalTok{ m}\OperatorTok{.}\FunctionTok{link}\NormalTok{(() }\KeywordTok{=\textgreater{}}\NormalTok{ \{\})}\OperatorTok{;}
+\ControlFlowTok{await}\NormalTok{ m}\OperatorTok{.}\FunctionTok{evaluate}\NormalTok{()}\OperatorTok{;}
+
+\NormalTok{assert}\OperatorTok{.}\FunctionTok{strictEqual}\NormalTok{(m}\OperatorTok{.}\AttributeTok{namespace}\OperatorTok{.}\AttributeTok{x}\OperatorTok{,} \DecValTok{1}\NormalTok{)}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ vm }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:vm\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{(}\KeywordTok{async}\NormalTok{ () }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+  \KeywordTok{const}\NormalTok{ m }\OperatorTok{=} \KeywordTok{new}\NormalTok{ vm}\OperatorTok{.}\FunctionTok{SyntheticModule}\NormalTok{([}\StringTok{\textquotesingle{}x\textquotesingle{}}\NormalTok{]}\OperatorTok{,}\NormalTok{ () }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+\NormalTok{    m}\OperatorTok{.}\FunctionTok{setExport}\NormalTok{(}\StringTok{\textquotesingle{}x\textquotesingle{}}\OperatorTok{,} \DecValTok{1}\NormalTok{)}\OperatorTok{;}
+\NormalTok{  \})}\OperatorTok{;}
+  \ControlFlowTok{await}\NormalTok{ m}\OperatorTok{.}\FunctionTok{link}\NormalTok{(() }\KeywordTok{=\textgreater{}}\NormalTok{ \{\})}\OperatorTok{;}
+  \ControlFlowTok{await}\NormalTok{ m}\OperatorTok{.}\FunctionTok{evaluate}\NormalTok{()}\OperatorTok{;}
+\NormalTok{  assert}\OperatorTok{.}\FunctionTok{strictEqual}\NormalTok{(m}\OperatorTok{.}\AttributeTok{namespace}\OperatorTok{.}\AttributeTok{x}\OperatorTok{,} \DecValTok{1}\NormalTok{)}\OperatorTok{;}
+\NormalTok{\})()}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+\subsection{\texorpdfstring{\texttt{vm.compileFunction(code{[},\ params{[},\ options{]}{]})}}{vm.compileFunction(code{[}, params{[}, options{]}{]})}}\label{vm.compilefunctioncode-params-options}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{code} \{string\} The body of the function to compile.
+\item
+  \texttt{params} \{string{[}{]}\} An array of strings containing all
+  parameters for the function.
+\item
+  \texttt{options} \{Object\}
+
+  \begin{itemize}
+  \tightlist
+  \item
+    \texttt{filename} \{string\} Specifies the filename used in stack
+    traces produced by this script. \textbf{Default:}
+    \texttt{\textquotesingle{}\textquotesingle{}}.
+  \item
+    \texttt{lineOffset} \{number\} Specifies the line number offset that
+    is displayed in stack traces produced by this script.
+    \textbf{Default:} \texttt{0}.
+  \item
+    \texttt{columnOffset} \{number\} Specifies the first-line column
+    number offset that is displayed in stack traces produced by this
+    script. \textbf{Default:} \texttt{0}.
+  \item
+    \texttt{cachedData} \{Buffer\textbar TypedArray\textbar DataView\}
+    Provides an optional \texttt{Buffer} or \texttt{TypedArray}, or
+    \texttt{DataView} with V8's code cache data for the supplied source.
+    This must be produced by a prior call to
+    \hyperref[vmcompilefunctioncode-params-options]{\texttt{vm.compileFunction()}}
+    with the same \texttt{code} and \texttt{params}.
+  \item
+    \texttt{produceCachedData} \{boolean\} Specifies whether to produce
+    new cache data. \textbf{Default:} \texttt{false}.
+  \item
+    \texttt{parsingContext} \{Object\} The
+    \hyperref[what-does-it-mean-to-contextify-an-object]{contextified}
+    object in which the said function should be compiled in.
+  \item
+    \texttt{contextExtensions} \{Object{[}{]}\} An array containing a
+    collection of context extensions (objects wrapping the current
+    scope) to be applied while compiling. \textbf{Default:}
+    \texttt{{[}{]}}.
+  \item
+    \texttt{importModuleDynamically} \{Function\} Called during
+    evaluation of this module when \texttt{import()} is called. If this
+    option is not specified, calls to \texttt{import()} will reject with
+    \href{errors.md\#err_vm_dynamic_import_callback_missing}{\texttt{ERR\_VM\_DYNAMIC\_IMPORT\_CALLBACK\_MISSING}}.
+    This option is part of the experimental modules API, and should not
+    be considered stable. If \texttt{-\/-experimental-vm-modules} isn't
+    set, this callback will be ignored and calls to \texttt{import()}
+    will reject with
+    \href{errors.md\#err_vm_dynamic_import_callback_missing_flag}{\texttt{ERR\_VM\_DYNAMIC\_IMPORT\_CALLBACK\_MISSING\_FLAG}}.
+
+    \begin{itemize}
+    \tightlist
+    \item
+      \texttt{specifier} \{string\} specifier passed to
+      \texttt{import()}
+    \item
+      \texttt{function} \{Function\}
+    \item
+      \texttt{importAttributes} \{Object\} The \texttt{"with"} value
+      passed to the
+      \href{https://tc39.es/proposal-import-attributes/\#sec-evaluate-import-call}{\texttt{optionsExpression}}
+      optional parameter, or an empty object if no value was provided.
+    \item
+      Returns: \{Module Namespace Object\textbar vm.Module\} Returning a
+      \texttt{vm.Module} is recommended in order to take advantage of
+      error tracking, and to avoid issues with namespaces that contain
+      \texttt{then} function exports.
+    \end{itemize}
+  \end{itemize}
+\item
+  Returns: \{Function\}
+\end{itemize}
+
+Compiles the given code into the provided context (if no context is
+supplied, the current context is used), and returns it wrapped inside a
+function with the given \texttt{params}.
+
+\subsection{\texorpdfstring{\texttt{vm.createContext({[}contextObject{[},\ options{]}{]})}}{vm.createContext({[}contextObject{[}, options{]}{]})}}\label{vm.createcontextcontextobject-options}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{contextObject} \{Object\}
+\item
+  \texttt{options} \{Object\}
+
+  \begin{itemize}
+  \tightlist
+  \item
+    \texttt{name} \{string\} Human-readable name of the newly created
+    context. \textbf{Default:}
+    \texttt{\textquotesingle{}VM\ Context\ i\textquotesingle{}}, where
+    \texttt{i} is an ascending numerical index of the created context.
+  \item
+    \texttt{origin} \{string\}
+    \href{https://developer.mozilla.org/en-US/docs/Glossary/Origin}{Origin}
+    corresponding to the newly created context for display purposes. The
+    origin should be formatted like a URL, but with only the scheme,
+    host, and port (if necessary), like the value of the
+    \href{url.md\#urlorigin}{\texttt{url.origin}} property of a
+    \href{url.md\#class-url}{\texttt{URL}} object. Most notably, this
+    string should omit the trailing slash, as that denotes a path.
+    \textbf{Default:} \texttt{\textquotesingle{}\textquotesingle{}}.
+  \item
+    \texttt{codeGeneration} \{Object\}
+
+    \begin{itemize}
+    \tightlist
+    \item
+      \texttt{strings} \{boolean\} If set to false any calls to
+      \texttt{eval} or function constructors (\texttt{Function},
+      \texttt{GeneratorFunction}, etc) will throw an \texttt{EvalError}.
+      \textbf{Default:} \texttt{true}.
+    \item
+      \texttt{wasm} \{boolean\} If set to false any attempt to compile a
+      WebAssembly module will throw a \texttt{WebAssembly.CompileError}.
+      \textbf{Default:} \texttt{true}.
+    \end{itemize}
+  \item
+    \texttt{microtaskMode} \{string\} If set to \texttt{afterEvaluate},
+    microtasks (tasks scheduled through \texttt{Promise}s and
+    \texttt{async\ function}s) will be run immediately after a script
+    has run through
+    \hyperref[scriptrunincontextcontextifiedobject-options]{\texttt{script.runInContext()}}.
+    They are included in the \texttt{timeout} and \texttt{breakOnSigint}
+    scopes in that case.
+  \item
+    \texttt{importModuleDynamically} \{Function\} Called when
+    \texttt{import()} is called in this context without a referrer
+    script or module. If this option is not specified, calls to
+    \texttt{import()} will reject with
+    \href{errors.md\#err_vm_dynamic_import_callback_missing}{\texttt{ERR\_VM\_DYNAMIC\_IMPORT\_CALLBACK\_MISSING}}.
+    If \texttt{-\/-experimental-vm-modules} isn't set, this callback
+    will be ignored and calls to \texttt{import()} will reject with
+    \href{errors.md\#err_vm_dynamic_import_callback_missing_flag}{\texttt{ERR\_VM\_DYNAMIC\_IMPORT\_CALLBACK\_MISSING\_FLAG}}.
+
+    \begin{itemize}
+    \tightlist
+    \item
+      \texttt{specifier} \{string\} specifier passed to
+      \texttt{import()}
+    \item
+      \texttt{contextObject} \{Object\} contextified object
+    \item
+      \texttt{importAttributes} \{Object\} The \texttt{"with"} value
+      passed to the
+      \href{https://tc39.es/proposal-import-attributes/\#sec-evaluate-import-call}{\texttt{optionsExpression}}
+      optional parameter, or an empty object if no value was provided.
+    \item
+      Returns: \{Module Namespace Object\textbar vm.Module\} Returning a
+      \texttt{vm.Module} is recommended in order to take advantage of
+      error tracking, and to avoid issues with namespaces that contain
+      \texttt{then} function exports.
+    \end{itemize}
+  \end{itemize}
+\item
+  Returns: \{Object\} contextified object.
+\end{itemize}
+
+If given a \texttt{contextObject}, the \texttt{vm.createContext()}
+method will \hyperref[what-does-it-mean-to-contextify-an-object]{prepare
+that object} so that it can be used in calls to
+\hyperref[vmrunincontextcode-contextifiedobject-options]{\texttt{vm.runInContext()}}
+or
+\hyperref[scriptrunincontextcontextifiedobject-options]{\texttt{script.runInContext()}}.
+Inside such scripts, the \texttt{contextObject} will be the global
+object, retaining all of its existing properties but also having the
+built-in objects and functions any standard
+\href{https://es5.github.io/\#x15.1}{global object} has. Outside of
+scripts run by the vm module, global variables will remain unchanged.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ vm }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:vm\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+
+\BuiltInTok{global}\OperatorTok{.}\AttributeTok{globalVar} \OperatorTok{=} \DecValTok{3}\OperatorTok{;}
+
+\KeywordTok{const}\NormalTok{ context }\OperatorTok{=}\NormalTok{ \{ }\DataTypeTok{globalVar}\OperatorTok{:} \DecValTok{1}\NormalTok{ \}}\OperatorTok{;}
+\NormalTok{vm}\OperatorTok{.}\FunctionTok{createContext}\NormalTok{(context)}\OperatorTok{;}
+
+\NormalTok{vm}\OperatorTok{.}\FunctionTok{runInContext}\NormalTok{(}\StringTok{\textquotesingle{}globalVar *= 2;\textquotesingle{}}\OperatorTok{,}\NormalTok{ context)}\OperatorTok{;}
+
+\BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(context)}\OperatorTok{;}
+\CommentTok{// Prints: \{ globalVar: 2 \}}
+
+\BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\BuiltInTok{global}\OperatorTok{.}\AttributeTok{globalVar}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// Prints: 3}
+\end{Highlighting}
+\end{Shaded}
+
+If \texttt{contextObject} is omitted (or passed explicitly as
+\texttt{undefined}), a new, empty
+\hyperref[what-does-it-mean-to-contextify-an-object]{contextified}
+object will be returned.
+
+The \texttt{vm.createContext()} method is primarily useful for creating
+a single context that can be used to run multiple scripts. For instance,
+if emulating a web browser, the method can be used to create a single
+context representing a window's global object, then run all
+\texttt{\textless{}script\textgreater{}} tags together within that
+context.
+
+The provided \texttt{name} and \texttt{origin} of the context are made
+visible through the Inspector API.
+
+\subsection{\texorpdfstring{\texttt{vm.isContext(object)}}{vm.isContext(object)}}\label{vm.iscontextobject}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{object} \{Object\}
+\item
+  Returns: \{boolean\}
+\end{itemize}
+
+Returns \texttt{true} if the given \texttt{object} object has been
+\hyperref[what-does-it-mean-to-contextify-an-object]{contextified} using
+\hyperref[vmcreatecontextcontextobject-options]{\texttt{vm.createContext()}}.
+
+\subsection{\texorpdfstring{\texttt{vm.measureMemory({[}options{]})}}{vm.measureMemory({[}options{]})}}\label{vm.measurememoryoptions}
+
+\begin{quote}
+Stability: 1 - Experimental
+\end{quote}
+
+Measure the memory known to V8 and used by all contexts known to the
+current V8 isolate, or the main context.
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{options} \{Object\} Optional.
+
+  \begin{itemize}
+  \tightlist
+  \item
+    \texttt{mode} \{string\} Either
+    \texttt{\textquotesingle{}summary\textquotesingle{}} or
+    \texttt{\textquotesingle{}detailed\textquotesingle{}}. In summary
+    mode, only the memory measured for the main context will be
+    returned. In detailed mode, the memory measured for all contexts
+    known to the current V8 isolate will be returned. \textbf{Default:}
+    \texttt{\textquotesingle{}summary\textquotesingle{}}
+  \item
+    \texttt{execution} \{string\} Either
+    \texttt{\textquotesingle{}default\textquotesingle{}} or
+    \texttt{\textquotesingle{}eager\textquotesingle{}}. With default
+    execution, the promise will not resolve until after the next
+    scheduled garbage collection starts, which may take a while (or
+    never if the program exits before the next GC). With eager
+    execution, the GC will be started right away to measure the memory.
+    \textbf{Default:}
+    \texttt{\textquotesingle{}default\textquotesingle{}}
+  \end{itemize}
+\item
+  Returns: \{Promise\} If the memory is successfully measured, the
+  promise will resolve with an object containing information about the
+  memory usage. Otherwise it will be rejected with an
+  \texttt{ERR\_CONTEXT\_NOT\_INITIALIZED} error.
+\end{itemize}
+
+The format of the object that the returned Promise may resolve with is
+specific to the V8 engine and may change from one version of V8 to the
+next.
+
+The returned result is different from the statistics returned by
+\texttt{v8.getHeapSpaceStatistics()} in that \texttt{vm.measureMemory()}
+measure the memory reachable by each V8 specific contexts in the current
+instance of the V8 engine, while the result of
+\texttt{v8.getHeapSpaceStatistics()} measure the memory occupied by each
+heap space in the current V8 instance.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ vm }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:vm\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// Measure the memory used by the main context.}
+\NormalTok{vm}\OperatorTok{.}\FunctionTok{measureMemory}\NormalTok{(\{ }\DataTypeTok{mode}\OperatorTok{:} \StringTok{\textquotesingle{}summary\textquotesingle{}}\NormalTok{ \})}
+  \CommentTok{// This is the same as vm.measureMemory()}
+  \OperatorTok{.}\FunctionTok{then}\NormalTok{((result) }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+    \CommentTok{// The current format is:}
+    \CommentTok{// \{}
+    \CommentTok{//   total: \{}
+    \CommentTok{//      jsMemoryEstimate: 2418479, jsMemoryRange: [ 2418479, 2745799 ]}
+    \CommentTok{//    \}}
+    \CommentTok{// \}}
+    \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(result)}\OperatorTok{;}
+\NormalTok{  \})}\OperatorTok{;}
+
+\KeywordTok{const}\NormalTok{ context }\OperatorTok{=}\NormalTok{ vm}\OperatorTok{.}\FunctionTok{createContext}\NormalTok{(\{ }\DataTypeTok{a}\OperatorTok{:} \DecValTok{1}\NormalTok{ \})}\OperatorTok{;}
+\NormalTok{vm}\OperatorTok{.}\FunctionTok{measureMemory}\NormalTok{(\{ }\DataTypeTok{mode}\OperatorTok{:} \StringTok{\textquotesingle{}detailed\textquotesingle{}}\OperatorTok{,} \DataTypeTok{execution}\OperatorTok{:} \StringTok{\textquotesingle{}eager\textquotesingle{}}\NormalTok{ \})}
+  \OperatorTok{.}\FunctionTok{then}\NormalTok{((result) }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+    \CommentTok{// Reference the context here so that it won\textquotesingle{}t be GC\textquotesingle{}ed}
+    \CommentTok{// until the measurement is complete.}
+    \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(context}\OperatorTok{.}\AttributeTok{a}\NormalTok{)}\OperatorTok{;}
+    \CommentTok{// \{}
+    \CommentTok{//   total: \{}
+    \CommentTok{//     jsMemoryEstimate: 2574732,}
+    \CommentTok{//     jsMemoryRange: [ 2574732, 2904372 ]}
+    \CommentTok{//   \},}
+    \CommentTok{//   current: \{}
+    \CommentTok{//     jsMemoryEstimate: 2438996,}
+    \CommentTok{//     jsMemoryRange: [ 2438996, 2768636 ]}
+    \CommentTok{//   \},}
+    \CommentTok{//   other: [}
+    \CommentTok{//     \{}
+    \CommentTok{//       jsMemoryEstimate: 135736,}
+    \CommentTok{//       jsMemoryRange: [ 135736, 465376 ]}
+    \CommentTok{//     \}}
+    \CommentTok{//   ]}
+    \CommentTok{// \}}
+    \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(result)}\OperatorTok{;}
+\NormalTok{  \})}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+\subsection{\texorpdfstring{\texttt{vm.runInContext(code,\ contextifiedObject{[},\ options{]})}}{vm.runInContext(code, contextifiedObject{[}, options{]})}}\label{vm.runincontextcode-contextifiedobject-options}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{code} \{string\} The JavaScript code to compile and run.
+\item
+  \texttt{contextifiedObject} \{Object\} The
+  \hyperref[what-does-it-mean-to-contextify-an-object]{contextified}
+  object that will be used as the \texttt{global} when the \texttt{code}
+  is compiled and run.
+\item
+  \texttt{options} \{Object\textbar string\}
+
+  \begin{itemize}
+  \tightlist
+  \item
+    \texttt{filename} \{string\} Specifies the filename used in stack
+    traces produced by this script. \textbf{Default:}
+    \texttt{\textquotesingle{}evalmachine.\textless{}anonymous\textgreater{}\textquotesingle{}}.
+  \item
+    \texttt{lineOffset} \{number\} Specifies the line number offset that
+    is displayed in stack traces produced by this script.
+    \textbf{Default:} \texttt{0}.
+  \item
+    \texttt{columnOffset} \{number\} Specifies the first-line column
+    number offset that is displayed in stack traces produced by this
+    script. \textbf{Default:} \texttt{0}.
+  \item
+    \texttt{displayErrors} \{boolean\} When \texttt{true}, if an
+    \href{errors.md\#class-error}{\texttt{Error}} occurs while compiling
+    the \texttt{code}, the line of code causing the error is attached to
+    the stack trace. \textbf{Default:} \texttt{true}.
+  \item
+    \texttt{timeout} \{integer\} Specifies the number of milliseconds to
+    execute \texttt{code} before terminating execution. If execution is
+    terminated, an \href{errors.md\#class-error}{\texttt{Error}} will be
+    thrown. This value must be a strictly positive integer.
+  \item
+    \texttt{breakOnSigint} \{boolean\} If \texttt{true}, receiving
+    \texttt{SIGINT} (Ctrl+C) will terminate execution and throw an
+    \href{errors.md\#class-error}{\texttt{Error}}. Existing handlers for
+    the event that have been attached via
+    \texttt{process.on(\textquotesingle{}SIGINT\textquotesingle{})} are
+    disabled during script execution, but continue to work after that.
+    \textbf{Default:} \texttt{false}.
+  \item
+    \texttt{cachedData} \{Buffer\textbar TypedArray\textbar DataView\}
+    Provides an optional \texttt{Buffer} or \texttt{TypedArray}, or
+    \texttt{DataView} with V8's code cache data for the supplied source.
+  \item
+    \texttt{importModuleDynamically} \{Function\} Called during
+    evaluation of this module when \texttt{import()} is called. If this
+    option is not specified, calls to \texttt{import()} will reject with
+    \href{errors.md\#err_vm_dynamic_import_callback_missing}{\texttt{ERR\_VM\_DYNAMIC\_IMPORT\_CALLBACK\_MISSING}}.
+    This option is part of the experimental modules API. We do not
+    recommend using it in a production environment. If
+    \texttt{-\/-experimental-vm-modules} isn't set, this callback will
+    be ignored and calls to \texttt{import()} will reject with
+    \href{errors.md\#err_vm_dynamic_import_callback_missing_flag}{\texttt{ERR\_VM\_DYNAMIC\_IMPORT\_CALLBACK\_MISSING\_FLAG}}.
+
+    \begin{itemize}
+    \tightlist
+    \item
+      \texttt{specifier} \{string\} specifier passed to
+      \texttt{import()}
+    \item
+      \texttt{script} \{vm.Script\}
+    \item
+      \texttt{importAttributes} \{Object\} The \texttt{"with"} value
+      passed to the
+      \href{https://tc39.es/proposal-import-attributes/\#sec-evaluate-import-call}{\texttt{optionsExpression}}
+      optional parameter, or an empty object if no value was provided.
+    \item
+      Returns: \{Module Namespace Object\textbar vm.Module\} Returning a
+      \texttt{vm.Module} is recommended in order to take advantage of
+      error tracking, and to avoid issues with namespaces that contain
+      \texttt{then} function exports.
+    \end{itemize}
+  \end{itemize}
+\item
+  Returns: \{any\} the result of the very last statement executed in the
+  script.
+\end{itemize}
+
+The \texttt{vm.runInContext()} method compiles \texttt{code}, runs it
+within the context of the \texttt{contextifiedObject}, then returns the
+result. Running code does not have access to the local scope. The
+\texttt{contextifiedObject} object \emph{must} have been previously
+\hyperref[what-does-it-mean-to-contextify-an-object]{contextified} using
+the
+\hyperref[vmcreatecontextcontextobject-options]{\texttt{vm.createContext()}}
+method.
+
+If \texttt{options} is a string, then it specifies the filename.
+
+The following example compiles and executes different scripts using a
+single
+\hyperref[what-does-it-mean-to-contextify-an-object]{contextified}
+object:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ vm }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:vm\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+
+\KeywordTok{const}\NormalTok{ contextObject }\OperatorTok{=}\NormalTok{ \{ }\DataTypeTok{globalVar}\OperatorTok{:} \DecValTok{1}\NormalTok{ \}}\OperatorTok{;}
+\NormalTok{vm}\OperatorTok{.}\FunctionTok{createContext}\NormalTok{(contextObject)}\OperatorTok{;}
+
+\ControlFlowTok{for}\NormalTok{ (}\KeywordTok{let}\NormalTok{ i }\OperatorTok{=} \DecValTok{0}\OperatorTok{;}\NormalTok{ i }\OperatorTok{\textless{}} \DecValTok{10}\OperatorTok{;} \OperatorTok{++}\NormalTok{i) \{}
+\NormalTok{  vm}\OperatorTok{.}\FunctionTok{runInContext}\NormalTok{(}\StringTok{\textquotesingle{}globalVar *= 2;\textquotesingle{}}\OperatorTok{,}\NormalTok{ contextObject)}\OperatorTok{;}
+\NormalTok{\}}
+\BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(contextObject)}\OperatorTok{;}
+\CommentTok{// Prints: \{ globalVar: 1024 \}}
+\end{Highlighting}
+\end{Shaded}
+
+\subsection{\texorpdfstring{\texttt{vm.runInNewContext(code{[},\ contextObject{[},\ options{]}{]})}}{vm.runInNewContext(code{[}, contextObject{[}, options{]}{]})}}\label{vm.runinnewcontextcode-contextobject-options}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{code} \{string\} The JavaScript code to compile and run.
+\item
+  \texttt{contextObject} \{Object\} An object that will be
+  \hyperref[what-does-it-mean-to-contextify-an-object]{contextified}. If
+  \texttt{undefined}, a new object will be created.
+\item
+  \texttt{options} \{Object\textbar string\}
+
+  \begin{itemize}
+  \tightlist
+  \item
+    \texttt{filename} \{string\} Specifies the filename used in stack
+    traces produced by this script. \textbf{Default:}
+    \texttt{\textquotesingle{}evalmachine.\textless{}anonymous\textgreater{}\textquotesingle{}}.
+  \item
+    \texttt{lineOffset} \{number\} Specifies the line number offset that
+    is displayed in stack traces produced by this script.
+    \textbf{Default:} \texttt{0}.
+  \item
+    \texttt{columnOffset} \{number\} Specifies the first-line column
+    number offset that is displayed in stack traces produced by this
+    script. \textbf{Default:} \texttt{0}.
+  \item
+    \texttt{displayErrors} \{boolean\} When \texttt{true}, if an
+    \href{errors.md\#class-error}{\texttt{Error}} occurs while compiling
+    the \texttt{code}, the line of code causing the error is attached to
+    the stack trace. \textbf{Default:} \texttt{true}.
+  \item
+    \texttt{timeout} \{integer\} Specifies the number of milliseconds to
+    execute \texttt{code} before terminating execution. If execution is
+    terminated, an \href{errors.md\#class-error}{\texttt{Error}} will be
+    thrown. This value must be a strictly positive integer.
+  \item
+    \texttt{breakOnSigint} \{boolean\} If \texttt{true}, receiving
+    \texttt{SIGINT} (Ctrl+C) will terminate execution and throw an
+    \href{errors.md\#class-error}{\texttt{Error}}. Existing handlers for
+    the event that have been attached via
+    \texttt{process.on(\textquotesingle{}SIGINT\textquotesingle{})} are
+    disabled during script execution, but continue to work after that.
+    \textbf{Default:} \texttt{false}.
+  \item
+    \texttt{contextName} \{string\} Human-readable name of the newly
+    created context. \textbf{Default:}
+    \texttt{\textquotesingle{}VM\ Context\ i\textquotesingle{}}, where
+    \texttt{i} is an ascending numerical index of the created context.
+  \item
+    \texttt{contextOrigin} \{string\}
+    \href{https://developer.mozilla.org/en-US/docs/Glossary/Origin}{Origin}
+    corresponding to the newly created context for display purposes. The
+    origin should be formatted like a URL, but with only the scheme,
+    host, and port (if necessary), like the value of the
+    \href{url.md\#urlorigin}{\texttt{url.origin}} property of a
+    \href{url.md\#class-url}{\texttt{URL}} object. Most notably, this
+    string should omit the trailing slash, as that denotes a path.
+    \textbf{Default:} \texttt{\textquotesingle{}\textquotesingle{}}.
+  \item
+    \texttt{contextCodeGeneration} \{Object\}
+
+    \begin{itemize}
+    \tightlist
+    \item
+      \texttt{strings} \{boolean\} If set to false any calls to
+      \texttt{eval} or function constructors (\texttt{Function},
+      \texttt{GeneratorFunction}, etc) will throw an \texttt{EvalError}.
+      \textbf{Default:} \texttt{true}.
+    \item
+      \texttt{wasm} \{boolean\} If set to false any attempt to compile a
+      WebAssembly module will throw a \texttt{WebAssembly.CompileError}.
+      \textbf{Default:} \texttt{true}.
+    \end{itemize}
+  \item
+    \texttt{cachedData} \{Buffer\textbar TypedArray\textbar DataView\}
+    Provides an optional \texttt{Buffer} or \texttt{TypedArray}, or
+    \texttt{DataView} with V8's code cache data for the supplied source.
+  \item
+    \texttt{importModuleDynamically} \{Function\} Called during
+    evaluation of this module when \texttt{import()} is called. If this
+    option is not specified, calls to \texttt{import()} will reject with
+    \href{errors.md\#err_vm_dynamic_import_callback_missing}{\texttt{ERR\_VM\_DYNAMIC\_IMPORT\_CALLBACK\_MISSING}}.
+    This option is part of the experimental modules API. We do not
+    recommend using it in a production environment. If
+    \texttt{-\/-experimental-vm-modules} isn't set, this callback will
+    be ignored and calls to \texttt{import()} will reject with
+    \href{errors.md\#err_vm_dynamic_import_callback_missing_flag}{\texttt{ERR\_VM\_DYNAMIC\_IMPORT\_CALLBACK\_MISSING\_FLAG}}.
+
+    \begin{itemize}
+    \tightlist
+    \item
+      \texttt{specifier} \{string\} specifier passed to
+      \texttt{import()}
+    \item
+      \texttt{script} \{vm.Script\}
+    \item
+      \texttt{importAttributes} \{Object\} The \texttt{"with"} value
+      passed to the
+      \href{https://tc39.es/proposal-import-attributes/\#sec-evaluate-import-call}{\texttt{optionsExpression}}
+      optional parameter, or an empty object if no value was provided.
+    \item
+      Returns: \{Module Namespace Object\textbar vm.Module\} Returning a
+      \texttt{vm.Module} is recommended in order to take advantage of
+      error tracking, and to avoid issues with namespaces that contain
+      \texttt{then} function exports.
+    \end{itemize}
+  \item
+    \texttt{microtaskMode} \{string\} If set to \texttt{afterEvaluate},
+    microtasks (tasks scheduled through \texttt{Promise}s and
+    \texttt{async\ function}s) will be run immediately after the script
+    has run. They are included in the \texttt{timeout} and
+    \texttt{breakOnSigint} scopes in that case.
+  \end{itemize}
+\item
+  Returns: \{any\} the result of the very last statement executed in the
+  script.
+\end{itemize}
+
+The \texttt{vm.runInNewContext()} first contextifies the given
+\texttt{contextObject} (or creates a new \texttt{contextObject} if
+passed as \texttt{undefined}), compiles the \texttt{code}, runs it
+within the created context, then returns the result. Running code does
+not have access to the local scope.
+
+If \texttt{options} is a string, then it specifies the filename.
+
+The following example compiles and executes code that increments a
+global variable and sets a new one. These globals are contained in the
+\texttt{contextObject}.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ vm }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:vm\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+
+\KeywordTok{const}\NormalTok{ contextObject }\OperatorTok{=}\NormalTok{ \{}
+  \DataTypeTok{animal}\OperatorTok{:} \StringTok{\textquotesingle{}cat\textquotesingle{}}\OperatorTok{,}
+  \DataTypeTok{count}\OperatorTok{:} \DecValTok{2}\OperatorTok{,}
+\NormalTok{\}}\OperatorTok{;}
+
+\NormalTok{vm}\OperatorTok{.}\FunctionTok{runInNewContext}\NormalTok{(}\StringTok{\textquotesingle{}count += 1; name = "kitty"\textquotesingle{}}\OperatorTok{,}\NormalTok{ contextObject)}\OperatorTok{;}
+\BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(contextObject)}\OperatorTok{;}
+\CommentTok{// Prints: \{ animal: \textquotesingle{}cat\textquotesingle{}, count: 3, name: \textquotesingle{}kitty\textquotesingle{} \}}
+\end{Highlighting}
+\end{Shaded}
+
+\subsection{\texorpdfstring{\texttt{vm.runInThisContext(code{[},\ options{]})}}{vm.runInThisContext(code{[}, options{]})}}\label{vm.runinthiscontextcode-options}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{code} \{string\} The JavaScript code to compile and run.
+\item
+  \texttt{options} \{Object\textbar string\}
+
+  \begin{itemize}
+  \tightlist
+  \item
+    \texttt{filename} \{string\} Specifies the filename used in stack
+    traces produced by this script. \textbf{Default:}
+    \texttt{\textquotesingle{}evalmachine.\textless{}anonymous\textgreater{}\textquotesingle{}}.
+  \item
+    \texttt{lineOffset} \{number\} Specifies the line number offset that
+    is displayed in stack traces produced by this script.
+    \textbf{Default:} \texttt{0}.
+  \item
+    \texttt{columnOffset} \{number\} Specifies the first-line column
+    number offset that is displayed in stack traces produced by this
+    script. \textbf{Default:} \texttt{0}.
+  \item
+    \texttt{displayErrors} \{boolean\} When \texttt{true}, if an
+    \href{errors.md\#class-error}{\texttt{Error}} occurs while compiling
+    the \texttt{code}, the line of code causing the error is attached to
+    the stack trace. \textbf{Default:} \texttt{true}.
+  \item
+    \texttt{timeout} \{integer\} Specifies the number of milliseconds to
+    execute \texttt{code} before terminating execution. If execution is
+    terminated, an \href{errors.md\#class-error}{\texttt{Error}} will be
+    thrown. This value must be a strictly positive integer.
+  \item
+    \texttt{breakOnSigint} \{boolean\} If \texttt{true}, receiving
+    \texttt{SIGINT} (Ctrl+C) will terminate execution and throw an
+    \href{errors.md\#class-error}{\texttt{Error}}. Existing handlers for
+    the event that have been attached via
+    \texttt{process.on(\textquotesingle{}SIGINT\textquotesingle{})} are
+    disabled during script execution, but continue to work after that.
+    \textbf{Default:} \texttt{false}.
+  \item
+    \texttt{cachedData} \{Buffer\textbar TypedArray\textbar DataView\}
+    Provides an optional \texttt{Buffer} or \texttt{TypedArray}, or
+    \texttt{DataView} with V8's code cache data for the supplied source.
+  \item
+    \texttt{importModuleDynamically} \{Function\} Called during
+    evaluation of this module when \texttt{import()} is called. If this
+    option is not specified, calls to \texttt{import()} will reject with
+    \href{errors.md\#err_vm_dynamic_import_callback_missing}{\texttt{ERR\_VM\_DYNAMIC\_IMPORT\_CALLBACK\_MISSING}}.
+    This option is part of the experimental modules API. We do not
+    recommend using it in a production environment. If
+    \texttt{-\/-experimental-vm-modules} isn't set, this callback will
+    be ignored and calls to \texttt{import()} will reject with
+    \href{errors.md\#err_vm_dynamic_import_callback_missing_flag}{\texttt{ERR\_VM\_DYNAMIC\_IMPORT\_CALLBACK\_MISSING\_FLAG}}.
+
+    \begin{itemize}
+    \tightlist
+    \item
+      \texttt{specifier} \{string\} specifier passed to
+      \texttt{import()}
+    \item
+      \texttt{script} \{vm.Script\}
+    \item
+      \texttt{importAttributes} \{Object\} The \texttt{"with"} value
+      passed to the
+      \href{https://tc39.es/proposal-import-attributes/\#sec-evaluate-import-call}{\texttt{optionsExpression}}
+      optional parameter, or an empty object if no value was provided.
+    \item
+      Returns: \{Module Namespace Object\textbar vm.Module\} Returning a
+      \texttt{vm.Module} is recommended in order to take advantage of
+      error tracking, and to avoid issues with namespaces that contain
+      \texttt{then} function exports.
+    \end{itemize}
+  \end{itemize}
+\item
+  Returns: \{any\} the result of the very last statement executed in the
+  script.
+\end{itemize}
+
+\texttt{vm.runInThisContext()} compiles \texttt{code}, runs it within
+the context of the current \texttt{global} and returns the result.
+Running code does not have access to local scope, but does have access
+to the current \texttt{global} object.
+
+If \texttt{options} is a string, then it specifies the filename.
+
+The following example illustrates using both
+\texttt{vm.runInThisContext()} and the JavaScript
+\href{https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/eval}{\texttt{eval()}}
+function to run the same code:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ vm }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:vm\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\KeywordTok{let}\NormalTok{ localVar }\OperatorTok{=} \StringTok{\textquotesingle{}initial value\textquotesingle{}}\OperatorTok{;}
+
+\KeywordTok{const}\NormalTok{ vmResult }\OperatorTok{=}\NormalTok{ vm}\OperatorTok{.}\FunctionTok{runInThisContext}\NormalTok{(}\StringTok{\textquotesingle{}localVar = "vm";\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\VerbatimStringTok{\textasciigrave{}vmResult: \textquotesingle{}}\SpecialCharTok{$\{}\NormalTok{vmResult}\SpecialCharTok{\}}\VerbatimStringTok{\textquotesingle{}, localVar: \textquotesingle{}}\SpecialCharTok{$\{}\NormalTok{localVar}\SpecialCharTok{\}}\VerbatimStringTok{\textquotesingle{}\textasciigrave{}}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// Prints: vmResult: \textquotesingle{}vm\textquotesingle{}, localVar: \textquotesingle{}initial value\textquotesingle{}}
+
+\KeywordTok{const}\NormalTok{ evalResult }\OperatorTok{=} \PreprocessorTok{eval}\NormalTok{(}\StringTok{\textquotesingle{}localVar = "eval";\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\VerbatimStringTok{\textasciigrave{}evalResult: \textquotesingle{}}\SpecialCharTok{$\{}\NormalTok{evalResult}\SpecialCharTok{\}}\VerbatimStringTok{\textquotesingle{}, localVar: \textquotesingle{}}\SpecialCharTok{$\{}\NormalTok{localVar}\SpecialCharTok{\}}\VerbatimStringTok{\textquotesingle{}\textasciigrave{}}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// Prints: evalResult: \textquotesingle{}eval\textquotesingle{}, localVar: \textquotesingle{}eval\textquotesingle{}}
+\end{Highlighting}
+\end{Shaded}
+
+Because \texttt{vm.runInThisContext()} does not have access to the local
+scope, \texttt{localVar} is unchanged. In contrast,
+\href{https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/eval}{\texttt{eval()}}
+\emph{does} have access to the local scope, so the value
+\texttt{localVar} is changed. In this way \texttt{vm.runInThisContext()}
+is much like an \href{https://es5.github.io/\#x10.4.2}{indirect
+\texttt{eval()} call}, e.g.
+\texttt{(0,eval)(\textquotesingle{}code\textquotesingle{})}.
+
+\subsection{Example: Running an HTTP server within a
+VM}\label{example-running-an-http-server-within-a-vm}
+
+When using either
+\hyperref[scriptruninthiscontextoptions]{\texttt{script.runInThisContext()}}
+or
+\hyperref[vmruninthiscontextcode-options]{\texttt{vm.runInThisContext()}},
+the code is executed within the current V8 global context. The code
+passed to this VM context will have its own isolated scope.
+
+In order to run a simple web server using the \texttt{node:http} module
+the code passed to the context must either call
+\texttt{require(\textquotesingle{}node:http\textquotesingle{})} on its
+own, or have a reference to the \texttt{node:http} module passed to it.
+For instance:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\StringTok{\textquotesingle{}use strict\textquotesingle{}}\OperatorTok{;}
+\KeywordTok{const}\NormalTok{ vm }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:vm\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+
+\KeywordTok{const}\NormalTok{ code }\OperatorTok{=} \VerbatimStringTok{\textasciigrave{}}
+\VerbatimStringTok{((require) =\textgreater{} \{}
+\VerbatimStringTok{  const http = require(\textquotesingle{}node:http\textquotesingle{});}
+
+\VerbatimStringTok{  http.createServer((request, response) =\textgreater{} \{}
+\VerbatimStringTok{    response.writeHead(200, \{ \textquotesingle{}Content{-}Type\textquotesingle{}: \textquotesingle{}text/plain\textquotesingle{} \});}
+\VerbatimStringTok{    response.end(\textquotesingle{}Hello World}\SpecialCharTok{\textbackslash{}\textbackslash{}}\VerbatimStringTok{n\textquotesingle{});}
+\VerbatimStringTok{  \}).listen(8124);}
+
+\VerbatimStringTok{  console.log(\textquotesingle{}Server running at http://127.0.0.1:8124/\textquotesingle{});}
+\VerbatimStringTok{\})\textasciigrave{}}\OperatorTok{;}
+
+\NormalTok{vm}\OperatorTok{.}\FunctionTok{runInThisContext}\NormalTok{(code)(require)}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+The \texttt{require()} in the above case shares the state with the
+context it is passed from. This may introduce risks when untrusted code
+is executed, e.g. altering objects in the context in unwanted ways.
+
+\subsection{What does it mean to ``contextify'' an
+object?}\label{what-does-it-mean-to-contextify-an-object}
+
+All JavaScript executed within Node.js runs within the scope of a
+``context''. According to the
+\href{https://v8.dev/docs/embed\#contexts}{V8 Embedder's Guide}:
+
+\begin{quote}
+In V8, a context is an execution environment that allows separate,
+unrelated, JavaScript applications to run in a single instance of V8.
+You must explicitly specify the context in which you want any JavaScript
+code to be run.
+\end{quote}
+
+When the method \texttt{vm.createContext()} is called, the
+\texttt{contextObject} argument (or a newly-created object if
+\texttt{contextObject} is \texttt{undefined}) is associated internally
+with a new instance of a V8 Context. This V8 Context provides the
+\texttt{code} run using the \texttt{node:vm} module's methods with an
+isolated global environment within which it can operate. The process of
+creating the V8 Context and associating it with the
+\texttt{contextObject} is what this document refers to as
+``contextifying'' the object.
+
+\subsection{Timeout interactions with asynchronous tasks and
+Promises}\label{timeout-interactions-with-asynchronous-tasks-and-promises}
+
+\texttt{Promise}s and \texttt{async\ function}s can schedule tasks run
+by the JavaScript engine asynchronously. By default, these tasks are run
+after all JavaScript functions on the current stack are done executing.
+This allows escaping the functionality of the \texttt{timeout} and
+\texttt{breakOnSigint} options.
+
+For example, the following code executed by
+\texttt{vm.runInNewContext()} with a timeout of 5 milliseconds schedules
+an infinite loop to run after a promise resolves. The scheduled loop is
+never interrupted by the timeout:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ vm }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:vm\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+
+\KeywordTok{function} \FunctionTok{loop}\NormalTok{() \{}
+  \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\StringTok{\textquotesingle{}entering loop\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+  \ControlFlowTok{while}\NormalTok{ (}\DecValTok{1}\NormalTok{) }\BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\BuiltInTok{Date}\OperatorTok{.}\FunctionTok{now}\NormalTok{())}\OperatorTok{;}
+\NormalTok{\}}
+
+\NormalTok{vm}\OperatorTok{.}\FunctionTok{runInNewContext}\NormalTok{(}
+  \StringTok{\textquotesingle{}Promise.resolve().then(() =\textgreater{} loop());\textquotesingle{}}\OperatorTok{,}
+\NormalTok{  \{ loop}\OperatorTok{,} \BuiltInTok{console}\NormalTok{ \}}\OperatorTok{,}
+\NormalTok{  \{ }\DataTypeTok{timeout}\OperatorTok{:} \DecValTok{5}\NormalTok{ \}}\OperatorTok{,}
+\NormalTok{)}\OperatorTok{;}
+\CommentTok{// This is printed *before* \textquotesingle{}entering loop\textquotesingle{} (!)}
+\BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\StringTok{\textquotesingle{}done executing\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+This can be addressed by passing
+\texttt{microtaskMode:\ \textquotesingle{}afterEvaluate\textquotesingle{}}
+to the code that creates the \texttt{Context}:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ vm }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:vm\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+
+\KeywordTok{function} \FunctionTok{loop}\NormalTok{() \{}
+  \ControlFlowTok{while}\NormalTok{ (}\DecValTok{1}\NormalTok{) }\BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\BuiltInTok{Date}\OperatorTok{.}\FunctionTok{now}\NormalTok{())}\OperatorTok{;}
+\NormalTok{\}}
+
+\NormalTok{vm}\OperatorTok{.}\FunctionTok{runInNewContext}\NormalTok{(}
+  \StringTok{\textquotesingle{}Promise.resolve().then(() =\textgreater{} loop());\textquotesingle{}}\OperatorTok{,}
+\NormalTok{  \{ loop}\OperatorTok{,} \BuiltInTok{console}\NormalTok{ \}}\OperatorTok{,}
+\NormalTok{  \{ }\DataTypeTok{timeout}\OperatorTok{:} \DecValTok{5}\OperatorTok{,} \DataTypeTok{microtaskMode}\OperatorTok{:} \StringTok{\textquotesingle{}afterEvaluate\textquotesingle{}}\NormalTok{ \}}\OperatorTok{,}
+\NormalTok{)}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+In this case, the microtask scheduled through \texttt{promise.then()}
+will be run before returning from \texttt{vm.runInNewContext()}, and
+will be interrupted by the \texttt{timeout} functionality. This applies
+only to code running in a \texttt{vm.Context}, so
+e.g.~\hyperref[vmruninthiscontextcode-options]{\texttt{vm.runInThisContext()}}
+does not take this option.
+
+Promise callbacks are entered into the microtask queue of the context in
+which they were created. For example, if
+\texttt{()\ =\textgreater{}\ loop()} is replaced with just \texttt{loop}
+in the above example, then \texttt{loop} will be pushed into the global
+microtask queue, because it is a function from the outer (main) context,
+and thus will also be able to escape the timeout.
+
+If asynchronous scheduling functions such as
+\texttt{process.nextTick()}, \texttt{queueMicrotask()},
+\texttt{setTimeout()}, \texttt{setImmediate()}, etc. are made available
+inside a \texttt{vm.Context}, functions passed to them will be added to
+global queues, which are shared by all contexts. Therefore, callbacks
+passed to those functions are not controllable through the timeout
+either.

@@ -1,0 +1,2903 @@
+\section{Events}\label{events}
+
+\begin{quote}
+Stability: 2 - Stable
+\end{quote}
+
+Much of the Node.js core API is built around an idiomatic asynchronous
+event-driven architecture in which certain kinds of objects (called
+``emitters'') emit named events that cause \texttt{Function} objects
+(``listeners'') to be called.
+
+For instance: a \href{net.md\#class-netserver}{\texttt{net.Server}}
+object emits an event each time a peer connects to it; a
+\href{fs.md\#class-fsreadstream}{\texttt{fs.ReadStream}} emits an event
+when the file is opened; a \href{stream.md}{stream} emits an event
+whenever data is available to be read.
+
+All objects that emit events are instances of the \texttt{EventEmitter}
+class. These objects expose an \texttt{eventEmitter.on()} function that
+allows one or more functions to be attached to named events emitted by
+the object. Typically, event names are camel-cased strings but any valid
+JavaScript property key can be used.
+
+When the \texttt{EventEmitter} object emits an event, all of the
+functions attached to that specific event are called
+\emph{synchronously}. Any values returned by the called listeners are
+\emph{ignored} and discarded.
+
+The following example shows a simple \texttt{EventEmitter} instance with
+a single listener. The \texttt{eventEmitter.on()} method is used to
+register listeners, while the \texttt{eventEmitter.emit()} method is
+used to trigger the event.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\ImportTok{import}\NormalTok{ \{ }\BuiltInTok{EventEmitter}\NormalTok{ \} }\ImportTok{from} \StringTok{\textquotesingle{}node:events\textquotesingle{}}\OperatorTok{;}
+
+\KeywordTok{class}\NormalTok{ MyEmitter }\KeywordTok{extends} \BuiltInTok{EventEmitter}\NormalTok{ \{\}}
+
+\KeywordTok{const}\NormalTok{ myEmitter }\OperatorTok{=} \KeywordTok{new} \FunctionTok{MyEmitter}\NormalTok{()}\OperatorTok{;}
+\NormalTok{myEmitter}\OperatorTok{.}\FunctionTok{on}\NormalTok{(}\StringTok{\textquotesingle{}event\textquotesingle{}}\OperatorTok{,}\NormalTok{ () }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+  \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\StringTok{\textquotesingle{}an event occurred!\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{\})}\OperatorTok{;}
+\NormalTok{myEmitter}\OperatorTok{.}\FunctionTok{emit}\NormalTok{(}\StringTok{\textquotesingle{}event\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const} \BuiltInTok{EventEmitter} \OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:events\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+
+\KeywordTok{class}\NormalTok{ MyEmitter }\KeywordTok{extends} \BuiltInTok{EventEmitter}\NormalTok{ \{\}}
+
+\KeywordTok{const}\NormalTok{ myEmitter }\OperatorTok{=} \KeywordTok{new} \FunctionTok{MyEmitter}\NormalTok{()}\OperatorTok{;}
+\NormalTok{myEmitter}\OperatorTok{.}\FunctionTok{on}\NormalTok{(}\StringTok{\textquotesingle{}event\textquotesingle{}}\OperatorTok{,}\NormalTok{ () }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+  \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\StringTok{\textquotesingle{}an event occurred!\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{\})}\OperatorTok{;}
+\NormalTok{myEmitter}\OperatorTok{.}\FunctionTok{emit}\NormalTok{(}\StringTok{\textquotesingle{}event\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+\subsection{\texorpdfstring{Passing arguments and \texttt{this} to
+listeners}{Passing arguments and this to listeners}}\label{passing-arguments-and-this-to-listeners}
+
+The \texttt{eventEmitter.emit()} method allows an arbitrary set of
+arguments to be passed to the listener functions. Keep in mind that when
+an ordinary listener function is called, the standard \texttt{this}
+keyword is intentionally set to reference the \texttt{EventEmitter}
+instance to which the listener is attached.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\ImportTok{import}\NormalTok{ \{ }\BuiltInTok{EventEmitter}\NormalTok{ \} }\ImportTok{from} \StringTok{\textquotesingle{}node:events\textquotesingle{}}\OperatorTok{;}
+\KeywordTok{class}\NormalTok{ MyEmitter }\KeywordTok{extends} \BuiltInTok{EventEmitter}\NormalTok{ \{\}}
+\KeywordTok{const}\NormalTok{ myEmitter }\OperatorTok{=} \KeywordTok{new} \FunctionTok{MyEmitter}\NormalTok{()}\OperatorTok{;}
+\NormalTok{myEmitter}\OperatorTok{.}\FunctionTok{on}\NormalTok{(}\StringTok{\textquotesingle{}event\textquotesingle{}}\OperatorTok{,} \KeywordTok{function}\NormalTok{(a}\OperatorTok{,}\NormalTok{ b) \{}
+  \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(a}\OperatorTok{,}\NormalTok{ b}\OperatorTok{,} \KeywordTok{this}\OperatorTok{,} \KeywordTok{this} \OperatorTok{===}\NormalTok{ myEmitter)}\OperatorTok{;}
+  \CommentTok{// Prints:}
+  \CommentTok{//   a b MyEmitter \{}
+  \CommentTok{//     \_events: [Object: null prototype] \{ event: [Function (anonymous)] \},}
+  \CommentTok{//     \_eventsCount: 1,}
+  \CommentTok{//     \_maxListeners: undefined,}
+  \CommentTok{//     [Symbol(kCapture)]: false}
+  \CommentTok{//   \} true}
+\NormalTok{\})}\OperatorTok{;}
+\NormalTok{myEmitter}\OperatorTok{.}\FunctionTok{emit}\NormalTok{(}\StringTok{\textquotesingle{}event\textquotesingle{}}\OperatorTok{,} \StringTok{\textquotesingle{}a\textquotesingle{}}\OperatorTok{,} \StringTok{\textquotesingle{}b\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const} \BuiltInTok{EventEmitter} \OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:events\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\KeywordTok{class}\NormalTok{ MyEmitter }\KeywordTok{extends} \BuiltInTok{EventEmitter}\NormalTok{ \{\}}
+\KeywordTok{const}\NormalTok{ myEmitter }\OperatorTok{=} \KeywordTok{new} \FunctionTok{MyEmitter}\NormalTok{()}\OperatorTok{;}
+\NormalTok{myEmitter}\OperatorTok{.}\FunctionTok{on}\NormalTok{(}\StringTok{\textquotesingle{}event\textquotesingle{}}\OperatorTok{,} \KeywordTok{function}\NormalTok{(a}\OperatorTok{,}\NormalTok{ b) \{}
+  \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(a}\OperatorTok{,}\NormalTok{ b}\OperatorTok{,} \KeywordTok{this}\OperatorTok{,} \KeywordTok{this} \OperatorTok{===}\NormalTok{ myEmitter)}\OperatorTok{;}
+  \CommentTok{// Prints:}
+  \CommentTok{//   a b MyEmitter \{}
+  \CommentTok{//     \_events: [Object: null prototype] \{ event: [Function (anonymous)] \},}
+  \CommentTok{//     \_eventsCount: 1,}
+  \CommentTok{//     \_maxListeners: undefined,}
+  \CommentTok{//     [Symbol(kCapture)]: false}
+  \CommentTok{//   \} true}
+\NormalTok{\})}\OperatorTok{;}
+\NormalTok{myEmitter}\OperatorTok{.}\FunctionTok{emit}\NormalTok{(}\StringTok{\textquotesingle{}event\textquotesingle{}}\OperatorTok{,} \StringTok{\textquotesingle{}a\textquotesingle{}}\OperatorTok{,} \StringTok{\textquotesingle{}b\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+It is possible to use ES6 Arrow Functions as listeners, however, when
+doing so, the \texttt{this} keyword will no longer reference the
+\texttt{EventEmitter} instance:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\ImportTok{import}\NormalTok{ \{ }\BuiltInTok{EventEmitter}\NormalTok{ \} }\ImportTok{from} \StringTok{\textquotesingle{}node:events\textquotesingle{}}\OperatorTok{;}
+\KeywordTok{class}\NormalTok{ MyEmitter }\KeywordTok{extends} \BuiltInTok{EventEmitter}\NormalTok{ \{\}}
+\KeywordTok{const}\NormalTok{ myEmitter }\OperatorTok{=} \KeywordTok{new} \FunctionTok{MyEmitter}\NormalTok{()}\OperatorTok{;}
+\NormalTok{myEmitter}\OperatorTok{.}\FunctionTok{on}\NormalTok{(}\StringTok{\textquotesingle{}event\textquotesingle{}}\OperatorTok{,}\NormalTok{ (a}\OperatorTok{,}\NormalTok{ b) }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+  \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(a}\OperatorTok{,}\NormalTok{ b}\OperatorTok{,} \KeywordTok{this}\NormalTok{)}\OperatorTok{;}
+  \CommentTok{// Prints: a b undefined}
+\NormalTok{\})}\OperatorTok{;}
+\NormalTok{myEmitter}\OperatorTok{.}\FunctionTok{emit}\NormalTok{(}\StringTok{\textquotesingle{}event\textquotesingle{}}\OperatorTok{,} \StringTok{\textquotesingle{}a\textquotesingle{}}\OperatorTok{,} \StringTok{\textquotesingle{}b\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const} \BuiltInTok{EventEmitter} \OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:events\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\KeywordTok{class}\NormalTok{ MyEmitter }\KeywordTok{extends} \BuiltInTok{EventEmitter}\NormalTok{ \{\}}
+\KeywordTok{const}\NormalTok{ myEmitter }\OperatorTok{=} \KeywordTok{new} \FunctionTok{MyEmitter}\NormalTok{()}\OperatorTok{;}
+\NormalTok{myEmitter}\OperatorTok{.}\FunctionTok{on}\NormalTok{(}\StringTok{\textquotesingle{}event\textquotesingle{}}\OperatorTok{,}\NormalTok{ (a}\OperatorTok{,}\NormalTok{ b) }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+  \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(a}\OperatorTok{,}\NormalTok{ b}\OperatorTok{,} \KeywordTok{this}\NormalTok{)}\OperatorTok{;}
+  \CommentTok{// Prints: a b \{\}}
+\NormalTok{\})}\OperatorTok{;}
+\NormalTok{myEmitter}\OperatorTok{.}\FunctionTok{emit}\NormalTok{(}\StringTok{\textquotesingle{}event\textquotesingle{}}\OperatorTok{,} \StringTok{\textquotesingle{}a\textquotesingle{}}\OperatorTok{,} \StringTok{\textquotesingle{}b\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+\subsection{Asynchronous
+vs.~synchronous}\label{asynchronous-vs.-synchronous}
+
+The \texttt{EventEmitter} calls all listeners synchronously in the order
+in which they were registered. This ensures the proper sequencing of
+events and helps avoid race conditions and logic errors. When
+appropriate, listener functions can switch to an asynchronous mode of
+operation using the \texttt{setImmediate()} or
+\texttt{process.nextTick()} methods:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\ImportTok{import}\NormalTok{ \{ }\BuiltInTok{EventEmitter}\NormalTok{ \} }\ImportTok{from} \StringTok{\textquotesingle{}node:events\textquotesingle{}}\OperatorTok{;}
+\KeywordTok{class}\NormalTok{ MyEmitter }\KeywordTok{extends} \BuiltInTok{EventEmitter}\NormalTok{ \{\}}
+\KeywordTok{const}\NormalTok{ myEmitter }\OperatorTok{=} \KeywordTok{new} \FunctionTok{MyEmitter}\NormalTok{()}\OperatorTok{;}
+\NormalTok{myEmitter}\OperatorTok{.}\FunctionTok{on}\NormalTok{(}\StringTok{\textquotesingle{}event\textquotesingle{}}\OperatorTok{,}\NormalTok{ (a}\OperatorTok{,}\NormalTok{ b) }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+  \FunctionTok{setImmediate}\NormalTok{(() }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+    \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\StringTok{\textquotesingle{}this happens asynchronously\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{  \})}\OperatorTok{;}
+\NormalTok{\})}\OperatorTok{;}
+\NormalTok{myEmitter}\OperatorTok{.}\FunctionTok{emit}\NormalTok{(}\StringTok{\textquotesingle{}event\textquotesingle{}}\OperatorTok{,} \StringTok{\textquotesingle{}a\textquotesingle{}}\OperatorTok{,} \StringTok{\textquotesingle{}b\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const} \BuiltInTok{EventEmitter} \OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:events\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\KeywordTok{class}\NormalTok{ MyEmitter }\KeywordTok{extends} \BuiltInTok{EventEmitter}\NormalTok{ \{\}}
+\KeywordTok{const}\NormalTok{ myEmitter }\OperatorTok{=} \KeywordTok{new} \FunctionTok{MyEmitter}\NormalTok{()}\OperatorTok{;}
+\NormalTok{myEmitter}\OperatorTok{.}\FunctionTok{on}\NormalTok{(}\StringTok{\textquotesingle{}event\textquotesingle{}}\OperatorTok{,}\NormalTok{ (a}\OperatorTok{,}\NormalTok{ b) }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+  \FunctionTok{setImmediate}\NormalTok{(() }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+    \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\StringTok{\textquotesingle{}this happens asynchronously\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{  \})}\OperatorTok{;}
+\NormalTok{\})}\OperatorTok{;}
+\NormalTok{myEmitter}\OperatorTok{.}\FunctionTok{emit}\NormalTok{(}\StringTok{\textquotesingle{}event\textquotesingle{}}\OperatorTok{,} \StringTok{\textquotesingle{}a\textquotesingle{}}\OperatorTok{,} \StringTok{\textquotesingle{}b\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+\subsection{Handling events only once}\label{handling-events-only-once}
+
+When a listener is registered using the \texttt{eventEmitter.on()}
+method, that listener is invoked \emph{every time} the named event is
+emitted.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\ImportTok{import}\NormalTok{ \{ }\BuiltInTok{EventEmitter}\NormalTok{ \} }\ImportTok{from} \StringTok{\textquotesingle{}node:events\textquotesingle{}}\OperatorTok{;}
+\KeywordTok{class}\NormalTok{ MyEmitter }\KeywordTok{extends} \BuiltInTok{EventEmitter}\NormalTok{ \{\}}
+\KeywordTok{const}\NormalTok{ myEmitter }\OperatorTok{=} \KeywordTok{new} \FunctionTok{MyEmitter}\NormalTok{()}\OperatorTok{;}
+\KeywordTok{let}\NormalTok{ m }\OperatorTok{=} \DecValTok{0}\OperatorTok{;}
+\NormalTok{myEmitter}\OperatorTok{.}\FunctionTok{on}\NormalTok{(}\StringTok{\textquotesingle{}event\textquotesingle{}}\OperatorTok{,}\NormalTok{ () }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+  \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\OperatorTok{++}\NormalTok{m)}\OperatorTok{;}
+\NormalTok{\})}\OperatorTok{;}
+\NormalTok{myEmitter}\OperatorTok{.}\FunctionTok{emit}\NormalTok{(}\StringTok{\textquotesingle{}event\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// Prints: 1}
+\NormalTok{myEmitter}\OperatorTok{.}\FunctionTok{emit}\NormalTok{(}\StringTok{\textquotesingle{}event\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// Prints: 2}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const} \BuiltInTok{EventEmitter} \OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:events\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\KeywordTok{class}\NormalTok{ MyEmitter }\KeywordTok{extends} \BuiltInTok{EventEmitter}\NormalTok{ \{\}}
+\KeywordTok{const}\NormalTok{ myEmitter }\OperatorTok{=} \KeywordTok{new} \FunctionTok{MyEmitter}\NormalTok{()}\OperatorTok{;}
+\KeywordTok{let}\NormalTok{ m }\OperatorTok{=} \DecValTok{0}\OperatorTok{;}
+\NormalTok{myEmitter}\OperatorTok{.}\FunctionTok{on}\NormalTok{(}\StringTok{\textquotesingle{}event\textquotesingle{}}\OperatorTok{,}\NormalTok{ () }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+  \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\OperatorTok{++}\NormalTok{m)}\OperatorTok{;}
+\NormalTok{\})}\OperatorTok{;}
+\NormalTok{myEmitter}\OperatorTok{.}\FunctionTok{emit}\NormalTok{(}\StringTok{\textquotesingle{}event\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// Prints: 1}
+\NormalTok{myEmitter}\OperatorTok{.}\FunctionTok{emit}\NormalTok{(}\StringTok{\textquotesingle{}event\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// Prints: 2}
+\end{Highlighting}
+\end{Shaded}
+
+Using the \texttt{eventEmitter.once()} method, it is possible to
+register a listener that is called at most once for a particular event.
+Once the event is emitted, the listener is unregistered and \emph{then}
+called.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\ImportTok{import}\NormalTok{ \{ }\BuiltInTok{EventEmitter}\NormalTok{ \} }\ImportTok{from} \StringTok{\textquotesingle{}node:events\textquotesingle{}}\OperatorTok{;}
+\KeywordTok{class}\NormalTok{ MyEmitter }\KeywordTok{extends} \BuiltInTok{EventEmitter}\NormalTok{ \{\}}
+\KeywordTok{const}\NormalTok{ myEmitter }\OperatorTok{=} \KeywordTok{new} \FunctionTok{MyEmitter}\NormalTok{()}\OperatorTok{;}
+\KeywordTok{let}\NormalTok{ m }\OperatorTok{=} \DecValTok{0}\OperatorTok{;}
+\NormalTok{myEmitter}\OperatorTok{.}\FunctionTok{once}\NormalTok{(}\StringTok{\textquotesingle{}event\textquotesingle{}}\OperatorTok{,}\NormalTok{ () }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+  \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\OperatorTok{++}\NormalTok{m)}\OperatorTok{;}
+\NormalTok{\})}\OperatorTok{;}
+\NormalTok{myEmitter}\OperatorTok{.}\FunctionTok{emit}\NormalTok{(}\StringTok{\textquotesingle{}event\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// Prints: 1}
+\NormalTok{myEmitter}\OperatorTok{.}\FunctionTok{emit}\NormalTok{(}\StringTok{\textquotesingle{}event\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// Ignored}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const} \BuiltInTok{EventEmitter} \OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:events\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\KeywordTok{class}\NormalTok{ MyEmitter }\KeywordTok{extends} \BuiltInTok{EventEmitter}\NormalTok{ \{\}}
+\KeywordTok{const}\NormalTok{ myEmitter }\OperatorTok{=} \KeywordTok{new} \FunctionTok{MyEmitter}\NormalTok{()}\OperatorTok{;}
+\KeywordTok{let}\NormalTok{ m }\OperatorTok{=} \DecValTok{0}\OperatorTok{;}
+\NormalTok{myEmitter}\OperatorTok{.}\FunctionTok{once}\NormalTok{(}\StringTok{\textquotesingle{}event\textquotesingle{}}\OperatorTok{,}\NormalTok{ () }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+  \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\OperatorTok{++}\NormalTok{m)}\OperatorTok{;}
+\NormalTok{\})}\OperatorTok{;}
+\NormalTok{myEmitter}\OperatorTok{.}\FunctionTok{emit}\NormalTok{(}\StringTok{\textquotesingle{}event\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// Prints: 1}
+\NormalTok{myEmitter}\OperatorTok{.}\FunctionTok{emit}\NormalTok{(}\StringTok{\textquotesingle{}event\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// Ignored}
+\end{Highlighting}
+\end{Shaded}
+
+\subsection{Error events}\label{error-events}
+
+When an error occurs within an \texttt{EventEmitter} instance, the
+typical action is for an
+\texttt{\textquotesingle{}error\textquotesingle{}} event to be emitted.
+These are treated as special cases within Node.js.
+
+If an \texttt{EventEmitter} does \emph{not} have at least one listener
+registered for the \texttt{\textquotesingle{}error\textquotesingle{}}
+event, and an \texttt{\textquotesingle{}error\textquotesingle{}} event
+is emitted, the error is thrown, a stack trace is printed, and the
+Node.js process exits.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\ImportTok{import}\NormalTok{ \{ }\BuiltInTok{EventEmitter}\NormalTok{ \} }\ImportTok{from} \StringTok{\textquotesingle{}node:events\textquotesingle{}}\OperatorTok{;}
+\KeywordTok{class}\NormalTok{ MyEmitter }\KeywordTok{extends} \BuiltInTok{EventEmitter}\NormalTok{ \{\}}
+\KeywordTok{const}\NormalTok{ myEmitter }\OperatorTok{=} \KeywordTok{new} \FunctionTok{MyEmitter}\NormalTok{()}\OperatorTok{;}
+\NormalTok{myEmitter}\OperatorTok{.}\FunctionTok{emit}\NormalTok{(}\StringTok{\textquotesingle{}error\textquotesingle{}}\OperatorTok{,} \KeywordTok{new} \BuiltInTok{Error}\NormalTok{(}\StringTok{\textquotesingle{}whoops!\textquotesingle{}}\NormalTok{))}\OperatorTok{;}
+\CommentTok{// Throws and crashes Node.js}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const} \BuiltInTok{EventEmitter} \OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:events\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\KeywordTok{class}\NormalTok{ MyEmitter }\KeywordTok{extends} \BuiltInTok{EventEmitter}\NormalTok{ \{\}}
+\KeywordTok{const}\NormalTok{ myEmitter }\OperatorTok{=} \KeywordTok{new} \FunctionTok{MyEmitter}\NormalTok{()}\OperatorTok{;}
+\NormalTok{myEmitter}\OperatorTok{.}\FunctionTok{emit}\NormalTok{(}\StringTok{\textquotesingle{}error\textquotesingle{}}\OperatorTok{,} \KeywordTok{new} \BuiltInTok{Error}\NormalTok{(}\StringTok{\textquotesingle{}whoops!\textquotesingle{}}\NormalTok{))}\OperatorTok{;}
+\CommentTok{// Throws and crashes Node.js}
+\end{Highlighting}
+\end{Shaded}
+
+To guard against crashing the Node.js process the
+\href{domain.md}{\texttt{domain}} module can be used. (Note, however,
+that the \texttt{node:domain} module is deprecated.)
+
+As a best practice, listeners should always be added for the
+\texttt{\textquotesingle{}error\textquotesingle{}} events.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\ImportTok{import}\NormalTok{ \{ }\BuiltInTok{EventEmitter}\NormalTok{ \} }\ImportTok{from} \StringTok{\textquotesingle{}node:events\textquotesingle{}}\OperatorTok{;}
+\KeywordTok{class}\NormalTok{ MyEmitter }\KeywordTok{extends} \BuiltInTok{EventEmitter}\NormalTok{ \{\}}
+\KeywordTok{const}\NormalTok{ myEmitter }\OperatorTok{=} \KeywordTok{new} \FunctionTok{MyEmitter}\NormalTok{()}\OperatorTok{;}
+\NormalTok{myEmitter}\OperatorTok{.}\FunctionTok{on}\NormalTok{(}\StringTok{\textquotesingle{}error\textquotesingle{}}\OperatorTok{,}\NormalTok{ (err) }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+  \BuiltInTok{console}\OperatorTok{.}\FunctionTok{error}\NormalTok{(}\StringTok{\textquotesingle{}whoops! there was an error\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{\})}\OperatorTok{;}
+\NormalTok{myEmitter}\OperatorTok{.}\FunctionTok{emit}\NormalTok{(}\StringTok{\textquotesingle{}error\textquotesingle{}}\OperatorTok{,} \KeywordTok{new} \BuiltInTok{Error}\NormalTok{(}\StringTok{\textquotesingle{}whoops!\textquotesingle{}}\NormalTok{))}\OperatorTok{;}
+\CommentTok{// Prints: whoops! there was an error}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const} \BuiltInTok{EventEmitter} \OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:events\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\KeywordTok{class}\NormalTok{ MyEmitter }\KeywordTok{extends} \BuiltInTok{EventEmitter}\NormalTok{ \{\}}
+\KeywordTok{const}\NormalTok{ myEmitter }\OperatorTok{=} \KeywordTok{new} \FunctionTok{MyEmitter}\NormalTok{()}\OperatorTok{;}
+\NormalTok{myEmitter}\OperatorTok{.}\FunctionTok{on}\NormalTok{(}\StringTok{\textquotesingle{}error\textquotesingle{}}\OperatorTok{,}\NormalTok{ (err) }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+  \BuiltInTok{console}\OperatorTok{.}\FunctionTok{error}\NormalTok{(}\StringTok{\textquotesingle{}whoops! there was an error\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{\})}\OperatorTok{;}
+\NormalTok{myEmitter}\OperatorTok{.}\FunctionTok{emit}\NormalTok{(}\StringTok{\textquotesingle{}error\textquotesingle{}}\OperatorTok{,} \KeywordTok{new} \BuiltInTok{Error}\NormalTok{(}\StringTok{\textquotesingle{}whoops!\textquotesingle{}}\NormalTok{))}\OperatorTok{;}
+\CommentTok{// Prints: whoops! there was an error}
+\end{Highlighting}
+\end{Shaded}
+
+It is possible to monitor
+\texttt{\textquotesingle{}error\textquotesingle{}} events without
+consuming the emitted error by installing a listener using the symbol
+\texttt{events.errorMonitor}.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\ImportTok{import}\NormalTok{ \{ }\BuiltInTok{EventEmitter}\OperatorTok{,}\NormalTok{ errorMonitor \} }\ImportTok{from} \StringTok{\textquotesingle{}node:events\textquotesingle{}}\OperatorTok{;}
+
+\KeywordTok{const}\NormalTok{ myEmitter }\OperatorTok{=} \KeywordTok{new} \BuiltInTok{EventEmitter}\NormalTok{()}\OperatorTok{;}
+\NormalTok{myEmitter}\OperatorTok{.}\FunctionTok{on}\NormalTok{(errorMonitor}\OperatorTok{,}\NormalTok{ (err) }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+\NormalTok{  MyMonitoringTool}\OperatorTok{.}\FunctionTok{log}\NormalTok{(err)}\OperatorTok{;}
+\NormalTok{\})}\OperatorTok{;}
+\NormalTok{myEmitter}\OperatorTok{.}\FunctionTok{emit}\NormalTok{(}\StringTok{\textquotesingle{}error\textquotesingle{}}\OperatorTok{,} \KeywordTok{new} \BuiltInTok{Error}\NormalTok{(}\StringTok{\textquotesingle{}whoops!\textquotesingle{}}\NormalTok{))}\OperatorTok{;}
+\CommentTok{// Still throws and crashes Node.js}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ \{ }\BuiltInTok{EventEmitter}\OperatorTok{,}\NormalTok{ errorMonitor \} }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:events\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+
+\KeywordTok{const}\NormalTok{ myEmitter }\OperatorTok{=} \KeywordTok{new} \BuiltInTok{EventEmitter}\NormalTok{()}\OperatorTok{;}
+\NormalTok{myEmitter}\OperatorTok{.}\FunctionTok{on}\NormalTok{(errorMonitor}\OperatorTok{,}\NormalTok{ (err) }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+\NormalTok{  MyMonitoringTool}\OperatorTok{.}\FunctionTok{log}\NormalTok{(err)}\OperatorTok{;}
+\NormalTok{\})}\OperatorTok{;}
+\NormalTok{myEmitter}\OperatorTok{.}\FunctionTok{emit}\NormalTok{(}\StringTok{\textquotesingle{}error\textquotesingle{}}\OperatorTok{,} \KeywordTok{new} \BuiltInTok{Error}\NormalTok{(}\StringTok{\textquotesingle{}whoops!\textquotesingle{}}\NormalTok{))}\OperatorTok{;}
+\CommentTok{// Still throws and crashes Node.js}
+\end{Highlighting}
+\end{Shaded}
+
+\subsection{Capture rejections of
+promises}\label{capture-rejections-of-promises}
+
+Using \texttt{async} functions with event handlers is problematic,
+because it can lead to an unhandled rejection in case of a thrown
+exception:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\ImportTok{import}\NormalTok{ \{ }\BuiltInTok{EventEmitter}\NormalTok{ \} }\ImportTok{from} \StringTok{\textquotesingle{}node:events\textquotesingle{}}\OperatorTok{;}
+\KeywordTok{const}\NormalTok{ ee }\OperatorTok{=} \KeywordTok{new} \BuiltInTok{EventEmitter}\NormalTok{()}\OperatorTok{;}
+\NormalTok{ee}\OperatorTok{.}\FunctionTok{on}\NormalTok{(}\StringTok{\textquotesingle{}something\textquotesingle{}}\OperatorTok{,} \KeywordTok{async}\NormalTok{ (value) }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+  \ControlFlowTok{throw} \KeywordTok{new} \BuiltInTok{Error}\NormalTok{(}\StringTok{\textquotesingle{}kaboom\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{\})}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const} \BuiltInTok{EventEmitter} \OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:events\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\KeywordTok{const}\NormalTok{ ee }\OperatorTok{=} \KeywordTok{new} \BuiltInTok{EventEmitter}\NormalTok{()}\OperatorTok{;}
+\NormalTok{ee}\OperatorTok{.}\FunctionTok{on}\NormalTok{(}\StringTok{\textquotesingle{}something\textquotesingle{}}\OperatorTok{,} \KeywordTok{async}\NormalTok{ (value) }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+  \ControlFlowTok{throw} \KeywordTok{new} \BuiltInTok{Error}\NormalTok{(}\StringTok{\textquotesingle{}kaboom\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{\})}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+The \texttt{captureRejections} option in the \texttt{EventEmitter}
+constructor or the global setting change this behavior, installing a
+\texttt{.then(undefined,\ handler)} handler on the \texttt{Promise}.
+This handler routes the exception asynchronously to the
+\hyperref[emittersymbolfornodejsrejectionerr-eventname-args]{\texttt{Symbol.for(\textquotesingle{}nodejs.rejection\textquotesingle{})}}
+method if there is one, or to
+\hyperref[error-events]{\texttt{\textquotesingle{}error\textquotesingle{}}}
+event handler if there is none.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\ImportTok{import}\NormalTok{ \{ }\BuiltInTok{EventEmitter}\NormalTok{ \} }\ImportTok{from} \StringTok{\textquotesingle{}node:events\textquotesingle{}}\OperatorTok{;}
+\KeywordTok{const}\NormalTok{ ee1 }\OperatorTok{=} \KeywordTok{new} \BuiltInTok{EventEmitter}\NormalTok{(\{ }\DataTypeTok{captureRejections}\OperatorTok{:} \KeywordTok{true}\NormalTok{ \})}\OperatorTok{;}
+\NormalTok{ee1}\OperatorTok{.}\FunctionTok{on}\NormalTok{(}\StringTok{\textquotesingle{}something\textquotesingle{}}\OperatorTok{,} \KeywordTok{async}\NormalTok{ (value) }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+  \ControlFlowTok{throw} \KeywordTok{new} \BuiltInTok{Error}\NormalTok{(}\StringTok{\textquotesingle{}kaboom\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{\})}\OperatorTok{;}
+
+\NormalTok{ee1}\OperatorTok{.}\FunctionTok{on}\NormalTok{(}\StringTok{\textquotesingle{}error\textquotesingle{}}\OperatorTok{,} \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{)}\OperatorTok{;}
+
+\KeywordTok{const}\NormalTok{ ee2 }\OperatorTok{=} \KeywordTok{new} \BuiltInTok{EventEmitter}\NormalTok{(\{ }\DataTypeTok{captureRejections}\OperatorTok{:} \KeywordTok{true}\NormalTok{ \})}\OperatorTok{;}
+\NormalTok{ee2}\OperatorTok{.}\FunctionTok{on}\NormalTok{(}\StringTok{\textquotesingle{}something\textquotesingle{}}\OperatorTok{,} \KeywordTok{async}\NormalTok{ (value) }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+  \ControlFlowTok{throw} \KeywordTok{new} \BuiltInTok{Error}\NormalTok{(}\StringTok{\textquotesingle{}kaboom\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{\})}\OperatorTok{;}
+
+\NormalTok{ee2[}\BuiltInTok{Symbol}\OperatorTok{.}\FunctionTok{for}\NormalTok{(}\StringTok{\textquotesingle{}nodejs.rejection\textquotesingle{}}\NormalTok{)] }\OperatorTok{=} \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const} \BuiltInTok{EventEmitter} \OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:events\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\KeywordTok{const}\NormalTok{ ee1 }\OperatorTok{=} \KeywordTok{new} \BuiltInTok{EventEmitter}\NormalTok{(\{ }\DataTypeTok{captureRejections}\OperatorTok{:} \KeywordTok{true}\NormalTok{ \})}\OperatorTok{;}
+\NormalTok{ee1}\OperatorTok{.}\FunctionTok{on}\NormalTok{(}\StringTok{\textquotesingle{}something\textquotesingle{}}\OperatorTok{,} \KeywordTok{async}\NormalTok{ (value) }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+  \ControlFlowTok{throw} \KeywordTok{new} \BuiltInTok{Error}\NormalTok{(}\StringTok{\textquotesingle{}kaboom\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{\})}\OperatorTok{;}
+
+\NormalTok{ee1}\OperatorTok{.}\FunctionTok{on}\NormalTok{(}\StringTok{\textquotesingle{}error\textquotesingle{}}\OperatorTok{,} \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{)}\OperatorTok{;}
+
+\KeywordTok{const}\NormalTok{ ee2 }\OperatorTok{=} \KeywordTok{new} \BuiltInTok{EventEmitter}\NormalTok{(\{ }\DataTypeTok{captureRejections}\OperatorTok{:} \KeywordTok{true}\NormalTok{ \})}\OperatorTok{;}
+\NormalTok{ee2}\OperatorTok{.}\FunctionTok{on}\NormalTok{(}\StringTok{\textquotesingle{}something\textquotesingle{}}\OperatorTok{,} \KeywordTok{async}\NormalTok{ (value) }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+  \ControlFlowTok{throw} \KeywordTok{new} \BuiltInTok{Error}\NormalTok{(}\StringTok{\textquotesingle{}kaboom\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{\})}\OperatorTok{;}
+
+\NormalTok{ee2[}\BuiltInTok{Symbol}\OperatorTok{.}\FunctionTok{for}\NormalTok{(}\StringTok{\textquotesingle{}nodejs.rejection\textquotesingle{}}\NormalTok{)] }\OperatorTok{=} \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+Setting \texttt{events.captureRejections\ =\ true} will change the
+default for all new instances of \texttt{EventEmitter}.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\ImportTok{import}\NormalTok{ \{ }\BuiltInTok{EventEmitter}\NormalTok{ \} }\ImportTok{from} \StringTok{\textquotesingle{}node:events\textquotesingle{}}\OperatorTok{;}
+
+\BuiltInTok{EventEmitter}\OperatorTok{.}\AttributeTok{captureRejections} \OperatorTok{=} \KeywordTok{true}\OperatorTok{;}
+\KeywordTok{const}\NormalTok{ ee1 }\OperatorTok{=} \KeywordTok{new} \BuiltInTok{EventEmitter}\NormalTok{()}\OperatorTok{;}
+\NormalTok{ee1}\OperatorTok{.}\FunctionTok{on}\NormalTok{(}\StringTok{\textquotesingle{}something\textquotesingle{}}\OperatorTok{,} \KeywordTok{async}\NormalTok{ (value) }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+  \ControlFlowTok{throw} \KeywordTok{new} \BuiltInTok{Error}\NormalTok{(}\StringTok{\textquotesingle{}kaboom\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{\})}\OperatorTok{;}
+
+\NormalTok{ee1}\OperatorTok{.}\FunctionTok{on}\NormalTok{(}\StringTok{\textquotesingle{}error\textquotesingle{}}\OperatorTok{,} \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{)}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ events }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:events\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{events}\OperatorTok{.}\AttributeTok{captureRejections} \OperatorTok{=} \KeywordTok{true}\OperatorTok{;}
+\KeywordTok{const}\NormalTok{ ee1 }\OperatorTok{=} \KeywordTok{new}\NormalTok{ events}\OperatorTok{.}\FunctionTok{EventEmitter}\NormalTok{()}\OperatorTok{;}
+\NormalTok{ee1}\OperatorTok{.}\FunctionTok{on}\NormalTok{(}\StringTok{\textquotesingle{}something\textquotesingle{}}\OperatorTok{,} \KeywordTok{async}\NormalTok{ (value) }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+  \ControlFlowTok{throw} \KeywordTok{new} \BuiltInTok{Error}\NormalTok{(}\StringTok{\textquotesingle{}kaboom\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{\})}\OperatorTok{;}
+
+\NormalTok{ee1}\OperatorTok{.}\FunctionTok{on}\NormalTok{(}\StringTok{\textquotesingle{}error\textquotesingle{}}\OperatorTok{,} \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{)}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+The \texttt{\textquotesingle{}error\textquotesingle{}} events that are
+generated by the \texttt{captureRejections} behavior do not have a catch
+handler to avoid infinite error loops: the recommendation is to
+\textbf{not use \texttt{async} functions as
+\texttt{\textquotesingle{}error\textquotesingle{}} event handlers}.
+
+\subsection{\texorpdfstring{Class:
+\texttt{EventEmitter}}{Class: EventEmitter}}\label{class-eventemitter}
+
+The \texttt{EventEmitter} class is defined and exposed by the
+\texttt{node:events} module:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\ImportTok{import}\NormalTok{ \{ }\BuiltInTok{EventEmitter}\NormalTok{ \} }\ImportTok{from} \StringTok{\textquotesingle{}node:events\textquotesingle{}}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const} \BuiltInTok{EventEmitter} \OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:events\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+All \texttt{EventEmitter}s emit the event
+\texttt{\textquotesingle{}newListener\textquotesingle{}} when new
+listeners are added and
+\texttt{\textquotesingle{}removeListener\textquotesingle{}} when
+existing listeners are removed.
+
+It supports the following option:
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{captureRejections} \{boolean\} It enables
+  \hyperref[capture-rejections-of-promises]{automatic capturing of
+  promise rejection}. \textbf{Default:} \texttt{false}.
+\end{itemize}
+
+\subsubsection{\texorpdfstring{Event:
+\texttt{\textquotesingle{}newListener\textquotesingle{}}}{Event: \textquotesingle newListener\textquotesingle{}}}\label{event-newlistener}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{eventName} \{string\textbar symbol\} The name of the event
+  being listened for
+\item
+  \texttt{listener} \{Function\} The event handler function
+\end{itemize}
+
+The \texttt{EventEmitter} instance will emit its own
+\texttt{\textquotesingle{}newListener\textquotesingle{}} event
+\emph{before} a listener is added to its internal array of listeners.
+
+Listeners registered for the
+\texttt{\textquotesingle{}newListener\textquotesingle{}} event are
+passed the event name and a reference to the listener being added.
+
+The fact that the event is triggered before adding the listener has a
+subtle but important side effect: any \emph{additional} listeners
+registered to the same \texttt{name} \emph{within} the
+\texttt{\textquotesingle{}newListener\textquotesingle{}} callback are
+inserted \emph{before} the listener that is in the process of being
+added.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\ImportTok{import}\NormalTok{ \{ }\BuiltInTok{EventEmitter}\NormalTok{ \} }\ImportTok{from} \StringTok{\textquotesingle{}node:events\textquotesingle{}}\OperatorTok{;}
+\KeywordTok{class}\NormalTok{ MyEmitter }\KeywordTok{extends} \BuiltInTok{EventEmitter}\NormalTok{ \{\}}
+
+\KeywordTok{const}\NormalTok{ myEmitter }\OperatorTok{=} \KeywordTok{new} \FunctionTok{MyEmitter}\NormalTok{()}\OperatorTok{;}
+\CommentTok{// Only do this once so we don\textquotesingle{}t loop forever}
+\NormalTok{myEmitter}\OperatorTok{.}\FunctionTok{once}\NormalTok{(}\StringTok{\textquotesingle{}newListener\textquotesingle{}}\OperatorTok{,}\NormalTok{ (}\BuiltInTok{event}\OperatorTok{,}\NormalTok{ listener) }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+  \ControlFlowTok{if}\NormalTok{ (}\BuiltInTok{event} \OperatorTok{===} \StringTok{\textquotesingle{}event\textquotesingle{}}\NormalTok{) \{}
+    \CommentTok{// Insert a new listener in front}
+\NormalTok{    myEmitter}\OperatorTok{.}\FunctionTok{on}\NormalTok{(}\StringTok{\textquotesingle{}event\textquotesingle{}}\OperatorTok{,}\NormalTok{ () }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+      \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\StringTok{\textquotesingle{}B\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{    \})}\OperatorTok{;}
+\NormalTok{  \}}
+\NormalTok{\})}\OperatorTok{;}
+\NormalTok{myEmitter}\OperatorTok{.}\FunctionTok{on}\NormalTok{(}\StringTok{\textquotesingle{}event\textquotesingle{}}\OperatorTok{,}\NormalTok{ () }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+  \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\StringTok{\textquotesingle{}A\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{\})}\OperatorTok{;}
+\NormalTok{myEmitter}\OperatorTok{.}\FunctionTok{emit}\NormalTok{(}\StringTok{\textquotesingle{}event\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// Prints:}
+\CommentTok{//   B}
+\CommentTok{//   A}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const} \BuiltInTok{EventEmitter} \OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:events\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\KeywordTok{class}\NormalTok{ MyEmitter }\KeywordTok{extends} \BuiltInTok{EventEmitter}\NormalTok{ \{\}}
+
+\KeywordTok{const}\NormalTok{ myEmitter }\OperatorTok{=} \KeywordTok{new} \FunctionTok{MyEmitter}\NormalTok{()}\OperatorTok{;}
+\CommentTok{// Only do this once so we don\textquotesingle{}t loop forever}
+\NormalTok{myEmitter}\OperatorTok{.}\FunctionTok{once}\NormalTok{(}\StringTok{\textquotesingle{}newListener\textquotesingle{}}\OperatorTok{,}\NormalTok{ (}\BuiltInTok{event}\OperatorTok{,}\NormalTok{ listener) }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+  \ControlFlowTok{if}\NormalTok{ (}\BuiltInTok{event} \OperatorTok{===} \StringTok{\textquotesingle{}event\textquotesingle{}}\NormalTok{) \{}
+    \CommentTok{// Insert a new listener in front}
+\NormalTok{    myEmitter}\OperatorTok{.}\FunctionTok{on}\NormalTok{(}\StringTok{\textquotesingle{}event\textquotesingle{}}\OperatorTok{,}\NormalTok{ () }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+      \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\StringTok{\textquotesingle{}B\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{    \})}\OperatorTok{;}
+\NormalTok{  \}}
+\NormalTok{\})}\OperatorTok{;}
+\NormalTok{myEmitter}\OperatorTok{.}\FunctionTok{on}\NormalTok{(}\StringTok{\textquotesingle{}event\textquotesingle{}}\OperatorTok{,}\NormalTok{ () }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+  \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\StringTok{\textquotesingle{}A\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{\})}\OperatorTok{;}
+\NormalTok{myEmitter}\OperatorTok{.}\FunctionTok{emit}\NormalTok{(}\StringTok{\textquotesingle{}event\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// Prints:}
+\CommentTok{//   B}
+\CommentTok{//   A}
+\end{Highlighting}
+\end{Shaded}
+
+\subsubsection{\texorpdfstring{Event:
+\texttt{\textquotesingle{}removeListener\textquotesingle{}}}{Event: \textquotesingle removeListener\textquotesingle{}}}\label{event-removelistener}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{eventName} \{string\textbar symbol\} The event name
+\item
+  \texttt{listener} \{Function\} The event handler function
+\end{itemize}
+
+The \texttt{\textquotesingle{}removeListener\textquotesingle{}} event is
+emitted \emph{after} the \texttt{listener} is removed.
+
+\subsubsection{\texorpdfstring{\texttt{emitter.addListener(eventName,\ listener)}}{emitter.addListener(eventName, listener)}}\label{emitter.addlistenereventname-listener}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{eventName} \{string\textbar symbol\}
+\item
+  \texttt{listener} \{Function\}
+\end{itemize}
+
+Alias for \texttt{emitter.on(eventName,\ listener)}.
+
+\subsubsection{\texorpdfstring{\texttt{emitter.emit(eventName{[},\ ...args{]})}}{emitter.emit(eventName{[}, ...args{]})}}\label{emitter.emiteventname-...args}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{eventName} \{string\textbar symbol\}
+\item
+  \texttt{...args} \{any\}
+\item
+  Returns: \{boolean\}
+\end{itemize}
+
+Synchronously calls each of the listeners registered for the event named
+\texttt{eventName}, in the order they were registered, passing the
+supplied arguments to each.
+
+Returns \texttt{true} if the event had listeners, \texttt{false}
+otherwise.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\ImportTok{import}\NormalTok{ \{ }\BuiltInTok{EventEmitter}\NormalTok{ \} }\ImportTok{from} \StringTok{\textquotesingle{}node:events\textquotesingle{}}\OperatorTok{;}
+\KeywordTok{const}\NormalTok{ myEmitter }\OperatorTok{=} \KeywordTok{new} \BuiltInTok{EventEmitter}\NormalTok{()}\OperatorTok{;}
+
+\CommentTok{// First listener}
+\NormalTok{myEmitter}\OperatorTok{.}\FunctionTok{on}\NormalTok{(}\StringTok{\textquotesingle{}event\textquotesingle{}}\OperatorTok{,} \KeywordTok{function} \FunctionTok{firstListener}\NormalTok{() \{}
+  \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\StringTok{\textquotesingle{}Helloooo! first listener\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{\})}\OperatorTok{;}
+\CommentTok{// Second listener}
+\NormalTok{myEmitter}\OperatorTok{.}\FunctionTok{on}\NormalTok{(}\StringTok{\textquotesingle{}event\textquotesingle{}}\OperatorTok{,} \KeywordTok{function} \FunctionTok{secondListener}\NormalTok{(arg1}\OperatorTok{,}\NormalTok{ arg2) \{}
+  \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\VerbatimStringTok{\textasciigrave{}event with parameters }\SpecialCharTok{$\{}\NormalTok{arg1}\SpecialCharTok{\}}\VerbatimStringTok{, }\SpecialCharTok{$\{}\NormalTok{arg2}\SpecialCharTok{\}}\VerbatimStringTok{ in second listener\textasciigrave{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{\})}\OperatorTok{;}
+\CommentTok{// Third listener}
+\NormalTok{myEmitter}\OperatorTok{.}\FunctionTok{on}\NormalTok{(}\StringTok{\textquotesingle{}event\textquotesingle{}}\OperatorTok{,} \KeywordTok{function} \FunctionTok{thirdListener}\NormalTok{(}\OperatorTok{...}\NormalTok{args) \{}
+  \KeywordTok{const}\NormalTok{ parameters }\OperatorTok{=}\NormalTok{ args}\OperatorTok{.}\FunctionTok{join}\NormalTok{(}\StringTok{\textquotesingle{}, \textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+  \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\VerbatimStringTok{\textasciigrave{}event with parameters }\SpecialCharTok{$\{}\NormalTok{parameters}\SpecialCharTok{\}}\VerbatimStringTok{ in third listener\textasciigrave{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{\})}\OperatorTok{;}
+
+\BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(myEmitter}\OperatorTok{.}\FunctionTok{listeners}\NormalTok{(}\StringTok{\textquotesingle{}event\textquotesingle{}}\NormalTok{))}\OperatorTok{;}
+
+\NormalTok{myEmitter}\OperatorTok{.}\FunctionTok{emit}\NormalTok{(}\StringTok{\textquotesingle{}event\textquotesingle{}}\OperatorTok{,} \DecValTok{1}\OperatorTok{,} \DecValTok{2}\OperatorTok{,} \DecValTok{3}\OperatorTok{,} \DecValTok{4}\OperatorTok{,} \DecValTok{5}\NormalTok{)}\OperatorTok{;}
+
+\CommentTok{// Prints:}
+\CommentTok{// [}
+\CommentTok{//   [Function: firstListener],}
+\CommentTok{//   [Function: secondListener],}
+\CommentTok{//   [Function: thirdListener]}
+\CommentTok{// ]}
+\CommentTok{// Helloooo! first listener}
+\CommentTok{// event with parameters 1, 2 in second listener}
+\CommentTok{// event with parameters 1, 2, 3, 4, 5 in third listener}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const} \BuiltInTok{EventEmitter} \OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:events\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\KeywordTok{const}\NormalTok{ myEmitter }\OperatorTok{=} \KeywordTok{new} \BuiltInTok{EventEmitter}\NormalTok{()}\OperatorTok{;}
+
+\CommentTok{// First listener}
+\NormalTok{myEmitter}\OperatorTok{.}\FunctionTok{on}\NormalTok{(}\StringTok{\textquotesingle{}event\textquotesingle{}}\OperatorTok{,} \KeywordTok{function} \FunctionTok{firstListener}\NormalTok{() \{}
+  \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\StringTok{\textquotesingle{}Helloooo! first listener\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{\})}\OperatorTok{;}
+\CommentTok{// Second listener}
+\NormalTok{myEmitter}\OperatorTok{.}\FunctionTok{on}\NormalTok{(}\StringTok{\textquotesingle{}event\textquotesingle{}}\OperatorTok{,} \KeywordTok{function} \FunctionTok{secondListener}\NormalTok{(arg1}\OperatorTok{,}\NormalTok{ arg2) \{}
+  \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\VerbatimStringTok{\textasciigrave{}event with parameters }\SpecialCharTok{$\{}\NormalTok{arg1}\SpecialCharTok{\}}\VerbatimStringTok{, }\SpecialCharTok{$\{}\NormalTok{arg2}\SpecialCharTok{\}}\VerbatimStringTok{ in second listener\textasciigrave{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{\})}\OperatorTok{;}
+\CommentTok{// Third listener}
+\NormalTok{myEmitter}\OperatorTok{.}\FunctionTok{on}\NormalTok{(}\StringTok{\textquotesingle{}event\textquotesingle{}}\OperatorTok{,} \KeywordTok{function} \FunctionTok{thirdListener}\NormalTok{(}\OperatorTok{...}\NormalTok{args) \{}
+  \KeywordTok{const}\NormalTok{ parameters }\OperatorTok{=}\NormalTok{ args}\OperatorTok{.}\FunctionTok{join}\NormalTok{(}\StringTok{\textquotesingle{}, \textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+  \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\VerbatimStringTok{\textasciigrave{}event with parameters }\SpecialCharTok{$\{}\NormalTok{parameters}\SpecialCharTok{\}}\VerbatimStringTok{ in third listener\textasciigrave{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{\})}\OperatorTok{;}
+
+\BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(myEmitter}\OperatorTok{.}\FunctionTok{listeners}\NormalTok{(}\StringTok{\textquotesingle{}event\textquotesingle{}}\NormalTok{))}\OperatorTok{;}
+
+\NormalTok{myEmitter}\OperatorTok{.}\FunctionTok{emit}\NormalTok{(}\StringTok{\textquotesingle{}event\textquotesingle{}}\OperatorTok{,} \DecValTok{1}\OperatorTok{,} \DecValTok{2}\OperatorTok{,} \DecValTok{3}\OperatorTok{,} \DecValTok{4}\OperatorTok{,} \DecValTok{5}\NormalTok{)}\OperatorTok{;}
+
+\CommentTok{// Prints:}
+\CommentTok{// [}
+\CommentTok{//   [Function: firstListener],}
+\CommentTok{//   [Function: secondListener],}
+\CommentTok{//   [Function: thirdListener]}
+\CommentTok{// ]}
+\CommentTok{// Helloooo! first listener}
+\CommentTok{// event with parameters 1, 2 in second listener}
+\CommentTok{// event with parameters 1, 2, 3, 4, 5 in third listener}
+\end{Highlighting}
+\end{Shaded}
+
+\subsubsection{\texorpdfstring{\texttt{emitter.eventNames()}}{emitter.eventNames()}}\label{emitter.eventnames}
+
+\begin{itemize}
+\tightlist
+\item
+  Returns: \{Array\}
+\end{itemize}
+
+Returns an array listing the events for which the emitter has registered
+listeners. The values in the array are strings or \texttt{Symbol}s.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\ImportTok{import}\NormalTok{ \{ }\BuiltInTok{EventEmitter}\NormalTok{ \} }\ImportTok{from} \StringTok{\textquotesingle{}node:events\textquotesingle{}}\OperatorTok{;}
+
+\KeywordTok{const}\NormalTok{ myEE }\OperatorTok{=} \KeywordTok{new} \BuiltInTok{EventEmitter}\NormalTok{()}\OperatorTok{;}
+\NormalTok{myEE}\OperatorTok{.}\FunctionTok{on}\NormalTok{(}\StringTok{\textquotesingle{}foo\textquotesingle{}}\OperatorTok{,}\NormalTok{ () }\KeywordTok{=\textgreater{}}\NormalTok{ \{\})}\OperatorTok{;}
+\NormalTok{myEE}\OperatorTok{.}\FunctionTok{on}\NormalTok{(}\StringTok{\textquotesingle{}bar\textquotesingle{}}\OperatorTok{,}\NormalTok{ () }\KeywordTok{=\textgreater{}}\NormalTok{ \{\})}\OperatorTok{;}
+
+\KeywordTok{const}\NormalTok{ sym }\OperatorTok{=} \BuiltInTok{Symbol}\NormalTok{(}\StringTok{\textquotesingle{}symbol\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{myEE}\OperatorTok{.}\FunctionTok{on}\NormalTok{(sym}\OperatorTok{,}\NormalTok{ () }\KeywordTok{=\textgreater{}}\NormalTok{ \{\})}\OperatorTok{;}
+
+\BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(myEE}\OperatorTok{.}\FunctionTok{eventNames}\NormalTok{())}\OperatorTok{;}
+\CommentTok{// Prints: [ \textquotesingle{}foo\textquotesingle{}, \textquotesingle{}bar\textquotesingle{}, Symbol(symbol) ]}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const} \BuiltInTok{EventEmitter} \OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:events\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+
+\KeywordTok{const}\NormalTok{ myEE }\OperatorTok{=} \KeywordTok{new} \BuiltInTok{EventEmitter}\NormalTok{()}\OperatorTok{;}
+\NormalTok{myEE}\OperatorTok{.}\FunctionTok{on}\NormalTok{(}\StringTok{\textquotesingle{}foo\textquotesingle{}}\OperatorTok{,}\NormalTok{ () }\KeywordTok{=\textgreater{}}\NormalTok{ \{\})}\OperatorTok{;}
+\NormalTok{myEE}\OperatorTok{.}\FunctionTok{on}\NormalTok{(}\StringTok{\textquotesingle{}bar\textquotesingle{}}\OperatorTok{,}\NormalTok{ () }\KeywordTok{=\textgreater{}}\NormalTok{ \{\})}\OperatorTok{;}
+
+\KeywordTok{const}\NormalTok{ sym }\OperatorTok{=} \BuiltInTok{Symbol}\NormalTok{(}\StringTok{\textquotesingle{}symbol\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{myEE}\OperatorTok{.}\FunctionTok{on}\NormalTok{(sym}\OperatorTok{,}\NormalTok{ () }\KeywordTok{=\textgreater{}}\NormalTok{ \{\})}\OperatorTok{;}
+
+\BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(myEE}\OperatorTok{.}\FunctionTok{eventNames}\NormalTok{())}\OperatorTok{;}
+\CommentTok{// Prints: [ \textquotesingle{}foo\textquotesingle{}, \textquotesingle{}bar\textquotesingle{}, Symbol(symbol) ]}
+\end{Highlighting}
+\end{Shaded}
+
+\subsubsection{\texorpdfstring{\texttt{emitter.getMaxListeners()}}{emitter.getMaxListeners()}}\label{emitter.getmaxlisteners}
+
+\begin{itemize}
+\tightlist
+\item
+  Returns: \{integer\}
+\end{itemize}
+
+Returns the current max listener value for the \texttt{EventEmitter}
+which is either set by
+\hyperref[emittersetmaxlistenersn]{\texttt{emitter.setMaxListeners(n)}}
+or defaults to
+\hyperref[eventsdefaultmaxlisteners]{\texttt{events.defaultMaxListeners}}.
+
+\subsubsection{\texorpdfstring{\texttt{emitter.listenerCount(eventName{[},\ listener{]})}}{emitter.listenerCount(eventName{[}, listener{]})}}\label{emitter.listenercounteventname-listener}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{eventName} \{string\textbar symbol\} The name of the event
+  being listened for
+\item
+  \texttt{listener} \{Function\} The event handler function
+\item
+  Returns: \{integer\}
+\end{itemize}
+
+Returns the number of listeners listening for the event named
+\texttt{eventName}. If \texttt{listener} is provided, it will return how
+many times the listener is found in the list of the listeners of the
+event.
+
+\subsubsection{\texorpdfstring{\texttt{emitter.listeners(eventName)}}{emitter.listeners(eventName)}}\label{emitter.listenerseventname}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{eventName} \{string\textbar symbol\}
+\item
+  Returns: \{Function{[}{]}\}
+\end{itemize}
+
+Returns a copy of the array of listeners for the event named
+\texttt{eventName}.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{server}\OperatorTok{.}\FunctionTok{on}\NormalTok{(}\StringTok{\textquotesingle{}connection\textquotesingle{}}\OperatorTok{,}\NormalTok{ (stream) }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+  \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\StringTok{\textquotesingle{}someone connected!\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{\})}\OperatorTok{;}
+\BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(util}\OperatorTok{.}\FunctionTok{inspect}\NormalTok{(server}\OperatorTok{.}\FunctionTok{listeners}\NormalTok{(}\StringTok{\textquotesingle{}connection\textquotesingle{}}\NormalTok{)))}\OperatorTok{;}
+\CommentTok{// Prints: [ [Function] ]}
+\end{Highlighting}
+\end{Shaded}
+
+\subsubsection{\texorpdfstring{\texttt{emitter.off(eventName,\ listener)}}{emitter.off(eventName, listener)}}\label{emitter.offeventname-listener}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{eventName} \{string\textbar symbol\}
+\item
+  \texttt{listener} \{Function\}
+\item
+  Returns: \{EventEmitter\}
+\end{itemize}
+
+Alias for
+\hyperref[emitterremovelistenereventname-listener]{\texttt{emitter.removeListener()}}.
+
+\subsubsection{\texorpdfstring{\texttt{emitter.on(eventName,\ listener)}}{emitter.on(eventName, listener)}}\label{emitter.oneventname-listener}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{eventName} \{string\textbar symbol\} The name of the event.
+\item
+  \texttt{listener} \{Function\} The callback function
+\item
+  Returns: \{EventEmitter\}
+\end{itemize}
+
+Adds the \texttt{listener} function to the end of the listeners array
+for the event named \texttt{eventName}. No checks are made to see if the
+\texttt{listener} has already been added. Multiple calls passing the
+same combination of \texttt{eventName} and \texttt{listener} will result
+in the \texttt{listener} being added, and called, multiple times.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{server}\OperatorTok{.}\FunctionTok{on}\NormalTok{(}\StringTok{\textquotesingle{}connection\textquotesingle{}}\OperatorTok{,}\NormalTok{ (stream) }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+  \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\StringTok{\textquotesingle{}someone connected!\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{\})}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+Returns a reference to the \texttt{EventEmitter}, so that calls can be
+chained.
+
+By default, event listeners are invoked in the order they are added. The
+\texttt{emitter.prependListener()} method can be used as an alternative
+to add the event listener to the beginning of the listeners array.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\ImportTok{import}\NormalTok{ \{ }\BuiltInTok{EventEmitter}\NormalTok{ \} }\ImportTok{from} \StringTok{\textquotesingle{}node:events\textquotesingle{}}\OperatorTok{;}
+\KeywordTok{const}\NormalTok{ myEE }\OperatorTok{=} \KeywordTok{new} \BuiltInTok{EventEmitter}\NormalTok{()}\OperatorTok{;}
+\NormalTok{myEE}\OperatorTok{.}\FunctionTok{on}\NormalTok{(}\StringTok{\textquotesingle{}foo\textquotesingle{}}\OperatorTok{,}\NormalTok{ () }\KeywordTok{=\textgreater{}} \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\StringTok{\textquotesingle{}a\textquotesingle{}}\NormalTok{))}\OperatorTok{;}
+\NormalTok{myEE}\OperatorTok{.}\FunctionTok{prependListener}\NormalTok{(}\StringTok{\textquotesingle{}foo\textquotesingle{}}\OperatorTok{,}\NormalTok{ () }\KeywordTok{=\textgreater{}} \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\StringTok{\textquotesingle{}b\textquotesingle{}}\NormalTok{))}\OperatorTok{;}
+\NormalTok{myEE}\OperatorTok{.}\FunctionTok{emit}\NormalTok{(}\StringTok{\textquotesingle{}foo\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// Prints:}
+\CommentTok{//   b}
+\CommentTok{//   a}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const} \BuiltInTok{EventEmitter} \OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:events\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\KeywordTok{const}\NormalTok{ myEE }\OperatorTok{=} \KeywordTok{new} \BuiltInTok{EventEmitter}\NormalTok{()}\OperatorTok{;}
+\NormalTok{myEE}\OperatorTok{.}\FunctionTok{on}\NormalTok{(}\StringTok{\textquotesingle{}foo\textquotesingle{}}\OperatorTok{,}\NormalTok{ () }\KeywordTok{=\textgreater{}} \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\StringTok{\textquotesingle{}a\textquotesingle{}}\NormalTok{))}\OperatorTok{;}
+\NormalTok{myEE}\OperatorTok{.}\FunctionTok{prependListener}\NormalTok{(}\StringTok{\textquotesingle{}foo\textquotesingle{}}\OperatorTok{,}\NormalTok{ () }\KeywordTok{=\textgreater{}} \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\StringTok{\textquotesingle{}b\textquotesingle{}}\NormalTok{))}\OperatorTok{;}
+\NormalTok{myEE}\OperatorTok{.}\FunctionTok{emit}\NormalTok{(}\StringTok{\textquotesingle{}foo\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// Prints:}
+\CommentTok{//   b}
+\CommentTok{//   a}
+\end{Highlighting}
+\end{Shaded}
+
+\subsubsection{\texorpdfstring{\texttt{emitter.once(eventName,\ listener)}}{emitter.once(eventName, listener)}}\label{emitter.onceeventname-listener}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{eventName} \{string\textbar symbol\} The name of the event.
+\item
+  \texttt{listener} \{Function\} The callback function
+\item
+  Returns: \{EventEmitter\}
+\end{itemize}
+
+Adds a \textbf{one-time} \texttt{listener} function for the event named
+\texttt{eventName}. The next time \texttt{eventName} is triggered, this
+listener is removed and then invoked.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{server}\OperatorTok{.}\FunctionTok{once}\NormalTok{(}\StringTok{\textquotesingle{}connection\textquotesingle{}}\OperatorTok{,}\NormalTok{ (stream) }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+  \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\StringTok{\textquotesingle{}Ah, we have our first user!\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{\})}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+Returns a reference to the \texttt{EventEmitter}, so that calls can be
+chained.
+
+By default, event listeners are invoked in the order they are added. The
+\texttt{emitter.prependOnceListener()} method can be used as an
+alternative to add the event listener to the beginning of the listeners
+array.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\ImportTok{import}\NormalTok{ \{ }\BuiltInTok{EventEmitter}\NormalTok{ \} }\ImportTok{from} \StringTok{\textquotesingle{}node:events\textquotesingle{}}\OperatorTok{;}
+\KeywordTok{const}\NormalTok{ myEE }\OperatorTok{=} \KeywordTok{new} \BuiltInTok{EventEmitter}\NormalTok{()}\OperatorTok{;}
+\NormalTok{myEE}\OperatorTok{.}\FunctionTok{once}\NormalTok{(}\StringTok{\textquotesingle{}foo\textquotesingle{}}\OperatorTok{,}\NormalTok{ () }\KeywordTok{=\textgreater{}} \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\StringTok{\textquotesingle{}a\textquotesingle{}}\NormalTok{))}\OperatorTok{;}
+\NormalTok{myEE}\OperatorTok{.}\FunctionTok{prependOnceListener}\NormalTok{(}\StringTok{\textquotesingle{}foo\textquotesingle{}}\OperatorTok{,}\NormalTok{ () }\KeywordTok{=\textgreater{}} \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\StringTok{\textquotesingle{}b\textquotesingle{}}\NormalTok{))}\OperatorTok{;}
+\NormalTok{myEE}\OperatorTok{.}\FunctionTok{emit}\NormalTok{(}\StringTok{\textquotesingle{}foo\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// Prints:}
+\CommentTok{//   b}
+\CommentTok{//   a}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const} \BuiltInTok{EventEmitter} \OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:events\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\KeywordTok{const}\NormalTok{ myEE }\OperatorTok{=} \KeywordTok{new} \BuiltInTok{EventEmitter}\NormalTok{()}\OperatorTok{;}
+\NormalTok{myEE}\OperatorTok{.}\FunctionTok{once}\NormalTok{(}\StringTok{\textquotesingle{}foo\textquotesingle{}}\OperatorTok{,}\NormalTok{ () }\KeywordTok{=\textgreater{}} \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\StringTok{\textquotesingle{}a\textquotesingle{}}\NormalTok{))}\OperatorTok{;}
+\NormalTok{myEE}\OperatorTok{.}\FunctionTok{prependOnceListener}\NormalTok{(}\StringTok{\textquotesingle{}foo\textquotesingle{}}\OperatorTok{,}\NormalTok{ () }\KeywordTok{=\textgreater{}} \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\StringTok{\textquotesingle{}b\textquotesingle{}}\NormalTok{))}\OperatorTok{;}
+\NormalTok{myEE}\OperatorTok{.}\FunctionTok{emit}\NormalTok{(}\StringTok{\textquotesingle{}foo\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// Prints:}
+\CommentTok{//   b}
+\CommentTok{//   a}
+\end{Highlighting}
+\end{Shaded}
+
+\subsubsection{\texorpdfstring{\texttt{emitter.prependListener(eventName,\ listener)}}{emitter.prependListener(eventName, listener)}}\label{emitter.prependlistenereventname-listener}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{eventName} \{string\textbar symbol\} The name of the event.
+\item
+  \texttt{listener} \{Function\} The callback function
+\item
+  Returns: \{EventEmitter\}
+\end{itemize}
+
+Adds the \texttt{listener} function to the \emph{beginning} of the
+listeners array for the event named \texttt{eventName}. No checks are
+made to see if the \texttt{listener} has already been added. Multiple
+calls passing the same combination of \texttt{eventName} and
+\texttt{listener} will result in the \texttt{listener} being added, and
+called, multiple times.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{server}\OperatorTok{.}\FunctionTok{prependListener}\NormalTok{(}\StringTok{\textquotesingle{}connection\textquotesingle{}}\OperatorTok{,}\NormalTok{ (stream) }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+  \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\StringTok{\textquotesingle{}someone connected!\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{\})}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+Returns a reference to the \texttt{EventEmitter}, so that calls can be
+chained.
+
+\subsubsection{\texorpdfstring{\texttt{emitter.prependOnceListener(eventName,\ listener)}}{emitter.prependOnceListener(eventName, listener)}}\label{emitter.prependoncelistenereventname-listener}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{eventName} \{string\textbar symbol\} The name of the event.
+\item
+  \texttt{listener} \{Function\} The callback function
+\item
+  Returns: \{EventEmitter\}
+\end{itemize}
+
+Adds a \textbf{one-time} \texttt{listener} function for the event named
+\texttt{eventName} to the \emph{beginning} of the listeners array. The
+next time \texttt{eventName} is triggered, this listener is removed, and
+then invoked.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{server}\OperatorTok{.}\FunctionTok{prependOnceListener}\NormalTok{(}\StringTok{\textquotesingle{}connection\textquotesingle{}}\OperatorTok{,}\NormalTok{ (stream) }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+  \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\StringTok{\textquotesingle{}Ah, we have our first user!\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{\})}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+Returns a reference to the \texttt{EventEmitter}, so that calls can be
+chained.
+
+\subsubsection{\texorpdfstring{\texttt{emitter.removeAllListeners({[}eventName{]})}}{emitter.removeAllListeners({[}eventName{]})}}\label{emitter.removealllistenerseventname}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{eventName} \{string\textbar symbol\}
+\item
+  Returns: \{EventEmitter\}
+\end{itemize}
+
+Removes all listeners, or those of the specified \texttt{eventName}.
+
+It is bad practice to remove listeners added elsewhere in the code,
+particularly when the \texttt{EventEmitter} instance was created by some
+other component or module (e.g.~sockets or file streams).
+
+Returns a reference to the \texttt{EventEmitter}, so that calls can be
+chained.
+
+\subsubsection{\texorpdfstring{\texttt{emitter.removeListener(eventName,\ listener)}}{emitter.removeListener(eventName, listener)}}\label{emitter.removelistenereventname-listener}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{eventName} \{string\textbar symbol\}
+\item
+  \texttt{listener} \{Function\}
+\item
+  Returns: \{EventEmitter\}
+\end{itemize}
+
+Removes the specified \texttt{listener} from the listener array for the
+event named \texttt{eventName}.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ callback }\OperatorTok{=}\NormalTok{ (stream) }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+  \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\StringTok{\textquotesingle{}someone connected!\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{\}}\OperatorTok{;}
+\NormalTok{server}\OperatorTok{.}\FunctionTok{on}\NormalTok{(}\StringTok{\textquotesingle{}connection\textquotesingle{}}\OperatorTok{,}\NormalTok{ callback)}\OperatorTok{;}
+\CommentTok{// ...}
+\NormalTok{server}\OperatorTok{.}\FunctionTok{removeListener}\NormalTok{(}\StringTok{\textquotesingle{}connection\textquotesingle{}}\OperatorTok{,}\NormalTok{ callback)}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+\texttt{removeListener()} will remove, at most, one instance of a
+listener from the listener array. If any single listener has been added
+multiple times to the listener array for the specified
+\texttt{eventName}, then \texttt{removeListener()} must be called
+multiple times to remove each instance.
+
+Once an event is emitted, all listeners attached to it at the time of
+emitting are called in order. This implies that any
+\texttt{removeListener()} or \texttt{removeAllListeners()} calls
+\emph{after} emitting and \emph{before} the last listener finishes
+execution will not remove them from \texttt{emit()} in progress.
+Subsequent events behave as expected.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\ImportTok{import}\NormalTok{ \{ }\BuiltInTok{EventEmitter}\NormalTok{ \} }\ImportTok{from} \StringTok{\textquotesingle{}node:events\textquotesingle{}}\OperatorTok{;}
+\KeywordTok{class}\NormalTok{ MyEmitter }\KeywordTok{extends} \BuiltInTok{EventEmitter}\NormalTok{ \{\}}
+\KeywordTok{const}\NormalTok{ myEmitter }\OperatorTok{=} \KeywordTok{new} \FunctionTok{MyEmitter}\NormalTok{()}\OperatorTok{;}
+
+\KeywordTok{const}\NormalTok{ callbackA }\OperatorTok{=}\NormalTok{ () }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+  \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\StringTok{\textquotesingle{}A\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{  myEmitter}\OperatorTok{.}\FunctionTok{removeListener}\NormalTok{(}\StringTok{\textquotesingle{}event\textquotesingle{}}\OperatorTok{,}\NormalTok{ callbackB)}\OperatorTok{;}
+\NormalTok{\}}\OperatorTok{;}
+
+\KeywordTok{const}\NormalTok{ callbackB }\OperatorTok{=}\NormalTok{ () }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+  \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\StringTok{\textquotesingle{}B\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{\}}\OperatorTok{;}
+
+\NormalTok{myEmitter}\OperatorTok{.}\FunctionTok{on}\NormalTok{(}\StringTok{\textquotesingle{}event\textquotesingle{}}\OperatorTok{,}\NormalTok{ callbackA)}\OperatorTok{;}
+
+\NormalTok{myEmitter}\OperatorTok{.}\FunctionTok{on}\NormalTok{(}\StringTok{\textquotesingle{}event\textquotesingle{}}\OperatorTok{,}\NormalTok{ callbackB)}\OperatorTok{;}
+
+\CommentTok{// callbackA removes listener callbackB but it will still be called.}
+\CommentTok{// Internal listener array at time of emit [callbackA, callbackB]}
+\NormalTok{myEmitter}\OperatorTok{.}\FunctionTok{emit}\NormalTok{(}\StringTok{\textquotesingle{}event\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// Prints:}
+\CommentTok{//   A}
+\CommentTok{//   B}
+
+\CommentTok{// callbackB is now removed.}
+\CommentTok{// Internal listener array [callbackA]}
+\NormalTok{myEmitter}\OperatorTok{.}\FunctionTok{emit}\NormalTok{(}\StringTok{\textquotesingle{}event\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// Prints:}
+\CommentTok{//   A}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const} \BuiltInTok{EventEmitter} \OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:events\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\KeywordTok{class}\NormalTok{ MyEmitter }\KeywordTok{extends} \BuiltInTok{EventEmitter}\NormalTok{ \{\}}
+\KeywordTok{const}\NormalTok{ myEmitter }\OperatorTok{=} \KeywordTok{new} \FunctionTok{MyEmitter}\NormalTok{()}\OperatorTok{;}
+
+\KeywordTok{const}\NormalTok{ callbackA }\OperatorTok{=}\NormalTok{ () }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+  \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\StringTok{\textquotesingle{}A\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{  myEmitter}\OperatorTok{.}\FunctionTok{removeListener}\NormalTok{(}\StringTok{\textquotesingle{}event\textquotesingle{}}\OperatorTok{,}\NormalTok{ callbackB)}\OperatorTok{;}
+\NormalTok{\}}\OperatorTok{;}
+
+\KeywordTok{const}\NormalTok{ callbackB }\OperatorTok{=}\NormalTok{ () }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+  \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\StringTok{\textquotesingle{}B\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{\}}\OperatorTok{;}
+
+\NormalTok{myEmitter}\OperatorTok{.}\FunctionTok{on}\NormalTok{(}\StringTok{\textquotesingle{}event\textquotesingle{}}\OperatorTok{,}\NormalTok{ callbackA)}\OperatorTok{;}
+
+\NormalTok{myEmitter}\OperatorTok{.}\FunctionTok{on}\NormalTok{(}\StringTok{\textquotesingle{}event\textquotesingle{}}\OperatorTok{,}\NormalTok{ callbackB)}\OperatorTok{;}
+
+\CommentTok{// callbackA removes listener callbackB but it will still be called.}
+\CommentTok{// Internal listener array at time of emit [callbackA, callbackB]}
+\NormalTok{myEmitter}\OperatorTok{.}\FunctionTok{emit}\NormalTok{(}\StringTok{\textquotesingle{}event\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// Prints:}
+\CommentTok{//   A}
+\CommentTok{//   B}
+
+\CommentTok{// callbackB is now removed.}
+\CommentTok{// Internal listener array [callbackA]}
+\NormalTok{myEmitter}\OperatorTok{.}\FunctionTok{emit}\NormalTok{(}\StringTok{\textquotesingle{}event\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// Prints:}
+\CommentTok{//   A}
+\end{Highlighting}
+\end{Shaded}
+
+Because listeners are managed using an internal array, calling this will
+change the position indices of any listener registered \emph{after} the
+listener being removed. This will not impact the order in which
+listeners are called, but it means that any copies of the listener array
+as returned by the \texttt{emitter.listeners()} method will need to be
+recreated.
+
+When a single function has been added as a handler multiple times for a
+single event (as in the example below), \texttt{removeListener()} will
+remove the most recently added instance. In the example the
+\texttt{once(\textquotesingle{}ping\textquotesingle{})} listener is
+removed:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\ImportTok{import}\NormalTok{ \{ }\BuiltInTok{EventEmitter}\NormalTok{ \} }\ImportTok{from} \StringTok{\textquotesingle{}node:events\textquotesingle{}}\OperatorTok{;}
+\KeywordTok{const}\NormalTok{ ee }\OperatorTok{=} \KeywordTok{new} \BuiltInTok{EventEmitter}\NormalTok{()}\OperatorTok{;}
+
+\KeywordTok{function} \FunctionTok{pong}\NormalTok{() \{}
+  \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\StringTok{\textquotesingle{}pong\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{\}}
+
+\NormalTok{ee}\OperatorTok{.}\FunctionTok{on}\NormalTok{(}\StringTok{\textquotesingle{}ping\textquotesingle{}}\OperatorTok{,}\NormalTok{ pong)}\OperatorTok{;}
+\NormalTok{ee}\OperatorTok{.}\FunctionTok{once}\NormalTok{(}\StringTok{\textquotesingle{}ping\textquotesingle{}}\OperatorTok{,}\NormalTok{ pong)}\OperatorTok{;}
+\NormalTok{ee}\OperatorTok{.}\FunctionTok{removeListener}\NormalTok{(}\StringTok{\textquotesingle{}ping\textquotesingle{}}\OperatorTok{,}\NormalTok{ pong)}\OperatorTok{;}
+
+\NormalTok{ee}\OperatorTok{.}\FunctionTok{emit}\NormalTok{(}\StringTok{\textquotesingle{}ping\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{ee}\OperatorTok{.}\FunctionTok{emit}\NormalTok{(}\StringTok{\textquotesingle{}ping\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const} \BuiltInTok{EventEmitter} \OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:events\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\KeywordTok{const}\NormalTok{ ee }\OperatorTok{=} \KeywordTok{new} \BuiltInTok{EventEmitter}\NormalTok{()}\OperatorTok{;}
+
+\KeywordTok{function} \FunctionTok{pong}\NormalTok{() \{}
+  \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\StringTok{\textquotesingle{}pong\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{\}}
+
+\NormalTok{ee}\OperatorTok{.}\FunctionTok{on}\NormalTok{(}\StringTok{\textquotesingle{}ping\textquotesingle{}}\OperatorTok{,}\NormalTok{ pong)}\OperatorTok{;}
+\NormalTok{ee}\OperatorTok{.}\FunctionTok{once}\NormalTok{(}\StringTok{\textquotesingle{}ping\textquotesingle{}}\OperatorTok{,}\NormalTok{ pong)}\OperatorTok{;}
+\NormalTok{ee}\OperatorTok{.}\FunctionTok{removeListener}\NormalTok{(}\StringTok{\textquotesingle{}ping\textquotesingle{}}\OperatorTok{,}\NormalTok{ pong)}\OperatorTok{;}
+
+\NormalTok{ee}\OperatorTok{.}\FunctionTok{emit}\NormalTok{(}\StringTok{\textquotesingle{}ping\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{ee}\OperatorTok{.}\FunctionTok{emit}\NormalTok{(}\StringTok{\textquotesingle{}ping\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+Returns a reference to the \texttt{EventEmitter}, so that calls can be
+chained.
+
+\subsubsection{\texorpdfstring{\texttt{emitter.setMaxListeners(n)}}{emitter.setMaxListeners(n)}}\label{emitter.setmaxlistenersn}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{n} \{integer\}
+\item
+  Returns: \{EventEmitter\}
+\end{itemize}
+
+By default \texttt{EventEmitter}s will print a warning if more than
+\texttt{10} listeners are added for a particular event. This is a useful
+default that helps finding memory leaks. The
+\texttt{emitter.setMaxListeners()} method allows the limit to be
+modified for this specific \texttt{EventEmitter} instance. The value can
+be set to \texttt{Infinity} (or \texttt{0}) to indicate an unlimited
+number of listeners.
+
+Returns a reference to the \texttt{EventEmitter}, so that calls can be
+chained.
+
+\subsubsection{\texorpdfstring{\texttt{emitter.rawListeners(eventName)}}{emitter.rawListeners(eventName)}}\label{emitter.rawlistenerseventname}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{eventName} \{string\textbar symbol\}
+\item
+  Returns: \{Function{[}{]}\}
+\end{itemize}
+
+Returns a copy of the array of listeners for the event named
+\texttt{eventName}, including any wrappers (such as those created by
+\texttt{.once()}).
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\ImportTok{import}\NormalTok{ \{ }\BuiltInTok{EventEmitter}\NormalTok{ \} }\ImportTok{from} \StringTok{\textquotesingle{}node:events\textquotesingle{}}\OperatorTok{;}
+\KeywordTok{const}\NormalTok{ emitter }\OperatorTok{=} \KeywordTok{new} \BuiltInTok{EventEmitter}\NormalTok{()}\OperatorTok{;}
+\NormalTok{emitter}\OperatorTok{.}\FunctionTok{once}\NormalTok{(}\StringTok{\textquotesingle{}log\textquotesingle{}}\OperatorTok{,}\NormalTok{ () }\KeywordTok{=\textgreater{}} \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\StringTok{\textquotesingle{}log once\textquotesingle{}}\NormalTok{))}\OperatorTok{;}
+
+\CommentTok{// Returns a new Array with a function \textasciigrave{}onceWrapper\textasciigrave{} which has a property}
+\CommentTok{// \textasciigrave{}listener\textasciigrave{} which contains the original listener bound above}
+\KeywordTok{const}\NormalTok{ listeners }\OperatorTok{=}\NormalTok{ emitter}\OperatorTok{.}\FunctionTok{rawListeners}\NormalTok{(}\StringTok{\textquotesingle{}log\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\KeywordTok{const}\NormalTok{ logFnWrapper }\OperatorTok{=}\NormalTok{ listeners[}\DecValTok{0}\NormalTok{]}\OperatorTok{;}
+
+\CommentTok{// Logs "log once" to the console and does not unbind the \textasciigrave{}once\textasciigrave{} event}
+\NormalTok{logFnWrapper}\OperatorTok{.}\FunctionTok{listener}\NormalTok{()}\OperatorTok{;}
+
+\CommentTok{// Logs "log once" to the console and removes the listener}
+\FunctionTok{logFnWrapper}\NormalTok{()}\OperatorTok{;}
+
+\NormalTok{emitter}\OperatorTok{.}\FunctionTok{on}\NormalTok{(}\StringTok{\textquotesingle{}log\textquotesingle{}}\OperatorTok{,}\NormalTok{ () }\KeywordTok{=\textgreater{}} \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\StringTok{\textquotesingle{}log persistently\textquotesingle{}}\NormalTok{))}\OperatorTok{;}
+\CommentTok{// Will return a new Array with a single function bound by \textasciigrave{}.on()\textasciigrave{} above}
+\KeywordTok{const}\NormalTok{ newListeners }\OperatorTok{=}\NormalTok{ emitter}\OperatorTok{.}\FunctionTok{rawListeners}\NormalTok{(}\StringTok{\textquotesingle{}log\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+
+\CommentTok{// Logs "log persistently" twice}
+\NormalTok{newListeners[}\DecValTok{0}\NormalTok{]()}\OperatorTok{;}
+\NormalTok{emitter}\OperatorTok{.}\FunctionTok{emit}\NormalTok{(}\StringTok{\textquotesingle{}log\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const} \BuiltInTok{EventEmitter} \OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:events\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\KeywordTok{const}\NormalTok{ emitter }\OperatorTok{=} \KeywordTok{new} \BuiltInTok{EventEmitter}\NormalTok{()}\OperatorTok{;}
+\NormalTok{emitter}\OperatorTok{.}\FunctionTok{once}\NormalTok{(}\StringTok{\textquotesingle{}log\textquotesingle{}}\OperatorTok{,}\NormalTok{ () }\KeywordTok{=\textgreater{}} \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\StringTok{\textquotesingle{}log once\textquotesingle{}}\NormalTok{))}\OperatorTok{;}
+
+\CommentTok{// Returns a new Array with a function \textasciigrave{}onceWrapper\textasciigrave{} which has a property}
+\CommentTok{// \textasciigrave{}listener\textasciigrave{} which contains the original listener bound above}
+\KeywordTok{const}\NormalTok{ listeners }\OperatorTok{=}\NormalTok{ emitter}\OperatorTok{.}\FunctionTok{rawListeners}\NormalTok{(}\StringTok{\textquotesingle{}log\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\KeywordTok{const}\NormalTok{ logFnWrapper }\OperatorTok{=}\NormalTok{ listeners[}\DecValTok{0}\NormalTok{]}\OperatorTok{;}
+
+\CommentTok{// Logs "log once" to the console and does not unbind the \textasciigrave{}once\textasciigrave{} event}
+\NormalTok{logFnWrapper}\OperatorTok{.}\FunctionTok{listener}\NormalTok{()}\OperatorTok{;}
+
+\CommentTok{// Logs "log once" to the console and removes the listener}
+\FunctionTok{logFnWrapper}\NormalTok{()}\OperatorTok{;}
+
+\NormalTok{emitter}\OperatorTok{.}\FunctionTok{on}\NormalTok{(}\StringTok{\textquotesingle{}log\textquotesingle{}}\OperatorTok{,}\NormalTok{ () }\KeywordTok{=\textgreater{}} \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\StringTok{\textquotesingle{}log persistently\textquotesingle{}}\NormalTok{))}\OperatorTok{;}
+\CommentTok{// Will return a new Array with a single function bound by \textasciigrave{}.on()\textasciigrave{} above}
+\KeywordTok{const}\NormalTok{ newListeners }\OperatorTok{=}\NormalTok{ emitter}\OperatorTok{.}\FunctionTok{rawListeners}\NormalTok{(}\StringTok{\textquotesingle{}log\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+
+\CommentTok{// Logs "log persistently" twice}
+\NormalTok{newListeners[}\DecValTok{0}\NormalTok{]()}\OperatorTok{;}
+\NormalTok{emitter}\OperatorTok{.}\FunctionTok{emit}\NormalTok{(}\StringTok{\textquotesingle{}log\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+\subsubsection{\texorpdfstring{\texttt{emitter{[}Symbol.for(\textquotesingle{}nodejs.rejection\textquotesingle{}){]}(err,\ eventName{[},\ ...args{]})}}{emitter{[}Symbol.for(\textquotesingle nodejs.rejection\textquotesingle){]}(err, eventName{[}, ...args{]})}}\label{emittersymbol.fornodejs.rejectionerr-eventname-...args}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{err} Error
+\item
+  \texttt{eventName} \{string\textbar symbol\}
+\item
+  \texttt{...args} \{any\}
+\end{itemize}
+
+The
+\texttt{Symbol.for(\textquotesingle{}nodejs.rejection\textquotesingle{})}
+method is called in case a promise rejection happens when emitting an
+event and
+\hyperref[capture-rejections-of-promises]{\texttt{captureRejections}} is
+enabled on the emitter. It is possible to use
+\hyperref[eventscapturerejectionsymbol]{\texttt{events.captureRejectionSymbol}}
+in place of
+\texttt{Symbol.for(\textquotesingle{}nodejs.rejection\textquotesingle{})}.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\ImportTok{import}\NormalTok{ \{ }\BuiltInTok{EventEmitter}\OperatorTok{,}\NormalTok{ captureRejectionSymbol \} }\ImportTok{from} \StringTok{\textquotesingle{}node:events\textquotesingle{}}\OperatorTok{;}
+
+\KeywordTok{class}\NormalTok{ MyClass }\KeywordTok{extends} \BuiltInTok{EventEmitter}\NormalTok{ \{}
+  \FunctionTok{constructor}\NormalTok{() \{}
+    \KeywordTok{super}\NormalTok{(\{ }\DataTypeTok{captureRejections}\OperatorTok{:} \KeywordTok{true}\NormalTok{ \})}\OperatorTok{;}
+\NormalTok{  \}}
+
+\NormalTok{  [captureRejectionSymbol](err}\OperatorTok{,} \BuiltInTok{event}\OperatorTok{,} \OperatorTok{...}\NormalTok{args) \{}
+    \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\StringTok{\textquotesingle{}rejection happened for\textquotesingle{}}\OperatorTok{,} \BuiltInTok{event}\OperatorTok{,} \StringTok{\textquotesingle{}with\textquotesingle{}}\OperatorTok{,}\NormalTok{ err}\OperatorTok{,} \OperatorTok{...}\NormalTok{args)}\OperatorTok{;}
+    \KeywordTok{this}\OperatorTok{.}\FunctionTok{destroy}\NormalTok{(err)}\OperatorTok{;}
+\NormalTok{  \}}
+
+  \FunctionTok{destroy}\NormalTok{(err) \{}
+    \CommentTok{// Tear the resource down here.}
+\NormalTok{  \}}
+\NormalTok{\}}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ \{ }\BuiltInTok{EventEmitter}\OperatorTok{,}\NormalTok{ captureRejectionSymbol \} }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:events\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+
+\KeywordTok{class}\NormalTok{ MyClass }\KeywordTok{extends} \BuiltInTok{EventEmitter}\NormalTok{ \{}
+  \FunctionTok{constructor}\NormalTok{() \{}
+    \KeywordTok{super}\NormalTok{(\{ }\DataTypeTok{captureRejections}\OperatorTok{:} \KeywordTok{true}\NormalTok{ \})}\OperatorTok{;}
+\NormalTok{  \}}
+
+\NormalTok{  [captureRejectionSymbol](err}\OperatorTok{,} \BuiltInTok{event}\OperatorTok{,} \OperatorTok{...}\NormalTok{args) \{}
+    \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\StringTok{\textquotesingle{}rejection happened for\textquotesingle{}}\OperatorTok{,} \BuiltInTok{event}\OperatorTok{,} \StringTok{\textquotesingle{}with\textquotesingle{}}\OperatorTok{,}\NormalTok{ err}\OperatorTok{,} \OperatorTok{...}\NormalTok{args)}\OperatorTok{;}
+    \KeywordTok{this}\OperatorTok{.}\FunctionTok{destroy}\NormalTok{(err)}\OperatorTok{;}
+\NormalTok{  \}}
+
+  \FunctionTok{destroy}\NormalTok{(err) \{}
+    \CommentTok{// Tear the resource down here.}
+\NormalTok{  \}}
+\NormalTok{\}}
+\end{Highlighting}
+\end{Shaded}
+
+\subsection{\texorpdfstring{\texttt{events.defaultMaxListeners}}{events.defaultMaxListeners}}\label{events.defaultmaxlisteners}
+
+By default, a maximum of \texttt{10} listeners can be registered for any
+single event. This limit can be changed for individual
+\texttt{EventEmitter} instances using the
+\hyperref[emittersetmaxlistenersn]{\texttt{emitter.setMaxListeners(n)}}
+method. To change the default for \emph{all} \texttt{EventEmitter}
+instances, the \texttt{events.defaultMaxListeners} property can be used.
+If this value is not a positive number, a \texttt{RangeError} is thrown.
+
+Take caution when setting the \texttt{events.defaultMaxListeners}
+because the change affects \emph{all} \texttt{EventEmitter} instances,
+including those created before the change is made. However, calling
+\hyperref[emittersetmaxlistenersn]{\texttt{emitter.setMaxListeners(n)}}
+still has precedence over \texttt{events.defaultMaxListeners}.
+
+This is not a hard limit. The \texttt{EventEmitter} instance will allow
+more listeners to be added but will output a trace warning to stderr
+indicating that a ``possible EventEmitter memory leak'' has been
+detected. For any single \texttt{EventEmitter}, the
+\texttt{emitter.getMaxListeners()} and
+\texttt{emitter.setMaxListeners()} methods can be used to temporarily
+avoid this warning:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\ImportTok{import}\NormalTok{ \{ }\BuiltInTok{EventEmitter}\NormalTok{ \} }\ImportTok{from} \StringTok{\textquotesingle{}node:events\textquotesingle{}}\OperatorTok{;}
+\KeywordTok{const}\NormalTok{ emitter }\OperatorTok{=} \KeywordTok{new} \BuiltInTok{EventEmitter}\NormalTok{()}\OperatorTok{;}
+\NormalTok{emitter}\OperatorTok{.}\FunctionTok{setMaxListeners}\NormalTok{(emitter}\OperatorTok{.}\FunctionTok{getMaxListeners}\NormalTok{() }\OperatorTok{+} \DecValTok{1}\NormalTok{)}\OperatorTok{;}
+\NormalTok{emitter}\OperatorTok{.}\FunctionTok{once}\NormalTok{(}\StringTok{\textquotesingle{}event\textquotesingle{}}\OperatorTok{,}\NormalTok{ () }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+  \CommentTok{// do stuff}
+\NormalTok{  emitter}\OperatorTok{.}\FunctionTok{setMaxListeners}\NormalTok{(}\BuiltInTok{Math}\OperatorTok{.}\FunctionTok{max}\NormalTok{(emitter}\OperatorTok{.}\FunctionTok{getMaxListeners}\NormalTok{() }\OperatorTok{{-}} \DecValTok{1}\OperatorTok{,} \DecValTok{0}\NormalTok{))}\OperatorTok{;}
+\NormalTok{\})}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const} \BuiltInTok{EventEmitter} \OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:events\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\KeywordTok{const}\NormalTok{ emitter }\OperatorTok{=} \KeywordTok{new} \BuiltInTok{EventEmitter}\NormalTok{()}\OperatorTok{;}
+\NormalTok{emitter}\OperatorTok{.}\FunctionTok{setMaxListeners}\NormalTok{(emitter}\OperatorTok{.}\FunctionTok{getMaxListeners}\NormalTok{() }\OperatorTok{+} \DecValTok{1}\NormalTok{)}\OperatorTok{;}
+\NormalTok{emitter}\OperatorTok{.}\FunctionTok{once}\NormalTok{(}\StringTok{\textquotesingle{}event\textquotesingle{}}\OperatorTok{,}\NormalTok{ () }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+  \CommentTok{// do stuff}
+\NormalTok{  emitter}\OperatorTok{.}\FunctionTok{setMaxListeners}\NormalTok{(}\BuiltInTok{Math}\OperatorTok{.}\FunctionTok{max}\NormalTok{(emitter}\OperatorTok{.}\FunctionTok{getMaxListeners}\NormalTok{() }\OperatorTok{{-}} \DecValTok{1}\OperatorTok{,} \DecValTok{0}\NormalTok{))}\OperatorTok{;}
+\NormalTok{\})}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+The \href{cli.md\#--trace-warnings}{\texttt{-\/-trace-warnings}}
+command-line flag can be used to display the stack trace for such
+warnings.
+
+The emitted warning can be inspected with
+\href{process.md\#event-warning}{\texttt{process.on(\textquotesingle{}warning\textquotesingle{})}}
+and will have the additional \texttt{emitter}, \texttt{type}, and
+\texttt{count} properties, referring to the event emitter instance, the
+event's name and the number of attached listeners, respectively. Its
+\texttt{name} property is set to
+\texttt{\textquotesingle{}MaxListenersExceededWarning\textquotesingle{}}.
+
+\subsection{\texorpdfstring{\texttt{events.errorMonitor}}{events.errorMonitor}}\label{events.errormonitor}
+
+This symbol shall be used to install a listener for only monitoring
+\texttt{\textquotesingle{}error\textquotesingle{}} events. Listeners
+installed using this symbol are called before the regular
+\texttt{\textquotesingle{}error\textquotesingle{}} listeners are called.
+
+Installing a listener using this symbol does not change the behavior
+once an \texttt{\textquotesingle{}error\textquotesingle{}} event is
+emitted. Therefore, the process will still crash if no regular
+\texttt{\textquotesingle{}error\textquotesingle{}} listener is
+installed.
+
+\subsection{\texorpdfstring{\texttt{events.getEventListeners(emitterOrTarget,\ eventName)}}{events.getEventListeners(emitterOrTarget, eventName)}}\label{events.geteventlistenersemitterortarget-eventname}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{emitterOrTarget} \{EventEmitter\textbar EventTarget\}
+\item
+  \texttt{eventName} \{string\textbar symbol\}
+\item
+  Returns: \{Function{[}{]}\}
+\end{itemize}
+
+Returns a copy of the array of listeners for the event named
+\texttt{eventName}.
+
+For \texttt{EventEmitter}s this behaves exactly the same as calling
+\texttt{.listeners} on the emitter.
+
+For \texttt{EventTarget}s this is the only way to get the event
+listeners for the event target. This is useful for debugging and
+diagnostic purposes.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\ImportTok{import}\NormalTok{ \{ getEventListeners}\OperatorTok{,} \BuiltInTok{EventEmitter}\NormalTok{ \} }\ImportTok{from} \StringTok{\textquotesingle{}node:events\textquotesingle{}}\OperatorTok{;}
+
+\NormalTok{\{}
+  \KeywordTok{const}\NormalTok{ ee }\OperatorTok{=} \KeywordTok{new} \BuiltInTok{EventEmitter}\NormalTok{()}\OperatorTok{;}
+  \KeywordTok{const}\NormalTok{ listener }\OperatorTok{=}\NormalTok{ () }\KeywordTok{=\textgreater{}} \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\StringTok{\textquotesingle{}Events are fun\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{  ee}\OperatorTok{.}\FunctionTok{on}\NormalTok{(}\StringTok{\textquotesingle{}foo\textquotesingle{}}\OperatorTok{,}\NormalTok{ listener)}\OperatorTok{;}
+  \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\FunctionTok{getEventListeners}\NormalTok{(ee}\OperatorTok{,} \StringTok{\textquotesingle{}foo\textquotesingle{}}\NormalTok{))}\OperatorTok{;} \CommentTok{// [ [Function: listener] ]}
+\NormalTok{\}}
+\NormalTok{\{}
+  \KeywordTok{const}\NormalTok{ et }\OperatorTok{=} \KeywordTok{new} \BuiltInTok{EventTarget}\NormalTok{()}\OperatorTok{;}
+  \KeywordTok{const}\NormalTok{ listener }\OperatorTok{=}\NormalTok{ () }\KeywordTok{=\textgreater{}} \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\StringTok{\textquotesingle{}Events are fun\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{  et}\OperatorTok{.}\FunctionTok{addEventListener}\NormalTok{(}\StringTok{\textquotesingle{}foo\textquotesingle{}}\OperatorTok{,}\NormalTok{ listener)}\OperatorTok{;}
+  \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\FunctionTok{getEventListeners}\NormalTok{(et}\OperatorTok{,} \StringTok{\textquotesingle{}foo\textquotesingle{}}\NormalTok{))}\OperatorTok{;} \CommentTok{// [ [Function: listener] ]}
+\NormalTok{\}}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ \{ getEventListeners}\OperatorTok{,} \BuiltInTok{EventEmitter}\NormalTok{ \} }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:events\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+
+\NormalTok{\{}
+  \KeywordTok{const}\NormalTok{ ee }\OperatorTok{=} \KeywordTok{new} \BuiltInTok{EventEmitter}\NormalTok{()}\OperatorTok{;}
+  \KeywordTok{const}\NormalTok{ listener }\OperatorTok{=}\NormalTok{ () }\KeywordTok{=\textgreater{}} \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\StringTok{\textquotesingle{}Events are fun\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{  ee}\OperatorTok{.}\FunctionTok{on}\NormalTok{(}\StringTok{\textquotesingle{}foo\textquotesingle{}}\OperatorTok{,}\NormalTok{ listener)}\OperatorTok{;}
+  \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\FunctionTok{getEventListeners}\NormalTok{(ee}\OperatorTok{,} \StringTok{\textquotesingle{}foo\textquotesingle{}}\NormalTok{))}\OperatorTok{;} \CommentTok{// [ [Function: listener] ]}
+\NormalTok{\}}
+\NormalTok{\{}
+  \KeywordTok{const}\NormalTok{ et }\OperatorTok{=} \KeywordTok{new} \BuiltInTok{EventTarget}\NormalTok{()}\OperatorTok{;}
+  \KeywordTok{const}\NormalTok{ listener }\OperatorTok{=}\NormalTok{ () }\KeywordTok{=\textgreater{}} \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\StringTok{\textquotesingle{}Events are fun\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{  et}\OperatorTok{.}\FunctionTok{addEventListener}\NormalTok{(}\StringTok{\textquotesingle{}foo\textquotesingle{}}\OperatorTok{,}\NormalTok{ listener)}\OperatorTok{;}
+  \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\FunctionTok{getEventListeners}\NormalTok{(et}\OperatorTok{,} \StringTok{\textquotesingle{}foo\textquotesingle{}}\NormalTok{))}\OperatorTok{;} \CommentTok{// [ [Function: listener] ]}
+\NormalTok{\}}
+\end{Highlighting}
+\end{Shaded}
+
+\subsection{\texorpdfstring{\texttt{events.getMaxListeners(emitterOrTarget)}}{events.getMaxListeners(emitterOrTarget)}}\label{events.getmaxlistenersemitterortarget}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{emitterOrTarget} \{EventEmitter\textbar EventTarget\}
+\item
+  Returns: \{number\}
+\end{itemize}
+
+Returns the currently set max amount of listeners.
+
+For \texttt{EventEmitter}s this behaves exactly the same as calling
+\texttt{.getMaxListeners} on the emitter.
+
+For \texttt{EventTarget}s this is the only way to get the max event
+listeners for the event target. If the number of event handlers on a
+single EventTarget exceeds the max set, the EventTarget will print a
+warning.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\ImportTok{import}\NormalTok{ \{ getMaxListeners}\OperatorTok{,}\NormalTok{ setMaxListeners}\OperatorTok{,} \BuiltInTok{EventEmitter}\NormalTok{ \} }\ImportTok{from} \StringTok{\textquotesingle{}node:events\textquotesingle{}}\OperatorTok{;}
+
+\NormalTok{\{}
+  \KeywordTok{const}\NormalTok{ ee }\OperatorTok{=} \KeywordTok{new} \BuiltInTok{EventEmitter}\NormalTok{()}\OperatorTok{;}
+  \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\FunctionTok{getMaxListeners}\NormalTok{(ee))}\OperatorTok{;} \CommentTok{// 10}
+  \FunctionTok{setMaxListeners}\NormalTok{(}\DecValTok{11}\OperatorTok{,}\NormalTok{ ee)}\OperatorTok{;}
+  \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\FunctionTok{getMaxListeners}\NormalTok{(ee))}\OperatorTok{;} \CommentTok{// 11}
+\NormalTok{\}}
+\NormalTok{\{}
+  \KeywordTok{const}\NormalTok{ et }\OperatorTok{=} \KeywordTok{new} \BuiltInTok{EventTarget}\NormalTok{()}\OperatorTok{;}
+  \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\FunctionTok{getMaxListeners}\NormalTok{(et))}\OperatorTok{;} \CommentTok{// 10}
+  \FunctionTok{setMaxListeners}\NormalTok{(}\DecValTok{11}\OperatorTok{,}\NormalTok{ et)}\OperatorTok{;}
+  \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\FunctionTok{getMaxListeners}\NormalTok{(et))}\OperatorTok{;} \CommentTok{// 11}
+\NormalTok{\}}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ \{ getMaxListeners}\OperatorTok{,}\NormalTok{ setMaxListeners}\OperatorTok{,} \BuiltInTok{EventEmitter}\NormalTok{ \} }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:events\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+
+\NormalTok{\{}
+  \KeywordTok{const}\NormalTok{ ee }\OperatorTok{=} \KeywordTok{new} \BuiltInTok{EventEmitter}\NormalTok{()}\OperatorTok{;}
+  \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\FunctionTok{getMaxListeners}\NormalTok{(ee))}\OperatorTok{;} \CommentTok{// 10}
+  \FunctionTok{setMaxListeners}\NormalTok{(}\DecValTok{11}\OperatorTok{,}\NormalTok{ ee)}\OperatorTok{;}
+  \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\FunctionTok{getMaxListeners}\NormalTok{(ee))}\OperatorTok{;} \CommentTok{// 11}
+\NormalTok{\}}
+\NormalTok{\{}
+  \KeywordTok{const}\NormalTok{ et }\OperatorTok{=} \KeywordTok{new} \BuiltInTok{EventTarget}\NormalTok{()}\OperatorTok{;}
+  \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\FunctionTok{getMaxListeners}\NormalTok{(et))}\OperatorTok{;} \CommentTok{// 10}
+  \FunctionTok{setMaxListeners}\NormalTok{(}\DecValTok{11}\OperatorTok{,}\NormalTok{ et)}\OperatorTok{;}
+  \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\FunctionTok{getMaxListeners}\NormalTok{(et))}\OperatorTok{;} \CommentTok{// 11}
+\NormalTok{\}}
+\end{Highlighting}
+\end{Shaded}
+
+\subsection{\texorpdfstring{\texttt{events.once(emitter,\ name{[},\ options{]})}}{events.once(emitter, name{[}, options{]})}}\label{events.onceemitter-name-options}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{emitter} \{EventEmitter\}
+\item
+  \texttt{name} \{string\}
+\item
+  \texttt{options} \{Object\}
+
+  \begin{itemize}
+  \tightlist
+  \item
+    \texttt{signal} \{AbortSignal\} Can be used to cancel waiting for
+    the event.
+  \end{itemize}
+\item
+  Returns: \{Promise\}
+\end{itemize}
+
+Creates a \texttt{Promise} that is fulfilled when the
+\texttt{EventEmitter} emits the given event or that is rejected if the
+\texttt{EventEmitter} emits
+\texttt{\textquotesingle{}error\textquotesingle{}} while waiting. The
+\texttt{Promise} will resolve with an array of all the arguments emitted
+to the given event.
+
+This method is intentionally generic and works with the web platform
+\href{https://dom.spec.whatwg.org/\#interface-eventtarget}{EventTarget}
+interface, which has no special
+\texttt{\textquotesingle{}error\textquotesingle{}} event semantics and
+does not listen to the
+\texttt{\textquotesingle{}error\textquotesingle{}} event.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\ImportTok{import}\NormalTok{ \{ once}\OperatorTok{,} \BuiltInTok{EventEmitter}\NormalTok{ \} }\ImportTok{from} \StringTok{\textquotesingle{}node:events\textquotesingle{}}\OperatorTok{;}
+\ImportTok{import} \BuiltInTok{process} \ImportTok{from} \StringTok{\textquotesingle{}node:process\textquotesingle{}}\OperatorTok{;}
+
+\KeywordTok{const}\NormalTok{ ee }\OperatorTok{=} \KeywordTok{new} \BuiltInTok{EventEmitter}\NormalTok{()}\OperatorTok{;}
+
+\BuiltInTok{process}\OperatorTok{.}\FunctionTok{nextTick}\NormalTok{(() }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+\NormalTok{  ee}\OperatorTok{.}\FunctionTok{emit}\NormalTok{(}\StringTok{\textquotesingle{}myevent\textquotesingle{}}\OperatorTok{,} \DecValTok{42}\NormalTok{)}\OperatorTok{;}
+\NormalTok{\})}\OperatorTok{;}
+
+\KeywordTok{const}\NormalTok{ [value] }\OperatorTok{=} \ControlFlowTok{await} \FunctionTok{once}\NormalTok{(ee}\OperatorTok{,} \StringTok{\textquotesingle{}myevent\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(value)}\OperatorTok{;}
+
+\KeywordTok{const}\NormalTok{ err }\OperatorTok{=} \KeywordTok{new} \BuiltInTok{Error}\NormalTok{(}\StringTok{\textquotesingle{}kaboom\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\BuiltInTok{process}\OperatorTok{.}\FunctionTok{nextTick}\NormalTok{(() }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+\NormalTok{  ee}\OperatorTok{.}\FunctionTok{emit}\NormalTok{(}\StringTok{\textquotesingle{}error\textquotesingle{}}\OperatorTok{,}\NormalTok{ err)}\OperatorTok{;}
+\NormalTok{\})}\OperatorTok{;}
+
+\ControlFlowTok{try}\NormalTok{ \{}
+  \ControlFlowTok{await} \FunctionTok{once}\NormalTok{(ee}\OperatorTok{,} \StringTok{\textquotesingle{}myevent\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{\} }\ControlFlowTok{catch}\NormalTok{ (err) \{}
+  \BuiltInTok{console}\OperatorTok{.}\FunctionTok{error}\NormalTok{(}\StringTok{\textquotesingle{}error happened\textquotesingle{}}\OperatorTok{,}\NormalTok{ err)}\OperatorTok{;}
+\NormalTok{\}}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ \{ once}\OperatorTok{,} \BuiltInTok{EventEmitter}\NormalTok{ \} }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:events\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+
+\KeywordTok{async} \KeywordTok{function} \FunctionTok{run}\NormalTok{() \{}
+  \KeywordTok{const}\NormalTok{ ee }\OperatorTok{=} \KeywordTok{new} \BuiltInTok{EventEmitter}\NormalTok{()}\OperatorTok{;}
+
+  \BuiltInTok{process}\OperatorTok{.}\FunctionTok{nextTick}\NormalTok{(() }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+\NormalTok{    ee}\OperatorTok{.}\FunctionTok{emit}\NormalTok{(}\StringTok{\textquotesingle{}myevent\textquotesingle{}}\OperatorTok{,} \DecValTok{42}\NormalTok{)}\OperatorTok{;}
+\NormalTok{  \})}\OperatorTok{;}
+
+  \KeywordTok{const}\NormalTok{ [value] }\OperatorTok{=} \ControlFlowTok{await} \FunctionTok{once}\NormalTok{(ee}\OperatorTok{,} \StringTok{\textquotesingle{}myevent\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+  \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(value)}\OperatorTok{;}
+
+  \KeywordTok{const}\NormalTok{ err }\OperatorTok{=} \KeywordTok{new} \BuiltInTok{Error}\NormalTok{(}\StringTok{\textquotesingle{}kaboom\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+  \BuiltInTok{process}\OperatorTok{.}\FunctionTok{nextTick}\NormalTok{(() }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+\NormalTok{    ee}\OperatorTok{.}\FunctionTok{emit}\NormalTok{(}\StringTok{\textquotesingle{}error\textquotesingle{}}\OperatorTok{,}\NormalTok{ err)}\OperatorTok{;}
+\NormalTok{  \})}\OperatorTok{;}
+
+  \ControlFlowTok{try}\NormalTok{ \{}
+    \ControlFlowTok{await} \FunctionTok{once}\NormalTok{(ee}\OperatorTok{,} \StringTok{\textquotesingle{}myevent\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{  \} }\ControlFlowTok{catch}\NormalTok{ (err) \{}
+    \BuiltInTok{console}\OperatorTok{.}\FunctionTok{error}\NormalTok{(}\StringTok{\textquotesingle{}error happened\textquotesingle{}}\OperatorTok{,}\NormalTok{ err)}\OperatorTok{;}
+\NormalTok{  \}}
+\NormalTok{\}}
+
+\FunctionTok{run}\NormalTok{()}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+The special handling of the
+\texttt{\textquotesingle{}error\textquotesingle{}} event is only used
+when \texttt{events.once()} is used to wait for another event. If
+\texttt{events.once()} is used to wait for the
+'\texttt{error\textquotesingle{}} event itself, then it is treated as
+any other kind of event without special handling:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\ImportTok{import}\NormalTok{ \{ }\BuiltInTok{EventEmitter}\OperatorTok{,}\NormalTok{ once \} }\ImportTok{from} \StringTok{\textquotesingle{}node:events\textquotesingle{}}\OperatorTok{;}
+
+\KeywordTok{const}\NormalTok{ ee }\OperatorTok{=} \KeywordTok{new} \BuiltInTok{EventEmitter}\NormalTok{()}\OperatorTok{;}
+
+\FunctionTok{once}\NormalTok{(ee}\OperatorTok{,} \StringTok{\textquotesingle{}error\textquotesingle{}}\NormalTok{)}
+  \OperatorTok{.}\FunctionTok{then}\NormalTok{(([err]) }\KeywordTok{=\textgreater{}} \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\StringTok{\textquotesingle{}ok\textquotesingle{}}\OperatorTok{,}\NormalTok{ err}\OperatorTok{.}\AttributeTok{message}\NormalTok{))}
+  \OperatorTok{.}\FunctionTok{catch}\NormalTok{((err) }\KeywordTok{=\textgreater{}} \BuiltInTok{console}\OperatorTok{.}\FunctionTok{error}\NormalTok{(}\StringTok{\textquotesingle{}error\textquotesingle{}}\OperatorTok{,}\NormalTok{ err}\OperatorTok{.}\AttributeTok{message}\NormalTok{))}\OperatorTok{;}
+
+\NormalTok{ee}\OperatorTok{.}\FunctionTok{emit}\NormalTok{(}\StringTok{\textquotesingle{}error\textquotesingle{}}\OperatorTok{,} \KeywordTok{new} \BuiltInTok{Error}\NormalTok{(}\StringTok{\textquotesingle{}boom\textquotesingle{}}\NormalTok{))}\OperatorTok{;}
+
+\CommentTok{// Prints: ok boom}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ \{ }\BuiltInTok{EventEmitter}\OperatorTok{,}\NormalTok{ once \} }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:events\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+
+\KeywordTok{const}\NormalTok{ ee }\OperatorTok{=} \KeywordTok{new} \BuiltInTok{EventEmitter}\NormalTok{()}\OperatorTok{;}
+
+\FunctionTok{once}\NormalTok{(ee}\OperatorTok{,} \StringTok{\textquotesingle{}error\textquotesingle{}}\NormalTok{)}
+  \OperatorTok{.}\FunctionTok{then}\NormalTok{(([err]) }\KeywordTok{=\textgreater{}} \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\StringTok{\textquotesingle{}ok\textquotesingle{}}\OperatorTok{,}\NormalTok{ err}\OperatorTok{.}\AttributeTok{message}\NormalTok{))}
+  \OperatorTok{.}\FunctionTok{catch}\NormalTok{((err) }\KeywordTok{=\textgreater{}} \BuiltInTok{console}\OperatorTok{.}\FunctionTok{error}\NormalTok{(}\StringTok{\textquotesingle{}error\textquotesingle{}}\OperatorTok{,}\NormalTok{ err}\OperatorTok{.}\AttributeTok{message}\NormalTok{))}\OperatorTok{;}
+
+\NormalTok{ee}\OperatorTok{.}\FunctionTok{emit}\NormalTok{(}\StringTok{\textquotesingle{}error\textquotesingle{}}\OperatorTok{,} \KeywordTok{new} \BuiltInTok{Error}\NormalTok{(}\StringTok{\textquotesingle{}boom\textquotesingle{}}\NormalTok{))}\OperatorTok{;}
+
+\CommentTok{// Prints: ok boom}
+\end{Highlighting}
+\end{Shaded}
+
+An \{AbortSignal\} can be used to cancel waiting for the event:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\ImportTok{import}\NormalTok{ \{ }\BuiltInTok{EventEmitter}\OperatorTok{,}\NormalTok{ once \} }\ImportTok{from} \StringTok{\textquotesingle{}node:events\textquotesingle{}}\OperatorTok{;}
+
+\KeywordTok{const}\NormalTok{ ee }\OperatorTok{=} \KeywordTok{new} \BuiltInTok{EventEmitter}\NormalTok{()}\OperatorTok{;}
+\KeywordTok{const}\NormalTok{ ac }\OperatorTok{=} \KeywordTok{new} \FunctionTok{AbortController}\NormalTok{()}\OperatorTok{;}
+
+\KeywordTok{async} \KeywordTok{function} \FunctionTok{foo}\NormalTok{(emitter}\OperatorTok{,} \BuiltInTok{event}\OperatorTok{,}\NormalTok{ signal) \{}
+  \ControlFlowTok{try}\NormalTok{ \{}
+    \ControlFlowTok{await} \FunctionTok{once}\NormalTok{(emitter}\OperatorTok{,} \BuiltInTok{event}\OperatorTok{,}\NormalTok{ \{ signal \})}\OperatorTok{;}
+    \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\StringTok{\textquotesingle{}event emitted!\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{  \} }\ControlFlowTok{catch}\NormalTok{ (error) \{}
+    \ControlFlowTok{if}\NormalTok{ (error}\OperatorTok{.}\AttributeTok{name} \OperatorTok{===} \StringTok{\textquotesingle{}AbortError\textquotesingle{}}\NormalTok{) \{}
+      \BuiltInTok{console}\OperatorTok{.}\FunctionTok{error}\NormalTok{(}\StringTok{\textquotesingle{}Waiting for the event was canceled!\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{    \} }\ControlFlowTok{else}\NormalTok{ \{}
+      \BuiltInTok{console}\OperatorTok{.}\FunctionTok{error}\NormalTok{(}\StringTok{\textquotesingle{}There was an error\textquotesingle{}}\OperatorTok{,}\NormalTok{ error}\OperatorTok{.}\AttributeTok{message}\NormalTok{)}\OperatorTok{;}
+\NormalTok{    \}}
+\NormalTok{  \}}
+\NormalTok{\}}
+
+\FunctionTok{foo}\NormalTok{(ee}\OperatorTok{,} \StringTok{\textquotesingle{}foo\textquotesingle{}}\OperatorTok{,}\NormalTok{ ac}\OperatorTok{.}\AttributeTok{signal}\NormalTok{)}\OperatorTok{;}
+\NormalTok{ac}\OperatorTok{.}\FunctionTok{abort}\NormalTok{()}\OperatorTok{;} \CommentTok{// Abort waiting for the event}
+\NormalTok{ee}\OperatorTok{.}\FunctionTok{emit}\NormalTok{(}\StringTok{\textquotesingle{}foo\textquotesingle{}}\NormalTok{)}\OperatorTok{;} \CommentTok{// Prints: Waiting for the event was canceled!}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ \{ }\BuiltInTok{EventEmitter}\OperatorTok{,}\NormalTok{ once \} }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:events\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+
+\KeywordTok{const}\NormalTok{ ee }\OperatorTok{=} \KeywordTok{new} \BuiltInTok{EventEmitter}\NormalTok{()}\OperatorTok{;}
+\KeywordTok{const}\NormalTok{ ac }\OperatorTok{=} \KeywordTok{new} \FunctionTok{AbortController}\NormalTok{()}\OperatorTok{;}
+
+\KeywordTok{async} \KeywordTok{function} \FunctionTok{foo}\NormalTok{(emitter}\OperatorTok{,} \BuiltInTok{event}\OperatorTok{,}\NormalTok{ signal) \{}
+  \ControlFlowTok{try}\NormalTok{ \{}
+    \ControlFlowTok{await} \FunctionTok{once}\NormalTok{(emitter}\OperatorTok{,} \BuiltInTok{event}\OperatorTok{,}\NormalTok{ \{ signal \})}\OperatorTok{;}
+    \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\StringTok{\textquotesingle{}event emitted!\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{  \} }\ControlFlowTok{catch}\NormalTok{ (error) \{}
+    \ControlFlowTok{if}\NormalTok{ (error}\OperatorTok{.}\AttributeTok{name} \OperatorTok{===} \StringTok{\textquotesingle{}AbortError\textquotesingle{}}\NormalTok{) \{}
+      \BuiltInTok{console}\OperatorTok{.}\FunctionTok{error}\NormalTok{(}\StringTok{\textquotesingle{}Waiting for the event was canceled!\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{    \} }\ControlFlowTok{else}\NormalTok{ \{}
+      \BuiltInTok{console}\OperatorTok{.}\FunctionTok{error}\NormalTok{(}\StringTok{\textquotesingle{}There was an error\textquotesingle{}}\OperatorTok{,}\NormalTok{ error}\OperatorTok{.}\AttributeTok{message}\NormalTok{)}\OperatorTok{;}
+\NormalTok{    \}}
+\NormalTok{  \}}
+\NormalTok{\}}
+
+\FunctionTok{foo}\NormalTok{(ee}\OperatorTok{,} \StringTok{\textquotesingle{}foo\textquotesingle{}}\OperatorTok{,}\NormalTok{ ac}\OperatorTok{.}\AttributeTok{signal}\NormalTok{)}\OperatorTok{;}
+\NormalTok{ac}\OperatorTok{.}\FunctionTok{abort}\NormalTok{()}\OperatorTok{;} \CommentTok{// Abort waiting for the event}
+\NormalTok{ee}\OperatorTok{.}\FunctionTok{emit}\NormalTok{(}\StringTok{\textquotesingle{}foo\textquotesingle{}}\NormalTok{)}\OperatorTok{;} \CommentTok{// Prints: Waiting for the event was canceled!}
+\end{Highlighting}
+\end{Shaded}
+
+\subsubsection{\texorpdfstring{Awaiting multiple events emitted on
+\texttt{process.nextTick()}}{Awaiting multiple events emitted on process.nextTick()}}\label{awaiting-multiple-events-emitted-on-process.nexttick}
+
+There is an edge case worth noting when using the \texttt{events.once()}
+function to await multiple events emitted on in the same batch of
+\texttt{process.nextTick()} operations, or whenever multiple events are
+emitted synchronously. Specifically, because the
+\texttt{process.nextTick()} queue is drained before the \texttt{Promise}
+microtask queue, and because \texttt{EventEmitter} emits all events
+synchronously, it is possible for \texttt{events.once()} to miss an
+event.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\ImportTok{import}\NormalTok{ \{ }\BuiltInTok{EventEmitter}\OperatorTok{,}\NormalTok{ once \} }\ImportTok{from} \StringTok{\textquotesingle{}node:events\textquotesingle{}}\OperatorTok{;}
+\ImportTok{import} \BuiltInTok{process} \ImportTok{from} \StringTok{\textquotesingle{}node:process\textquotesingle{}}\OperatorTok{;}
+
+\KeywordTok{const}\NormalTok{ myEE }\OperatorTok{=} \KeywordTok{new} \BuiltInTok{EventEmitter}\NormalTok{()}\OperatorTok{;}
+
+\KeywordTok{async} \KeywordTok{function} \FunctionTok{foo}\NormalTok{() \{}
+  \ControlFlowTok{await} \FunctionTok{once}\NormalTok{(myEE}\OperatorTok{,} \StringTok{\textquotesingle{}bar\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+  \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\StringTok{\textquotesingle{}bar\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+
+  \CommentTok{// This Promise will never resolve because the \textquotesingle{}foo\textquotesingle{} event will}
+  \CommentTok{// have already been emitted before the Promise is created.}
+  \ControlFlowTok{await} \FunctionTok{once}\NormalTok{(myEE}\OperatorTok{,} \StringTok{\textquotesingle{}foo\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+  \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\StringTok{\textquotesingle{}foo\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{\}}
+
+\BuiltInTok{process}\OperatorTok{.}\FunctionTok{nextTick}\NormalTok{(() }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+\NormalTok{  myEE}\OperatorTok{.}\FunctionTok{emit}\NormalTok{(}\StringTok{\textquotesingle{}bar\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{  myEE}\OperatorTok{.}\FunctionTok{emit}\NormalTok{(}\StringTok{\textquotesingle{}foo\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{\})}\OperatorTok{;}
+
+\FunctionTok{foo}\NormalTok{()}\OperatorTok{.}\FunctionTok{then}\NormalTok{(() }\KeywordTok{=\textgreater{}} \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\StringTok{\textquotesingle{}done\textquotesingle{}}\NormalTok{))}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ \{ }\BuiltInTok{EventEmitter}\OperatorTok{,}\NormalTok{ once \} }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:events\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+
+\KeywordTok{const}\NormalTok{ myEE }\OperatorTok{=} \KeywordTok{new} \BuiltInTok{EventEmitter}\NormalTok{()}\OperatorTok{;}
+
+\KeywordTok{async} \KeywordTok{function} \FunctionTok{foo}\NormalTok{() \{}
+  \ControlFlowTok{await} \FunctionTok{once}\NormalTok{(myEE}\OperatorTok{,} \StringTok{\textquotesingle{}bar\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+  \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\StringTok{\textquotesingle{}bar\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+
+  \CommentTok{// This Promise will never resolve because the \textquotesingle{}foo\textquotesingle{} event will}
+  \CommentTok{// have already been emitted before the Promise is created.}
+  \ControlFlowTok{await} \FunctionTok{once}\NormalTok{(myEE}\OperatorTok{,} \StringTok{\textquotesingle{}foo\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+  \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\StringTok{\textquotesingle{}foo\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{\}}
+
+\BuiltInTok{process}\OperatorTok{.}\FunctionTok{nextTick}\NormalTok{(() }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+\NormalTok{  myEE}\OperatorTok{.}\FunctionTok{emit}\NormalTok{(}\StringTok{\textquotesingle{}bar\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{  myEE}\OperatorTok{.}\FunctionTok{emit}\NormalTok{(}\StringTok{\textquotesingle{}foo\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{\})}\OperatorTok{;}
+
+\FunctionTok{foo}\NormalTok{()}\OperatorTok{.}\FunctionTok{then}\NormalTok{(() }\KeywordTok{=\textgreater{}} \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\StringTok{\textquotesingle{}done\textquotesingle{}}\NormalTok{))}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+To catch both events, create each of the Promises \emph{before} awaiting
+either of them, then it becomes possible to use \texttt{Promise.all()},
+\texttt{Promise.race()}, or \texttt{Promise.allSettled()}:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\ImportTok{import}\NormalTok{ \{ }\BuiltInTok{EventEmitter}\OperatorTok{,}\NormalTok{ once \} }\ImportTok{from} \StringTok{\textquotesingle{}node:events\textquotesingle{}}\OperatorTok{;}
+\ImportTok{import} \BuiltInTok{process} \ImportTok{from} \StringTok{\textquotesingle{}node:process\textquotesingle{}}\OperatorTok{;}
+
+\KeywordTok{const}\NormalTok{ myEE }\OperatorTok{=} \KeywordTok{new} \BuiltInTok{EventEmitter}\NormalTok{()}\OperatorTok{;}
+
+\KeywordTok{async} \KeywordTok{function} \FunctionTok{foo}\NormalTok{() \{}
+  \ControlFlowTok{await} \BuiltInTok{Promise}\OperatorTok{.}\FunctionTok{all}\NormalTok{([}\FunctionTok{once}\NormalTok{(myEE}\OperatorTok{,} \StringTok{\textquotesingle{}bar\textquotesingle{}}\NormalTok{)}\OperatorTok{,} \FunctionTok{once}\NormalTok{(myEE}\OperatorTok{,} \StringTok{\textquotesingle{}foo\textquotesingle{}}\NormalTok{)])}\OperatorTok{;}
+  \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\StringTok{\textquotesingle{}foo\textquotesingle{}}\OperatorTok{,} \StringTok{\textquotesingle{}bar\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{\}}
+
+\BuiltInTok{process}\OperatorTok{.}\FunctionTok{nextTick}\NormalTok{(() }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+\NormalTok{  myEE}\OperatorTok{.}\FunctionTok{emit}\NormalTok{(}\StringTok{\textquotesingle{}bar\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{  myEE}\OperatorTok{.}\FunctionTok{emit}\NormalTok{(}\StringTok{\textquotesingle{}foo\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{\})}\OperatorTok{;}
+
+\FunctionTok{foo}\NormalTok{()}\OperatorTok{.}\FunctionTok{then}\NormalTok{(() }\KeywordTok{=\textgreater{}} \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\StringTok{\textquotesingle{}done\textquotesingle{}}\NormalTok{))}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ \{ }\BuiltInTok{EventEmitter}\OperatorTok{,}\NormalTok{ once \} }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:events\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+
+\KeywordTok{const}\NormalTok{ myEE }\OperatorTok{=} \KeywordTok{new} \BuiltInTok{EventEmitter}\NormalTok{()}\OperatorTok{;}
+
+\KeywordTok{async} \KeywordTok{function} \FunctionTok{foo}\NormalTok{() \{}
+  \ControlFlowTok{await} \BuiltInTok{Promise}\OperatorTok{.}\FunctionTok{all}\NormalTok{([}\FunctionTok{once}\NormalTok{(myEE}\OperatorTok{,} \StringTok{\textquotesingle{}bar\textquotesingle{}}\NormalTok{)}\OperatorTok{,} \FunctionTok{once}\NormalTok{(myEE}\OperatorTok{,} \StringTok{\textquotesingle{}foo\textquotesingle{}}\NormalTok{)])}\OperatorTok{;}
+  \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\StringTok{\textquotesingle{}foo\textquotesingle{}}\OperatorTok{,} \StringTok{\textquotesingle{}bar\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{\}}
+
+\BuiltInTok{process}\OperatorTok{.}\FunctionTok{nextTick}\NormalTok{(() }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+\NormalTok{  myEE}\OperatorTok{.}\FunctionTok{emit}\NormalTok{(}\StringTok{\textquotesingle{}bar\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{  myEE}\OperatorTok{.}\FunctionTok{emit}\NormalTok{(}\StringTok{\textquotesingle{}foo\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{\})}\OperatorTok{;}
+
+\FunctionTok{foo}\NormalTok{()}\OperatorTok{.}\FunctionTok{then}\NormalTok{(() }\KeywordTok{=\textgreater{}} \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\StringTok{\textquotesingle{}done\textquotesingle{}}\NormalTok{))}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+\subsection{\texorpdfstring{\texttt{events.captureRejections}}{events.captureRejections}}\label{events.capturerejections}
+
+Value: \{boolean\}
+
+Change the default \texttt{captureRejections} option on all new
+\texttt{EventEmitter} objects.
+
+\subsection{\texorpdfstring{\texttt{events.captureRejectionSymbol}}{events.captureRejectionSymbol}}\label{events.capturerejectionsymbol}
+
+Value:
+\texttt{Symbol.for(\textquotesingle{}nodejs.rejection\textquotesingle{})}
+
+See how to write a custom
+\hyperref[emittersymbolfornodejsrejectionerr-eventname-args]{rejection
+handler}.
+
+\subsection{\texorpdfstring{\texttt{events.listenerCount(emitter,\ eventName)}}{events.listenerCount(emitter, eventName)}}\label{events.listenercountemitter-eventname}
+
+\begin{quote}
+Stability: 0 - Deprecated: Use
+\hyperref[emitterlistenercounteventname-listener]{\texttt{emitter.listenerCount()}}
+instead.
+\end{quote}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{emitter} \{EventEmitter\} The emitter to query
+\item
+  \texttt{eventName} \{string\textbar symbol\} The event name
+\end{itemize}
+
+A class method that returns the number of listeners for the given
+\texttt{eventName} registered on the given \texttt{emitter}.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\ImportTok{import}\NormalTok{ \{ }\BuiltInTok{EventEmitter}\OperatorTok{,}\NormalTok{ listenerCount \} }\ImportTok{from} \StringTok{\textquotesingle{}node:events\textquotesingle{}}\OperatorTok{;}
+
+\KeywordTok{const}\NormalTok{ myEmitter }\OperatorTok{=} \KeywordTok{new} \BuiltInTok{EventEmitter}\NormalTok{()}\OperatorTok{;}
+\NormalTok{myEmitter}\OperatorTok{.}\FunctionTok{on}\NormalTok{(}\StringTok{\textquotesingle{}event\textquotesingle{}}\OperatorTok{,}\NormalTok{ () }\KeywordTok{=\textgreater{}}\NormalTok{ \{\})}\OperatorTok{;}
+\NormalTok{myEmitter}\OperatorTok{.}\FunctionTok{on}\NormalTok{(}\StringTok{\textquotesingle{}event\textquotesingle{}}\OperatorTok{,}\NormalTok{ () }\KeywordTok{=\textgreater{}}\NormalTok{ \{\})}\OperatorTok{;}
+\BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\FunctionTok{listenerCount}\NormalTok{(myEmitter}\OperatorTok{,} \StringTok{\textquotesingle{}event\textquotesingle{}}\NormalTok{))}\OperatorTok{;}
+\CommentTok{// Prints: 2}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ \{ }\BuiltInTok{EventEmitter}\OperatorTok{,}\NormalTok{ listenerCount \} }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:events\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+
+\KeywordTok{const}\NormalTok{ myEmitter }\OperatorTok{=} \KeywordTok{new} \BuiltInTok{EventEmitter}\NormalTok{()}\OperatorTok{;}
+\NormalTok{myEmitter}\OperatorTok{.}\FunctionTok{on}\NormalTok{(}\StringTok{\textquotesingle{}event\textquotesingle{}}\OperatorTok{,}\NormalTok{ () }\KeywordTok{=\textgreater{}}\NormalTok{ \{\})}\OperatorTok{;}
+\NormalTok{myEmitter}\OperatorTok{.}\FunctionTok{on}\NormalTok{(}\StringTok{\textquotesingle{}event\textquotesingle{}}\OperatorTok{,}\NormalTok{ () }\KeywordTok{=\textgreater{}}\NormalTok{ \{\})}\OperatorTok{;}
+\BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\FunctionTok{listenerCount}\NormalTok{(myEmitter}\OperatorTok{,} \StringTok{\textquotesingle{}event\textquotesingle{}}\NormalTok{))}\OperatorTok{;}
+\CommentTok{// Prints: 2}
+\end{Highlighting}
+\end{Shaded}
+
+\subsection{\texorpdfstring{\texttt{events.on(emitter,\ eventName{[},\ options{]})}}{events.on(emitter, eventName{[}, options{]})}}\label{events.onemitter-eventname-options}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{emitter} \{EventEmitter\}
+\item
+  \texttt{eventName} \{string\textbar symbol\} The name of the event
+  being listened for
+\item
+  \texttt{options} \{Object\}
+
+  \begin{itemize}
+  \tightlist
+  \item
+    \texttt{signal} \{AbortSignal\} Can be used to cancel awaiting
+    events.
+  \end{itemize}
+\item
+  Returns: \{AsyncIterator\} that iterates \texttt{eventName} events
+  emitted by the \texttt{emitter}
+\end{itemize}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\ImportTok{import}\NormalTok{ \{ on}\OperatorTok{,} \BuiltInTok{EventEmitter}\NormalTok{ \} }\ImportTok{from} \StringTok{\textquotesingle{}node:events\textquotesingle{}}\OperatorTok{;}
+\ImportTok{import} \BuiltInTok{process} \ImportTok{from} \StringTok{\textquotesingle{}node:process\textquotesingle{}}\OperatorTok{;}
+
+\KeywordTok{const}\NormalTok{ ee }\OperatorTok{=} \KeywordTok{new} \BuiltInTok{EventEmitter}\NormalTok{()}\OperatorTok{;}
+
+\CommentTok{// Emit later on}
+\BuiltInTok{process}\OperatorTok{.}\FunctionTok{nextTick}\NormalTok{(() }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+\NormalTok{  ee}\OperatorTok{.}\FunctionTok{emit}\NormalTok{(}\StringTok{\textquotesingle{}foo\textquotesingle{}}\OperatorTok{,} \StringTok{\textquotesingle{}bar\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{  ee}\OperatorTok{.}\FunctionTok{emit}\NormalTok{(}\StringTok{\textquotesingle{}foo\textquotesingle{}}\OperatorTok{,} \DecValTok{42}\NormalTok{)}\OperatorTok{;}
+\NormalTok{\})}\OperatorTok{;}
+
+\ControlFlowTok{for} \ControlFlowTok{await}\NormalTok{ (}\KeywordTok{const} \BuiltInTok{event} \KeywordTok{of} \FunctionTok{on}\NormalTok{(ee}\OperatorTok{,} \StringTok{\textquotesingle{}foo\textquotesingle{}}\NormalTok{)) \{}
+  \CommentTok{// The execution of this inner block is synchronous and it}
+  \CommentTok{// processes one event at a time (even with await). Do not use}
+  \CommentTok{// if concurrent execution is required.}
+  \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\BuiltInTok{event}\NormalTok{)}\OperatorTok{;} \CommentTok{// prints [\textquotesingle{}bar\textquotesingle{}] [42]}
+\NormalTok{\}}
+\CommentTok{// Unreachable here}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ \{ on}\OperatorTok{,} \BuiltInTok{EventEmitter}\NormalTok{ \} }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:events\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+
+\NormalTok{(}\KeywordTok{async}\NormalTok{ () }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+  \KeywordTok{const}\NormalTok{ ee }\OperatorTok{=} \KeywordTok{new} \BuiltInTok{EventEmitter}\NormalTok{()}\OperatorTok{;}
+
+  \CommentTok{// Emit later on}
+  \BuiltInTok{process}\OperatorTok{.}\FunctionTok{nextTick}\NormalTok{(() }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+\NormalTok{    ee}\OperatorTok{.}\FunctionTok{emit}\NormalTok{(}\StringTok{\textquotesingle{}foo\textquotesingle{}}\OperatorTok{,} \StringTok{\textquotesingle{}bar\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{    ee}\OperatorTok{.}\FunctionTok{emit}\NormalTok{(}\StringTok{\textquotesingle{}foo\textquotesingle{}}\OperatorTok{,} \DecValTok{42}\NormalTok{)}\OperatorTok{;}
+\NormalTok{  \})}\OperatorTok{;}
+
+  \ControlFlowTok{for} \ControlFlowTok{await}\NormalTok{ (}\KeywordTok{const} \BuiltInTok{event} \KeywordTok{of} \FunctionTok{on}\NormalTok{(ee}\OperatorTok{,} \StringTok{\textquotesingle{}foo\textquotesingle{}}\NormalTok{)) \{}
+    \CommentTok{// The execution of this inner block is synchronous and it}
+    \CommentTok{// processes one event at a time (even with await). Do not use}
+    \CommentTok{// if concurrent execution is required.}
+    \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\BuiltInTok{event}\NormalTok{)}\OperatorTok{;} \CommentTok{// prints [\textquotesingle{}bar\textquotesingle{}] [42]}
+\NormalTok{  \}}
+  \CommentTok{// Unreachable here}
+\NormalTok{\})()}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+Returns an \texttt{AsyncIterator} that iterates \texttt{eventName}
+events. It will throw if the \texttt{EventEmitter} emits
+\texttt{\textquotesingle{}error\textquotesingle{}}. It removes all
+listeners when exiting the loop. The \texttt{value} returned by each
+iteration is an array composed of the emitted event arguments.
+
+An \{AbortSignal\} can be used to cancel waiting on events:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\ImportTok{import}\NormalTok{ \{ on}\OperatorTok{,} \BuiltInTok{EventEmitter}\NormalTok{ \} }\ImportTok{from} \StringTok{\textquotesingle{}node:events\textquotesingle{}}\OperatorTok{;}
+\ImportTok{import} \BuiltInTok{process} \ImportTok{from} \StringTok{\textquotesingle{}node:process\textquotesingle{}}\OperatorTok{;}
+
+\KeywordTok{const}\NormalTok{ ac }\OperatorTok{=} \KeywordTok{new} \FunctionTok{AbortController}\NormalTok{()}\OperatorTok{;}
+
+\NormalTok{(}\KeywordTok{async}\NormalTok{ () }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+  \KeywordTok{const}\NormalTok{ ee }\OperatorTok{=} \KeywordTok{new} \BuiltInTok{EventEmitter}\NormalTok{()}\OperatorTok{;}
+
+  \CommentTok{// Emit later on}
+  \BuiltInTok{process}\OperatorTok{.}\FunctionTok{nextTick}\NormalTok{(() }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+\NormalTok{    ee}\OperatorTok{.}\FunctionTok{emit}\NormalTok{(}\StringTok{\textquotesingle{}foo\textquotesingle{}}\OperatorTok{,} \StringTok{\textquotesingle{}bar\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{    ee}\OperatorTok{.}\FunctionTok{emit}\NormalTok{(}\StringTok{\textquotesingle{}foo\textquotesingle{}}\OperatorTok{,} \DecValTok{42}\NormalTok{)}\OperatorTok{;}
+\NormalTok{  \})}\OperatorTok{;}
+
+  \ControlFlowTok{for} \ControlFlowTok{await}\NormalTok{ (}\KeywordTok{const} \BuiltInTok{event} \KeywordTok{of} \FunctionTok{on}\NormalTok{(ee}\OperatorTok{,} \StringTok{\textquotesingle{}foo\textquotesingle{}}\OperatorTok{,}\NormalTok{ \{ }\DataTypeTok{signal}\OperatorTok{:}\NormalTok{ ac}\OperatorTok{.}\AttributeTok{signal}\NormalTok{ \})) \{}
+    \CommentTok{// The execution of this inner block is synchronous and it}
+    \CommentTok{// processes one event at a time (even with await). Do not use}
+    \CommentTok{// if concurrent execution is required.}
+    \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\BuiltInTok{event}\NormalTok{)}\OperatorTok{;} \CommentTok{// prints [\textquotesingle{}bar\textquotesingle{}] [42]}
+\NormalTok{  \}}
+  \CommentTok{// Unreachable here}
+\NormalTok{\})()}\OperatorTok{;}
+
+\BuiltInTok{process}\OperatorTok{.}\FunctionTok{nextTick}\NormalTok{(() }\KeywordTok{=\textgreater{}}\NormalTok{ ac}\OperatorTok{.}\FunctionTok{abort}\NormalTok{())}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ \{ on}\OperatorTok{,} \BuiltInTok{EventEmitter}\NormalTok{ \} }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:events\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+
+\KeywordTok{const}\NormalTok{ ac }\OperatorTok{=} \KeywordTok{new} \FunctionTok{AbortController}\NormalTok{()}\OperatorTok{;}
+
+\NormalTok{(}\KeywordTok{async}\NormalTok{ () }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+  \KeywordTok{const}\NormalTok{ ee }\OperatorTok{=} \KeywordTok{new} \BuiltInTok{EventEmitter}\NormalTok{()}\OperatorTok{;}
+
+  \CommentTok{// Emit later on}
+  \BuiltInTok{process}\OperatorTok{.}\FunctionTok{nextTick}\NormalTok{(() }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+\NormalTok{    ee}\OperatorTok{.}\FunctionTok{emit}\NormalTok{(}\StringTok{\textquotesingle{}foo\textquotesingle{}}\OperatorTok{,} \StringTok{\textquotesingle{}bar\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{    ee}\OperatorTok{.}\FunctionTok{emit}\NormalTok{(}\StringTok{\textquotesingle{}foo\textquotesingle{}}\OperatorTok{,} \DecValTok{42}\NormalTok{)}\OperatorTok{;}
+\NormalTok{  \})}\OperatorTok{;}
+
+  \ControlFlowTok{for} \ControlFlowTok{await}\NormalTok{ (}\KeywordTok{const} \BuiltInTok{event} \KeywordTok{of} \FunctionTok{on}\NormalTok{(ee}\OperatorTok{,} \StringTok{\textquotesingle{}foo\textquotesingle{}}\OperatorTok{,}\NormalTok{ \{ }\DataTypeTok{signal}\OperatorTok{:}\NormalTok{ ac}\OperatorTok{.}\AttributeTok{signal}\NormalTok{ \})) \{}
+    \CommentTok{// The execution of this inner block is synchronous and it}
+    \CommentTok{// processes one event at a time (even with await). Do not use}
+    \CommentTok{// if concurrent execution is required.}
+    \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\BuiltInTok{event}\NormalTok{)}\OperatorTok{;} \CommentTok{// prints [\textquotesingle{}bar\textquotesingle{}] [42]}
+\NormalTok{  \}}
+  \CommentTok{// Unreachable here}
+\NormalTok{\})()}\OperatorTok{;}
+
+\BuiltInTok{process}\OperatorTok{.}\FunctionTok{nextTick}\NormalTok{(() }\KeywordTok{=\textgreater{}}\NormalTok{ ac}\OperatorTok{.}\FunctionTok{abort}\NormalTok{())}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+\subsection{\texorpdfstring{\texttt{events.setMaxListeners(n{[},\ ...eventTargets{]})}}{events.setMaxListeners(n{[}, ...eventTargets{]})}}\label{events.setmaxlistenersn-...eventtargets}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{n} \{number\} A non-negative number. The maximum number of
+  listeners per \texttt{EventTarget} event.
+\item
+  \texttt{...eventsTargets}
+  \{EventTarget{[}{]}\textbar EventEmitter{[}{]}\} Zero or more
+  \{EventTarget\} or \{EventEmitter\} instances. If none are specified,
+  \texttt{n} is set as the default max for all newly created
+  \{EventTarget\} and \{EventEmitter\} objects.
+\end{itemize}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\ImportTok{import}\NormalTok{ \{ setMaxListeners}\OperatorTok{,} \BuiltInTok{EventEmitter}\NormalTok{ \} }\ImportTok{from} \StringTok{\textquotesingle{}node:events\textquotesingle{}}\OperatorTok{;}
+
+\KeywordTok{const}\NormalTok{ target }\OperatorTok{=} \KeywordTok{new} \BuiltInTok{EventTarget}\NormalTok{()}\OperatorTok{;}
+\KeywordTok{const}\NormalTok{ emitter }\OperatorTok{=} \KeywordTok{new} \BuiltInTok{EventEmitter}\NormalTok{()}\OperatorTok{;}
+
+\FunctionTok{setMaxListeners}\NormalTok{(}\DecValTok{5}\OperatorTok{,}\NormalTok{ target}\OperatorTok{,}\NormalTok{ emitter)}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ \{}
+\NormalTok{  setMaxListeners}\OperatorTok{,}
+  \BuiltInTok{EventEmitter}\OperatorTok{,}
+\NormalTok{\} }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:events\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+
+\KeywordTok{const}\NormalTok{ target }\OperatorTok{=} \KeywordTok{new} \BuiltInTok{EventTarget}\NormalTok{()}\OperatorTok{;}
+\KeywordTok{const}\NormalTok{ emitter }\OperatorTok{=} \KeywordTok{new} \BuiltInTok{EventEmitter}\NormalTok{()}\OperatorTok{;}
+
+\FunctionTok{setMaxListeners}\NormalTok{(}\DecValTok{5}\OperatorTok{,}\NormalTok{ target}\OperatorTok{,}\NormalTok{ emitter)}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+\subsection{\texorpdfstring{\texttt{events.addAbortListener(signal,\ listener)}}{events.addAbortListener(signal, listener)}}\label{events.addabortlistenersignal-listener}
+
+\begin{quote}
+Stability: 1 - Experimental
+\end{quote}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{signal} \{AbortSignal\}
+\item
+  \texttt{listener} \{Function\textbar EventListener\}
+\item
+  Returns: \{Disposable\} that removes the \texttt{abort} listener.
+\end{itemize}
+
+Listens once to the \texttt{abort} event on the provided
+\texttt{signal}.
+
+Listening to the \texttt{abort} event on abort signals is unsafe and may
+lead to resource leaks since another third party with the signal can
+call
+\hyperref[eventstopimmediatepropagation]{\texttt{e.stopImmediatePropagation()}}.
+Unfortunately Node.js cannot change this since it would violate the web
+standard. Additionally, the original API makes it easy to forget to
+remove listeners.
+
+This API allows safely using \texttt{AbortSignal}s in Node.js APIs by
+solving these two issues by listening to the event such that
+\texttt{stopImmediatePropagation} does not prevent the listener from
+running.
+
+Returns a disposable so that it may be unsubscribed from more easily.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ \{ addAbortListener \} }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:events\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+
+\KeywordTok{function} \FunctionTok{example}\NormalTok{(signal) \{}
+  \KeywordTok{let}\NormalTok{ disposable}\OperatorTok{;}
+  \ControlFlowTok{try}\NormalTok{ \{}
+\NormalTok{    signal}\OperatorTok{.}\FunctionTok{addEventListener}\NormalTok{(}\StringTok{\textquotesingle{}abort\textquotesingle{}}\OperatorTok{,}\NormalTok{ (e) }\KeywordTok{=\textgreater{}}\NormalTok{ e}\OperatorTok{.}\FunctionTok{stopImmediatePropagation}\NormalTok{())}\OperatorTok{;}
+\NormalTok{    disposable }\OperatorTok{=} \FunctionTok{addAbortListener}\NormalTok{(signal}\OperatorTok{,}\NormalTok{ (e) }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+      \CommentTok{// Do something when signal is aborted.}
+\NormalTok{    \})}\OperatorTok{;}
+\NormalTok{  \} }\ControlFlowTok{finally}\NormalTok{ \{}
+\NormalTok{    disposable}\OperatorTok{?.}\NormalTok{[}\BuiltInTok{Symbol}\OperatorTok{.}\AttributeTok{dispose}\NormalTok{]()}\OperatorTok{;}
+\NormalTok{  \}}
+\NormalTok{\}}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\ImportTok{import}\NormalTok{ \{ addAbortListener \} }\ImportTok{from} \StringTok{\textquotesingle{}node:events\textquotesingle{}}\OperatorTok{;}
+
+\KeywordTok{function} \FunctionTok{example}\NormalTok{(signal) \{}
+  \KeywordTok{let}\NormalTok{ disposable}\OperatorTok{;}
+  \ControlFlowTok{try}\NormalTok{ \{}
+\NormalTok{    signal}\OperatorTok{.}\FunctionTok{addEventListener}\NormalTok{(}\StringTok{\textquotesingle{}abort\textquotesingle{}}\OperatorTok{,}\NormalTok{ (e) }\KeywordTok{=\textgreater{}}\NormalTok{ e}\OperatorTok{.}\FunctionTok{stopImmediatePropagation}\NormalTok{())}\OperatorTok{;}
+\NormalTok{    disposable }\OperatorTok{=} \FunctionTok{addAbortListener}\NormalTok{(signal}\OperatorTok{,}\NormalTok{ (e) }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+      \CommentTok{// Do something when signal is aborted.}
+\NormalTok{    \})}\OperatorTok{;}
+\NormalTok{  \} }\ControlFlowTok{finally}\NormalTok{ \{}
+\NormalTok{    disposable}\OperatorTok{?.}\NormalTok{[}\BuiltInTok{Symbol}\OperatorTok{.}\AttributeTok{dispose}\NormalTok{]()}\OperatorTok{;}
+\NormalTok{  \}}
+\NormalTok{\}}
+\end{Highlighting}
+\end{Shaded}
+
+\subsection{\texorpdfstring{Class:
+\texttt{events.EventEmitterAsyncResource\ extends\ EventEmitter}}{Class: events.EventEmitterAsyncResource extends EventEmitter}}\label{class-events.eventemitterasyncresource-extends-eventemitter}
+
+Integrates \texttt{EventEmitter} with \{AsyncResource\} for
+\texttt{EventEmitter}s that require manual async tracking. Specifically,
+all events emitted by instances of
+\texttt{events.EventEmitterAsyncResource} will run within its
+\href{async_context.md}{async context}.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\ImportTok{import}\NormalTok{ \{ EventEmitterAsyncResource}\OperatorTok{,} \BuiltInTok{EventEmitter}\NormalTok{ \} }\ImportTok{from} \StringTok{\textquotesingle{}node:events\textquotesingle{}}\OperatorTok{;}
+\ImportTok{import}\NormalTok{ \{ notStrictEqual}\OperatorTok{,}\NormalTok{ strictEqual \} }\ImportTok{from} \StringTok{\textquotesingle{}node:assert\textquotesingle{}}\OperatorTok{;}
+\ImportTok{import}\NormalTok{ \{ executionAsyncId}\OperatorTok{,}\NormalTok{ triggerAsyncId \} }\ImportTok{from} \StringTok{\textquotesingle{}node:async\_hooks\textquotesingle{}}\OperatorTok{;}
+
+\CommentTok{// Async tracking tooling will identify this as \textquotesingle{}Q\textquotesingle{}.}
+\KeywordTok{const}\NormalTok{ ee1 }\OperatorTok{=} \KeywordTok{new} \FunctionTok{EventEmitterAsyncResource}\NormalTok{(\{ }\DataTypeTok{name}\OperatorTok{:} \StringTok{\textquotesingle{}Q\textquotesingle{}}\NormalTok{ \})}\OperatorTok{;}
+
+\CommentTok{// \textquotesingle{}foo\textquotesingle{} listeners will run in the EventEmitters async context.}
+\NormalTok{ee1}\OperatorTok{.}\FunctionTok{on}\NormalTok{(}\StringTok{\textquotesingle{}foo\textquotesingle{}}\OperatorTok{,}\NormalTok{ () }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+  \FunctionTok{strictEqual}\NormalTok{(}\FunctionTok{executionAsyncId}\NormalTok{()}\OperatorTok{,}\NormalTok{ ee1}\OperatorTok{.}\AttributeTok{asyncId}\NormalTok{)}\OperatorTok{;}
+  \FunctionTok{strictEqual}\NormalTok{(}\FunctionTok{triggerAsyncId}\NormalTok{()}\OperatorTok{,}\NormalTok{ ee1}\OperatorTok{.}\AttributeTok{triggerAsyncId}\NormalTok{)}\OperatorTok{;}
+\NormalTok{\})}\OperatorTok{;}
+
+\KeywordTok{const}\NormalTok{ ee2 }\OperatorTok{=} \KeywordTok{new} \BuiltInTok{EventEmitter}\NormalTok{()}\OperatorTok{;}
+
+\CommentTok{// \textquotesingle{}foo\textquotesingle{} listeners on ordinary EventEmitters that do not track async}
+\CommentTok{// context, however, run in the same async context as the emit().}
+\NormalTok{ee2}\OperatorTok{.}\FunctionTok{on}\NormalTok{(}\StringTok{\textquotesingle{}foo\textquotesingle{}}\OperatorTok{,}\NormalTok{ () }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+  \FunctionTok{notStrictEqual}\NormalTok{(}\FunctionTok{executionAsyncId}\NormalTok{()}\OperatorTok{,}\NormalTok{ ee2}\OperatorTok{.}\AttributeTok{asyncId}\NormalTok{)}\OperatorTok{;}
+  \FunctionTok{notStrictEqual}\NormalTok{(}\FunctionTok{triggerAsyncId}\NormalTok{()}\OperatorTok{,}\NormalTok{ ee2}\OperatorTok{.}\AttributeTok{triggerAsyncId}\NormalTok{)}\OperatorTok{;}
+\NormalTok{\})}\OperatorTok{;}
+
+\BuiltInTok{Promise}\OperatorTok{.}\FunctionTok{resolve}\NormalTok{()}\OperatorTok{.}\FunctionTok{then}\NormalTok{(() }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+\NormalTok{  ee1}\OperatorTok{.}\FunctionTok{emit}\NormalTok{(}\StringTok{\textquotesingle{}foo\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{  ee2}\OperatorTok{.}\FunctionTok{emit}\NormalTok{(}\StringTok{\textquotesingle{}foo\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{\})}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ \{ EventEmitterAsyncResource}\OperatorTok{,} \BuiltInTok{EventEmitter}\NormalTok{ \} }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:events\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\KeywordTok{const}\NormalTok{ \{ notStrictEqual}\OperatorTok{,}\NormalTok{ strictEqual \} }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:assert\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\KeywordTok{const}\NormalTok{ \{ executionAsyncId}\OperatorTok{,}\NormalTok{ triggerAsyncId \} }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:async\_hooks\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+
+\CommentTok{// Async tracking tooling will identify this as \textquotesingle{}Q\textquotesingle{}.}
+\KeywordTok{const}\NormalTok{ ee1 }\OperatorTok{=} \KeywordTok{new} \FunctionTok{EventEmitterAsyncResource}\NormalTok{(\{ }\DataTypeTok{name}\OperatorTok{:} \StringTok{\textquotesingle{}Q\textquotesingle{}}\NormalTok{ \})}\OperatorTok{;}
+
+\CommentTok{// \textquotesingle{}foo\textquotesingle{} listeners will run in the EventEmitters async context.}
+\NormalTok{ee1}\OperatorTok{.}\FunctionTok{on}\NormalTok{(}\StringTok{\textquotesingle{}foo\textquotesingle{}}\OperatorTok{,}\NormalTok{ () }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+  \FunctionTok{strictEqual}\NormalTok{(}\FunctionTok{executionAsyncId}\NormalTok{()}\OperatorTok{,}\NormalTok{ ee1}\OperatorTok{.}\AttributeTok{asyncId}\NormalTok{)}\OperatorTok{;}
+  \FunctionTok{strictEqual}\NormalTok{(}\FunctionTok{triggerAsyncId}\NormalTok{()}\OperatorTok{,}\NormalTok{ ee1}\OperatorTok{.}\AttributeTok{triggerAsyncId}\NormalTok{)}\OperatorTok{;}
+\NormalTok{\})}\OperatorTok{;}
+
+\KeywordTok{const}\NormalTok{ ee2 }\OperatorTok{=} \KeywordTok{new} \BuiltInTok{EventEmitter}\NormalTok{()}\OperatorTok{;}
+
+\CommentTok{// \textquotesingle{}foo\textquotesingle{} listeners on ordinary EventEmitters that do not track async}
+\CommentTok{// context, however, run in the same async context as the emit().}
+\NormalTok{ee2}\OperatorTok{.}\FunctionTok{on}\NormalTok{(}\StringTok{\textquotesingle{}foo\textquotesingle{}}\OperatorTok{,}\NormalTok{ () }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+  \FunctionTok{notStrictEqual}\NormalTok{(}\FunctionTok{executionAsyncId}\NormalTok{()}\OperatorTok{,}\NormalTok{ ee2}\OperatorTok{.}\AttributeTok{asyncId}\NormalTok{)}\OperatorTok{;}
+  \FunctionTok{notStrictEqual}\NormalTok{(}\FunctionTok{triggerAsyncId}\NormalTok{()}\OperatorTok{,}\NormalTok{ ee2}\OperatorTok{.}\AttributeTok{triggerAsyncId}\NormalTok{)}\OperatorTok{;}
+\NormalTok{\})}\OperatorTok{;}
+
+\BuiltInTok{Promise}\OperatorTok{.}\FunctionTok{resolve}\NormalTok{()}\OperatorTok{.}\FunctionTok{then}\NormalTok{(() }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+\NormalTok{  ee1}\OperatorTok{.}\FunctionTok{emit}\NormalTok{(}\StringTok{\textquotesingle{}foo\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{  ee2}\OperatorTok{.}\FunctionTok{emit}\NormalTok{(}\StringTok{\textquotesingle{}foo\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{\})}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+The \texttt{EventEmitterAsyncResource} class has the same methods and
+takes the same options as \texttt{EventEmitter} and
+\texttt{AsyncResource} themselves.
+
+\subsubsection{\texorpdfstring{\texttt{new\ events.EventEmitterAsyncResource({[}options{]})}}{new events.EventEmitterAsyncResource({[}options{]})}}\label{new-events.eventemitterasyncresourceoptions}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{options} \{Object\}
+
+  \begin{itemize}
+  \tightlist
+  \item
+    \texttt{captureRejections} \{boolean\} It enables
+    \hyperref[capture-rejections-of-promises]{automatic capturing of
+    promise rejection}. \textbf{Default:} \texttt{false}.
+  \item
+    \texttt{name} \{string\} The type of async event. \textbf{Default:}
+    \href{https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/new.target}{\texttt{new.target.name}}.
+  \item
+    \texttt{triggerAsyncId} \{number\} The ID of the execution context
+    that created this async event. \textbf{Default:}
+    \texttt{executionAsyncId()}.
+  \item
+    \texttt{requireManualDestroy} \{boolean\} If set to \texttt{true},
+    disables \texttt{emitDestroy} when the object is garbage collected.
+    This usually does not need to be set (even if \texttt{emitDestroy}
+    is called manually), unless the resource's \texttt{asyncId} is
+    retrieved and the sensitive API's \texttt{emitDestroy} is called
+    with it. When set to \texttt{false}, the \texttt{emitDestroy} call
+    on garbage collection will only take place if there is at least one
+    active \texttt{destroy} hook. \textbf{Default:} \texttt{false}.
+  \end{itemize}
+\end{itemize}
+
+\subsubsection{\texorpdfstring{\texttt{eventemitterasyncresource.asyncId}}{eventemitterasyncresource.asyncId}}\label{eventemitterasyncresource.asyncid}
+
+\begin{itemize}
+\tightlist
+\item
+  Type: \{number\} The unique \texttt{asyncId} assigned to the resource.
+\end{itemize}
+
+\subsubsection{\texorpdfstring{\texttt{eventemitterasyncresource.asyncResource}}{eventemitterasyncresource.asyncResource}}\label{eventemitterasyncresource.asyncresource}
+
+\begin{itemize}
+\tightlist
+\item
+  Type: The underlying \{AsyncResource\}.
+\end{itemize}
+
+The returned \texttt{AsyncResource} object has an additional
+\texttt{eventEmitter} property that provides a reference to this
+\texttt{EventEmitterAsyncResource}.
+
+\subsubsection{\texorpdfstring{\texttt{eventemitterasyncresource.emitDestroy()}}{eventemitterasyncresource.emitDestroy()}}\label{eventemitterasyncresource.emitdestroy}
+
+Call all \texttt{destroy} hooks. This should only ever be called once.
+An error will be thrown if it is called more than once. This
+\textbf{must} be manually called. If the resource is left to be
+collected by the GC then the \texttt{destroy} hooks will never be
+called.
+
+\subsubsection{\texorpdfstring{\texttt{eventemitterasyncresource.triggerAsyncId}}{eventemitterasyncresource.triggerAsyncId}}\label{eventemitterasyncresource.triggerasyncid}
+
+\begin{itemize}
+\tightlist
+\item
+  Type: \{number\} The same \texttt{triggerAsyncId} that is passed to
+  the \texttt{AsyncResource} constructor.
+\end{itemize}
+
+\subsection{\texorpdfstring{\texttt{EventTarget} and \texttt{Event}
+API}{EventTarget and Event API}}\label{eventtarget-and-event-api}
+
+The \texttt{EventTarget} and \texttt{Event} objects are a
+Node.js-specific implementation of the
+\href{https://dom.spec.whatwg.org/\#eventtarget}{\texttt{EventTarget}
+Web API} that are exposed by some Node.js core APIs.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ target }\OperatorTok{=} \KeywordTok{new} \BuiltInTok{EventTarget}\NormalTok{()}\OperatorTok{;}
+
+\NormalTok{target}\OperatorTok{.}\FunctionTok{addEventListener}\NormalTok{(}\StringTok{\textquotesingle{}foo\textquotesingle{}}\OperatorTok{,}\NormalTok{ (}\BuiltInTok{event}\NormalTok{) }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+  \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\StringTok{\textquotesingle{}foo event happened!\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{\})}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+\subsubsection{\texorpdfstring{Node.js \texttt{EventTarget} vs.~DOM
+\texttt{EventTarget}}{Node.js EventTarget vs.~DOM EventTarget}}\label{node.js-eventtarget-vs.-dom-eventtarget}
+
+There are two key differences between the Node.js \texttt{EventTarget}
+and the
+\href{https://dom.spec.whatwg.org/\#eventtarget}{\texttt{EventTarget}
+Web API}:
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\tightlist
+\item
+  Whereas DOM \texttt{EventTarget} instances \emph{may} be hierarchical,
+  there is no concept of hierarchy and event propagation in Node.js.
+  That is, an event dispatched to an \texttt{EventTarget} does not
+  propagate through a hierarchy of nested target objects that may each
+  have their own set of handlers for the event.
+\item
+  In the Node.js \texttt{EventTarget}, if an event listener is an async
+  function or returns a \texttt{Promise}, and the returned
+  \texttt{Promise} rejects, the rejection is automatically captured and
+  handled the same way as a listener that throws synchronously (see
+  \hyperref[eventtarget-error-handling]{\texttt{EventTarget} error
+  handling} for details).
+\end{enumerate}
+
+\subsubsection{\texorpdfstring{\texttt{NodeEventTarget}
+vs.~\texttt{EventEmitter}}{NodeEventTarget vs.~EventEmitter}}\label{nodeeventtarget-vs.-eventemitter}
+
+The \texttt{NodeEventTarget} object implements a modified subset of the
+\texttt{EventEmitter} API that allows it to closely \emph{emulate} an
+\texttt{EventEmitter} in certain situations. A \texttt{NodeEventTarget}
+is \emph{not} an instance of \texttt{EventEmitter} and cannot be used in
+place of an \texttt{EventEmitter} in most cases.
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\tightlist
+\item
+  Unlike \texttt{EventEmitter}, any given \texttt{listener} can be
+  registered at most once per event \texttt{type}. Attempts to register
+  a \texttt{listener} multiple times are ignored.
+\item
+  The \texttt{NodeEventTarget} does not emulate the full
+  \texttt{EventEmitter} API. Specifically the
+  \texttt{prependListener()}, \texttt{prependOnceListener()},
+  \texttt{rawListeners()}, and \texttt{errorMonitor} APIs are not
+  emulated. The \texttt{\textquotesingle{}newListener\textquotesingle{}}
+  and \texttt{\textquotesingle{}removeListener\textquotesingle{}} events
+  will also not be emitted.
+\item
+  The \texttt{NodeEventTarget} does not implement any special default
+  behavior for events with type
+  \texttt{\textquotesingle{}error\textquotesingle{}}.
+\item
+  The \texttt{NodeEventTarget} supports \texttt{EventListener} objects
+  as well as functions as handlers for all event types.
+\end{enumerate}
+
+\subsubsection{Event listener}\label{event-listener}
+
+Event listeners registered for an event \texttt{type} may either be
+JavaScript functions or objects with a \texttt{handleEvent} property
+whose value is a function.
+
+In either case, the handler function is invoked with the \texttt{event}
+argument passed to the \texttt{eventTarget.dispatchEvent()} function.
+
+Async functions may be used as event listeners. If an async handler
+function rejects, the rejection is captured and handled as described in
+\hyperref[eventtarget-error-handling]{\texttt{EventTarget} error
+handling}.
+
+An error thrown by one handler function does not prevent the other
+handlers from being invoked.
+
+The return value of a handler function is ignored.
+
+Handlers are always invoked in the order they were added.
+
+Handler functions may mutate the \texttt{event} object.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{function} \FunctionTok{handler1}\NormalTok{(}\BuiltInTok{event}\NormalTok{) \{}
+  \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\BuiltInTok{event}\OperatorTok{.}\AttributeTok{type}\NormalTok{)}\OperatorTok{;}  \CommentTok{// Prints \textquotesingle{}foo\textquotesingle{}}
+  \BuiltInTok{event}\OperatorTok{.}\AttributeTok{a} \OperatorTok{=} \DecValTok{1}\OperatorTok{;}
+\NormalTok{\}}
+
+\KeywordTok{async} \KeywordTok{function} \FunctionTok{handler2}\NormalTok{(}\BuiltInTok{event}\NormalTok{) \{}
+  \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\BuiltInTok{event}\OperatorTok{.}\AttributeTok{type}\NormalTok{)}\OperatorTok{;}  \CommentTok{// Prints \textquotesingle{}foo\textquotesingle{}}
+  \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\BuiltInTok{event}\OperatorTok{.}\AttributeTok{a}\NormalTok{)}\OperatorTok{;}  \CommentTok{// Prints 1}
+\NormalTok{\}}
+
+\KeywordTok{const}\NormalTok{ handler3 }\OperatorTok{=}\NormalTok{ \{}
+  \FunctionTok{handleEvent}\NormalTok{(}\BuiltInTok{event}\NormalTok{) \{}
+    \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\BuiltInTok{event}\OperatorTok{.}\AttributeTok{type}\NormalTok{)}\OperatorTok{;}  \CommentTok{// Prints \textquotesingle{}foo\textquotesingle{}}
+\NormalTok{  \}}\OperatorTok{,}
+\NormalTok{\}}\OperatorTok{;}
+
+\KeywordTok{const}\NormalTok{ handler4 }\OperatorTok{=}\NormalTok{ \{}
+  \KeywordTok{async} \FunctionTok{handleEvent}\NormalTok{(}\BuiltInTok{event}\NormalTok{) \{}
+    \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\BuiltInTok{event}\OperatorTok{.}\AttributeTok{type}\NormalTok{)}\OperatorTok{;}  \CommentTok{// Prints \textquotesingle{}foo\textquotesingle{}}
+\NormalTok{  \}}\OperatorTok{,}
+\NormalTok{\}}\OperatorTok{;}
+
+\KeywordTok{const}\NormalTok{ target }\OperatorTok{=} \KeywordTok{new} \BuiltInTok{EventTarget}\NormalTok{()}\OperatorTok{;}
+
+\NormalTok{target}\OperatorTok{.}\FunctionTok{addEventListener}\NormalTok{(}\StringTok{\textquotesingle{}foo\textquotesingle{}}\OperatorTok{,}\NormalTok{ handler1)}\OperatorTok{;}
+\NormalTok{target}\OperatorTok{.}\FunctionTok{addEventListener}\NormalTok{(}\StringTok{\textquotesingle{}foo\textquotesingle{}}\OperatorTok{,}\NormalTok{ handler2)}\OperatorTok{;}
+\NormalTok{target}\OperatorTok{.}\FunctionTok{addEventListener}\NormalTok{(}\StringTok{\textquotesingle{}foo\textquotesingle{}}\OperatorTok{,}\NormalTok{ handler3)}\OperatorTok{;}
+\NormalTok{target}\OperatorTok{.}\FunctionTok{addEventListener}\NormalTok{(}\StringTok{\textquotesingle{}foo\textquotesingle{}}\OperatorTok{,}\NormalTok{ handler4}\OperatorTok{,}\NormalTok{ \{ }\DataTypeTok{once}\OperatorTok{:} \KeywordTok{true}\NormalTok{ \})}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+\subsubsection{\texorpdfstring{\texttt{EventTarget} error
+handling}{EventTarget error handling}}\label{eventtarget-error-handling}
+
+When a registered event listener throws (or returns a Promise that
+rejects), by default the error is treated as an uncaught exception on
+\texttt{process.nextTick()}. This means uncaught exceptions in
+\texttt{EventTarget}s will terminate the Node.js process by default.
+
+Throwing within an event listener will \emph{not} stop the other
+registered handlers from being invoked.
+
+The \texttt{EventTarget} does not implement any special default handling
+for \texttt{\textquotesingle{}error\textquotesingle{}} type events like
+\texttt{EventEmitter}.
+
+Currently errors are first forwarded to the
+\texttt{process.on(\textquotesingle{}error\textquotesingle{})} event
+before reaching
+\texttt{process.on(\textquotesingle{}uncaughtException\textquotesingle{})}.
+This behavior is deprecated and will change in a future release to align
+\texttt{EventTarget} with other Node.js APIs. Any code relying on the
+\texttt{process.on(\textquotesingle{}error\textquotesingle{})} event
+should be aligned with the new behavior.
+
+\subsubsection{\texorpdfstring{Class:
+\texttt{Event}}{Class: Event}}\label{class-event}
+
+The \texttt{Event} object is an adaptation of the
+\href{https://dom.spec.whatwg.org/\#event}{\texttt{Event} Web API}.
+Instances are created internally by Node.js.
+
+\paragraph{\texorpdfstring{\texttt{event.bubbles}}{event.bubbles}}\label{event.bubbles}
+
+\begin{itemize}
+\tightlist
+\item
+  Type: \{boolean\} Always returns \texttt{false}.
+\end{itemize}
+
+This is not used in Node.js and is provided purely for completeness.
+
+\paragraph{\texorpdfstring{\texttt{event.cancelBubble}}{event.cancelBubble}}\label{event.cancelbubble}
+
+\begin{quote}
+Stability: 3 - Legacy: Use
+\hyperref[eventstoppropagation]{\texttt{event.stopPropagation()}}
+instead.
+\end{quote}
+
+\begin{itemize}
+\tightlist
+\item
+  Type: \{boolean\}
+\end{itemize}
+
+Alias for \texttt{event.stopPropagation()} if set to \texttt{true}. This
+is not used in Node.js and is provided purely for completeness.
+
+\paragraph{\texorpdfstring{\texttt{event.cancelable}}{event.cancelable}}\label{event.cancelable}
+
+\begin{itemize}
+\tightlist
+\item
+  Type: \{boolean\} True if the event was created with the
+  \texttt{cancelable} option.
+\end{itemize}
+
+\paragraph{\texorpdfstring{\texttt{event.composed}}{event.composed}}\label{event.composed}
+
+\begin{itemize}
+\tightlist
+\item
+  Type: \{boolean\} Always returns \texttt{false}.
+\end{itemize}
+
+This is not used in Node.js and is provided purely for completeness.
+
+\paragraph{\texorpdfstring{\texttt{event.composedPath()}}{event.composedPath()}}\label{event.composedpath}
+
+Returns an array containing the current \texttt{EventTarget} as the only
+entry or empty if the event is not being dispatched. This is not used in
+Node.js and is provided purely for completeness.
+
+\paragraph{\texorpdfstring{\texttt{event.currentTarget}}{event.currentTarget}}\label{event.currenttarget}
+
+\begin{itemize}
+\tightlist
+\item
+  Type: \{EventTarget\} The \texttt{EventTarget} dispatching the event.
+\end{itemize}
+
+Alias for \texttt{event.target}.
+
+\paragraph{\texorpdfstring{\texttt{event.defaultPrevented}}{event.defaultPrevented}}\label{event.defaultprevented}
+
+\begin{itemize}
+\tightlist
+\item
+  Type: \{boolean\}
+\end{itemize}
+
+Is \texttt{true} if \texttt{cancelable} is \texttt{true} and
+\texttt{event.preventDefault()} has been called.
+
+\paragraph{\texorpdfstring{\texttt{event.eventPhase}}{event.eventPhase}}\label{event.eventphase}
+
+\begin{itemize}
+\tightlist
+\item
+  Type: \{number\} Returns \texttt{0} while an event is not being
+  dispatched, \texttt{2} while it is being dispatched.
+\end{itemize}
+
+This is not used in Node.js and is provided purely for completeness.
+
+\paragraph{\texorpdfstring{\texttt{event.initEvent(type{[},\ bubbles{[},\ cancelable{]}{]})}}{event.initEvent(type{[}, bubbles{[}, cancelable{]}{]})}}\label{event.initeventtype-bubbles-cancelable}
+
+\begin{quote}
+Stability: 3 - Legacy: The WHATWG spec considers it deprecated and users
+shouldn't use it at all.
+\end{quote}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{type} \{string\}
+\item
+  \texttt{bubbles} \{boolean\}
+\item
+  \texttt{cancelable} \{boolean\}
+\end{itemize}
+
+Redundant with event constructors and incapable of setting
+\texttt{composed}. This is not used in Node.js and is provided purely
+for completeness.
+
+\paragraph{\texorpdfstring{\texttt{event.isTrusted}}{event.isTrusted}}\label{event.istrusted}
+
+\begin{itemize}
+\tightlist
+\item
+  Type: \{boolean\}
+\end{itemize}
+
+The \{AbortSignal\} \texttt{"abort"} event is emitted with
+\texttt{isTrusted} set to \texttt{true}. The value is \texttt{false} in
+all other cases.
+
+\paragraph{\texorpdfstring{\texttt{event.preventDefault()}}{event.preventDefault()}}\label{event.preventdefault}
+
+Sets the \texttt{defaultPrevented} property to \texttt{true} if
+\texttt{cancelable} is \texttt{true}.
+
+\paragraph{\texorpdfstring{\texttt{event.returnValue}}{event.returnValue}}\label{event.returnvalue}
+
+\begin{quote}
+Stability: 3 - Legacy: Use
+\hyperref[eventdefaultprevented]{\texttt{event.defaultPrevented}}
+instead.
+\end{quote}
+
+\begin{itemize}
+\tightlist
+\item
+  Type: \{boolean\} True if the event has not been canceled.
+\end{itemize}
+
+The value of \texttt{event.returnValue} is always the opposite of
+\texttt{event.defaultPrevented}. This is not used in Node.js and is
+provided purely for completeness.
+
+\paragraph{\texorpdfstring{\texttt{event.srcElement}}{event.srcElement}}\label{event.srcelement}
+
+\begin{quote}
+Stability: 3 - Legacy: Use \hyperref[eventtarget]{\texttt{event.target}}
+instead.
+\end{quote}
+
+\begin{itemize}
+\tightlist
+\item
+  Type: \{EventTarget\} The \texttt{EventTarget} dispatching the event.
+\end{itemize}
+
+Alias for \texttt{event.target}.
+
+\paragraph{\texorpdfstring{\texttt{event.stopImmediatePropagation()}}{event.stopImmediatePropagation()}}\label{event.stopimmediatepropagation}
+
+Stops the invocation of event listeners after the current one completes.
+
+\paragraph{\texorpdfstring{\texttt{event.stopPropagation()}}{event.stopPropagation()}}\label{event.stoppropagation}
+
+This is not used in Node.js and is provided purely for completeness.
+
+\paragraph{\texorpdfstring{\texttt{event.target}}{event.target}}\label{event.target}
+
+\begin{itemize}
+\tightlist
+\item
+  Type: \{EventTarget\} The \texttt{EventTarget} dispatching the event.
+\end{itemize}
+
+\paragraph{\texorpdfstring{\texttt{event.timeStamp}}{event.timeStamp}}\label{event.timestamp}
+
+\begin{itemize}
+\tightlist
+\item
+  Type: \{number\}
+\end{itemize}
+
+The millisecond timestamp when the \texttt{Event} object was created.
+
+\paragraph{\texorpdfstring{\texttt{event.type}}{event.type}}\label{event.type}
+
+\begin{itemize}
+\tightlist
+\item
+  Type: \{string\}
+\end{itemize}
+
+The event type identifier.
+
+\subsubsection{\texorpdfstring{Class:
+\texttt{EventTarget}}{Class: EventTarget}}\label{class-eventtarget}
+
+\paragraph{\texorpdfstring{\texttt{eventTarget.addEventListener(type,\ listener{[},\ options{]})}}{eventTarget.addEventListener(type, listener{[}, options{]})}}\label{eventtarget.addeventlistenertype-listener-options}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{type} \{string\}
+\item
+  \texttt{listener} \{Function\textbar EventListener\}
+\item
+  \texttt{options} \{Object\}
+
+  \begin{itemize}
+  \tightlist
+  \item
+    \texttt{once} \{boolean\} When \texttt{true}, the listener is
+    automatically removed when it is first invoked. \textbf{Default:}
+    \texttt{false}.
+  \item
+    \texttt{passive} \{boolean\} When \texttt{true}, serves as a hint
+    that the listener will not call the \texttt{Event} object's
+    \texttt{preventDefault()} method. \textbf{Default:} \texttt{false}.
+  \item
+    \texttt{capture} \{boolean\} Not directly used by Node.js. Added for
+    API completeness. \textbf{Default:} \texttt{false}.
+  \item
+    \texttt{signal} \{AbortSignal\} The listener will be removed when
+    the given AbortSignal object's \texttt{abort()} method is called.
+  \end{itemize}
+\end{itemize}
+
+Adds a new handler for the \texttt{type} event. Any given
+\texttt{listener} is added only once per \texttt{type} and per
+\texttt{capture} option value.
+
+If the \texttt{once} option is \texttt{true}, the \texttt{listener} is
+removed after the next time a \texttt{type} event is dispatched.
+
+The \texttt{capture} option is not used by Node.js in any functional way
+other than tracking registered event listeners per the
+\texttt{EventTarget} specification. Specifically, the \texttt{capture}
+option is used as part of the key when registering a \texttt{listener}.
+Any individual \texttt{listener} may be added once with
+\texttt{capture\ =\ false}, and once with \texttt{capture\ =\ true}.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{function} \FunctionTok{handler}\NormalTok{(}\BuiltInTok{event}\NormalTok{) \{\}}
+
+\KeywordTok{const}\NormalTok{ target }\OperatorTok{=} \KeywordTok{new} \BuiltInTok{EventTarget}\NormalTok{()}\OperatorTok{;}
+\NormalTok{target}\OperatorTok{.}\FunctionTok{addEventListener}\NormalTok{(}\StringTok{\textquotesingle{}foo\textquotesingle{}}\OperatorTok{,}\NormalTok{ handler}\OperatorTok{,}\NormalTok{ \{ }\DataTypeTok{capture}\OperatorTok{:} \KeywordTok{true}\NormalTok{ \})}\OperatorTok{;}  \CommentTok{// first}
+\NormalTok{target}\OperatorTok{.}\FunctionTok{addEventListener}\NormalTok{(}\StringTok{\textquotesingle{}foo\textquotesingle{}}\OperatorTok{,}\NormalTok{ handler}\OperatorTok{,}\NormalTok{ \{ }\DataTypeTok{capture}\OperatorTok{:} \KeywordTok{false}\NormalTok{ \})}\OperatorTok{;} \CommentTok{// second}
+
+\CommentTok{// Removes the second instance of handler}
+\NormalTok{target}\OperatorTok{.}\FunctionTok{removeEventListener}\NormalTok{(}\StringTok{\textquotesingle{}foo\textquotesingle{}}\OperatorTok{,}\NormalTok{ handler)}\OperatorTok{;}
+
+\CommentTok{// Removes the first instance of handler}
+\NormalTok{target}\OperatorTok{.}\FunctionTok{removeEventListener}\NormalTok{(}\StringTok{\textquotesingle{}foo\textquotesingle{}}\OperatorTok{,}\NormalTok{ handler}\OperatorTok{,}\NormalTok{ \{ }\DataTypeTok{capture}\OperatorTok{:} \KeywordTok{true}\NormalTok{ \})}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+\paragraph{\texorpdfstring{\texttt{eventTarget.dispatchEvent(event)}}{eventTarget.dispatchEvent(event)}}\label{eventtarget.dispatcheventevent}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{event} \{Event\}
+\item
+  Returns: \{boolean\} \texttt{true} if either event's
+  \texttt{cancelable} attribute value is false or its
+  \texttt{preventDefault()} method was not invoked, otherwise
+  \texttt{false}.
+\end{itemize}
+
+Dispatches the \texttt{event} to the list of handlers for
+\texttt{event.type}.
+
+The registered event listeners is synchronously invoked in the order
+they were registered.
+
+\paragraph{\texorpdfstring{\texttt{eventTarget.removeEventListener(type,\ listener{[},\ options{]})}}{eventTarget.removeEventListener(type, listener{[}, options{]})}}\label{eventtarget.removeeventlistenertype-listener-options}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{type} \{string\}
+\item
+  \texttt{listener} \{Function\textbar EventListener\}
+\item
+  \texttt{options} \{Object\}
+
+  \begin{itemize}
+  \tightlist
+  \item
+    \texttt{capture} \{boolean\}
+  \end{itemize}
+\end{itemize}
+
+Removes the \texttt{listener} from the list of handlers for event
+\texttt{type}.
+
+\subsubsection{\texorpdfstring{Class:
+\texttt{CustomEvent}}{Class: CustomEvent}}\label{class-customevent}
+
+\begin{quote}
+Stability: 1 - Experimental.
+\end{quote}
+
+\begin{itemize}
+\tightlist
+\item
+  Extends: \{Event\}
+\end{itemize}
+
+The \texttt{CustomEvent} object is an adaptation of the
+\href{https://dom.spec.whatwg.org/\#customevent}{\texttt{CustomEvent}
+Web API}. Instances are created internally by Node.js.
+
+\paragraph{\texorpdfstring{\texttt{event.detail}}{event.detail}}\label{event.detail}
+
+\begin{quote}
+Stability: 1 - Experimental.
+\end{quote}
+
+\begin{itemize}
+\tightlist
+\item
+  Type: \{any\} Returns custom data passed when initializing.
+\end{itemize}
+
+Read-only.
+
+\subsubsection{\texorpdfstring{Class:
+\texttt{NodeEventTarget}}{Class: NodeEventTarget}}\label{class-nodeeventtarget}
+
+\begin{itemize}
+\tightlist
+\item
+  Extends: \{EventTarget\}
+\end{itemize}
+
+The \texttt{NodeEventTarget} is a Node.js-specific extension to
+\texttt{EventTarget} that emulates a subset of the \texttt{EventEmitter}
+API.
+
+\paragraph{\texorpdfstring{\texttt{nodeEventTarget.addListener(type,\ listener)}}{nodeEventTarget.addListener(type, listener)}}\label{nodeeventtarget.addlistenertype-listener}
+
+\begin{itemize}
+\item
+  \texttt{type} \{string\}
+\item
+  \texttt{listener} \{Function\textbar EventListener\}
+\item
+  Returns: \{EventTarget\} this
+\end{itemize}
+
+Node.js-specific extension to the \texttt{EventTarget} class that
+emulates the equivalent \texttt{EventEmitter} API. The only difference
+between \texttt{addListener()} and \texttt{addEventListener()} is that
+\texttt{addListener()} will return a reference to the
+\texttt{EventTarget}.
+
+\paragraph{\texorpdfstring{\texttt{nodeEventTarget.emit(type,\ arg)}}{nodeEventTarget.emit(type, arg)}}\label{nodeeventtarget.emittype-arg}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{type} \{string\}
+\item
+  \texttt{arg} \{any\}
+\item
+  Returns: \{boolean\} \texttt{true} if event listeners registered for
+  the \texttt{type} exist, otherwise \texttt{false}.
+\end{itemize}
+
+Node.js-specific extension to the \texttt{EventTarget} class that
+dispatches the \texttt{arg} to the list of handlers for \texttt{type}.
+
+\paragraph{\texorpdfstring{\texttt{nodeEventTarget.eventNames()}}{nodeEventTarget.eventNames()}}\label{nodeeventtarget.eventnames}
+
+\begin{itemize}
+\tightlist
+\item
+  Returns: \{string{[}{]}\}
+\end{itemize}
+
+Node.js-specific extension to the \texttt{EventTarget} class that
+returns an array of event \texttt{type} names for which event listeners
+are registered.
+
+\paragraph{\texorpdfstring{\texttt{nodeEventTarget.listenerCount(type)}}{nodeEventTarget.listenerCount(type)}}\label{nodeeventtarget.listenercounttype}
+
+\begin{itemize}
+\item
+  \texttt{type} \{string\}
+\item
+  Returns: \{number\}
+\end{itemize}
+
+Node.js-specific extension to the \texttt{EventTarget} class that
+returns the number of event listeners registered for the \texttt{type}.
+
+\paragraph{\texorpdfstring{\texttt{nodeEventTarget.setMaxListeners(n)}}{nodeEventTarget.setMaxListeners(n)}}\label{nodeeventtarget.setmaxlistenersn}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{n} \{number\}
+\end{itemize}
+
+Node.js-specific extension to the \texttt{EventTarget} class that sets
+the number of max event listeners as \texttt{n}.
+
+\paragraph{\texorpdfstring{\texttt{nodeEventTarget.getMaxListeners()}}{nodeEventTarget.getMaxListeners()}}\label{nodeeventtarget.getmaxlisteners}
+
+\begin{itemize}
+\tightlist
+\item
+  Returns: \{number\}
+\end{itemize}
+
+Node.js-specific extension to the \texttt{EventTarget} class that
+returns the number of max event listeners.
+
+\paragraph{\texorpdfstring{\texttt{nodeEventTarget.off(type,\ listener{[},\ options{]})}}{nodeEventTarget.off(type, listener{[}, options{]})}}\label{nodeeventtarget.offtype-listener-options}
+
+\begin{itemize}
+\item
+  \texttt{type} \{string\}
+\item
+  \texttt{listener} \{Function\textbar EventListener\}
+\item
+  \texttt{options} \{Object\}
+
+  \begin{itemize}
+  \tightlist
+  \item
+    \texttt{capture} \{boolean\}
+  \end{itemize}
+\item
+  Returns: \{EventTarget\} this
+\end{itemize}
+
+Node.js-specific alias for \texttt{eventTarget.removeEventListener()}.
+
+\paragraph{\texorpdfstring{\texttt{nodeEventTarget.on(type,\ listener)}}{nodeEventTarget.on(type, listener)}}\label{nodeeventtarget.ontype-listener}
+
+\begin{itemize}
+\item
+  \texttt{type} \{string\}
+\item
+  \texttt{listener} \{Function\textbar EventListener\}
+\item
+  Returns: \{EventTarget\} this
+\end{itemize}
+
+Node.js-specific alias for \texttt{eventTarget.addEventListener()}.
+
+\paragraph{\texorpdfstring{\texttt{nodeEventTarget.once(type,\ listener)}}{nodeEventTarget.once(type, listener)}}\label{nodeeventtarget.oncetype-listener}
+
+\begin{itemize}
+\item
+  \texttt{type} \{string\}
+\item
+  \texttt{listener} \{Function\textbar EventListener\}
+\item
+  Returns: \{EventTarget\} this
+\end{itemize}
+
+Node.js-specific extension to the \texttt{EventTarget} class that adds a
+\texttt{once} listener for the given event \texttt{type}. This is
+equivalent to calling \texttt{on} with the \texttt{once} option set to
+\texttt{true}.
+
+\paragraph{\texorpdfstring{\texttt{nodeEventTarget.removeAllListeners({[}type{]})}}{nodeEventTarget.removeAllListeners({[}type{]})}}\label{nodeeventtarget.removealllistenerstype}
+
+\begin{itemize}
+\item
+  \texttt{type} \{string\}
+\item
+  Returns: \{EventTarget\} this
+\end{itemize}
+
+Node.js-specific extension to the \texttt{EventTarget} class. If
+\texttt{type} is specified, removes all registered listeners for
+\texttt{type}, otherwise removes all registered listeners.
+
+\paragraph{\texorpdfstring{\texttt{nodeEventTarget.removeListener(type,\ listener{[},\ options{]})}}{nodeEventTarget.removeListener(type, listener{[}, options{]})}}\label{nodeeventtarget.removelistenertype-listener-options}
+
+\begin{itemize}
+\item
+  \texttt{type} \{string\}
+\item
+  \texttt{listener} \{Function\textbar EventListener\}
+\item
+  \texttt{options} \{Object\}
+
+  \begin{itemize}
+  \tightlist
+  \item
+    \texttt{capture} \{boolean\}
+  \end{itemize}
+\item
+  Returns: \{EventTarget\} this
+\end{itemize}
+
+Node.js-specific extension to the \texttt{EventTarget} class that
+removes the \texttt{listener} for the given \texttt{type}. The only
+difference between \texttt{removeListener()} and
+\texttt{removeEventListener()} is that \texttt{removeListener()} will
+return a reference to the \texttt{EventTarget}.

@@ -1,0 +1,920 @@
+\section{REPL}\label{repl}
+
+\begin{quote}
+Stability: 2 - Stable
+\end{quote}
+
+The \texttt{node:repl} module provides a Read-Eval-Print-Loop (REPL)
+implementation that is available both as a standalone program or
+includible in other applications. It can be accessed using:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ repl }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:repl\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+\subsection{Design and features}\label{design-and-features}
+
+The \texttt{node:repl} module exports the
+\hyperref[class-replserver]{\texttt{repl.REPLServer}} class. While
+running, instances of
+\hyperref[class-replserver]{\texttt{repl.REPLServer}} will accept
+individual lines of user input, evaluate those according to a
+user-defined evaluation function, then output the result. Input and
+output may be from \texttt{stdin} and \texttt{stdout}, respectively, or
+may be connected to any Node.js \href{stream.md}{stream}.
+
+Instances of \hyperref[class-replserver]{\texttt{repl.REPLServer}}
+support automatic completion of inputs, completion preview, simplistic
+Emacs-style line editing, multi-line inputs,
+\href{https://en.wikipedia.org/wiki/Z_shell}{ZSH}-like reverse-i-search,
+\href{https://en.wikipedia.org/wiki/Z_shell}{ZSH}-like substring-based
+history search, ANSI-styled output, saving and restoring current REPL
+session state, error recovery, and customizable evaluation functions.
+Terminals that do not support ANSI styles and Emacs-style line editing
+automatically fall back to a limited feature set.
+
+\subsubsection{Commands and special
+keys}\label{commands-and-special-keys}
+
+The following special commands are supported by all REPL instances:
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{.break}: When in the process of inputting a multi-line
+  expression, enter the \texttt{.break} command (or press Ctrl+C) to
+  abort further input or processing of that expression.
+\item
+  \texttt{.clear}: Resets the REPL \texttt{context} to an empty object
+  and clears any multi-line expression being input.
+\item
+  \texttt{.exit}: Close the I/O stream, causing the REPL to exit.
+\item
+  \texttt{.help}: Show this list of special commands.
+\item
+  \texttt{.save}: Save the current REPL session to a file:
+  \texttt{\textgreater{}\ .save\ ./file/to/save.js}
+\item
+  \texttt{.load}: Load a file into the current REPL session.
+  \texttt{\textgreater{}\ .load\ ./file/to/load.js}
+\item
+  \texttt{.editor}: Enter editor mode (Ctrl+D to finish, Ctrl+C to
+  cancel).
+\end{itemize}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{\textgreater{} .editor}
+\NormalTok{// Entering editor mode (\^{}D to finish, \^{}C to cancel)}
+\NormalTok{function welcome(name) \{}
+\NormalTok{  return \textasciigrave{}Hello $\{name\}!\textasciigrave{};}
+\NormalTok{\}}
+
+\NormalTok{welcome(\textquotesingle{}Node.js User\textquotesingle{});}
+
+\NormalTok{// \^{}D}
+\NormalTok{\textquotesingle{}Hello Node.js User!\textquotesingle{}}
+\NormalTok{\textgreater{}}
+\end{Highlighting}
+\end{Shaded}
+
+The following key combinations in the REPL have these special effects:
+
+\begin{itemize}
+\tightlist
+\item
+  Ctrl+C: When pressed once, has the same effect as the \texttt{.break}
+  command. When pressed twice on a blank line, has the same effect as
+  the \texttt{.exit} command.
+\item
+  Ctrl+D: Has the same effect as the \texttt{.exit} command.
+\item
+  Tab: When pressed on a blank line, displays global and local (scope)
+  variables. When pressed while entering other input, displays relevant
+  autocompletion options.
+\end{itemize}
+
+For key bindings related to the reverse-i-search, see
+\hyperref[reverse-i-search]{\texttt{reverse-i-search}}. For all other
+key bindings, see \href{readline.md\#tty-keybindings}{TTY keybindings}.
+
+\subsubsection{Default evaluation}\label{default-evaluation}
+
+By default, all instances of
+\hyperref[class-replserver]{\texttt{repl.REPLServer}} use an evaluation
+function that evaluates JavaScript expressions and provides access to
+Node.js built-in modules. This default behavior can be overridden by
+passing in an alternative evaluation function when the
+\hyperref[class-replserver]{\texttt{repl.REPLServer}} instance is
+created.
+
+\paragraph{JavaScript expressions}\label{javascript-expressions}
+
+The default evaluator supports direct evaluation of JavaScript
+expressions:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{\textgreater{} 1 + 1}
+\NormalTok{2}
+\NormalTok{\textgreater{} const m = 2}
+\NormalTok{undefined}
+\NormalTok{\textgreater{} m + 1}
+\NormalTok{3}
+\end{Highlighting}
+\end{Shaded}
+
+Unless otherwise scoped within blocks or functions, variables declared
+either implicitly or using the \texttt{const}, \texttt{let}, or
+\texttt{var} keywords are declared at the global scope.
+
+\paragraph{Global and local scope}\label{global-and-local-scope}
+
+The default evaluator provides access to any variables that exist in the
+global scope. It is possible to expose a variable to the REPL explicitly
+by assigning it to the \texttt{context} object associated with each
+\texttt{REPLServer}:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ repl }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:repl\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\KeywordTok{const}\NormalTok{ msg }\OperatorTok{=} \StringTok{\textquotesingle{}message\textquotesingle{}}\OperatorTok{;}
+
+\NormalTok{repl}\OperatorTok{.}\FunctionTok{start}\NormalTok{(}\StringTok{\textquotesingle{}\textgreater{} \textquotesingle{}}\NormalTok{)}\OperatorTok{.}\AttributeTok{context}\OperatorTok{.}\AttributeTok{m} \OperatorTok{=}\NormalTok{ msg}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+Properties in the \texttt{context} object appear as local within the
+REPL:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{$ node repl\_test.js}
+\NormalTok{\textgreater{} m}
+\NormalTok{\textquotesingle{}message\textquotesingle{}}
+\end{Highlighting}
+\end{Shaded}
+
+Context properties are not read-only by default. To specify read-only
+globals, context properties must be defined using
+\texttt{Object.defineProperty()}:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ repl }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:repl\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\KeywordTok{const}\NormalTok{ msg }\OperatorTok{=} \StringTok{\textquotesingle{}message\textquotesingle{}}\OperatorTok{;}
+
+\KeywordTok{const}\NormalTok{ r }\OperatorTok{=}\NormalTok{ repl}\OperatorTok{.}\FunctionTok{start}\NormalTok{(}\StringTok{\textquotesingle{}\textgreater{} \textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\BuiltInTok{Object}\OperatorTok{.}\FunctionTok{defineProperty}\NormalTok{(r}\OperatorTok{.}\AttributeTok{context}\OperatorTok{,} \StringTok{\textquotesingle{}m\textquotesingle{}}\OperatorTok{,}\NormalTok{ \{}
+  \DataTypeTok{configurable}\OperatorTok{:} \KeywordTok{false}\OperatorTok{,}
+  \DataTypeTok{enumerable}\OperatorTok{:} \KeywordTok{true}\OperatorTok{,}
+  \DataTypeTok{value}\OperatorTok{:}\NormalTok{ msg}\OperatorTok{,}
+\NormalTok{\})}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+\paragraph{Accessing core Node.js
+modules}\label{accessing-core-node.js-modules}
+
+The default evaluator will automatically load Node.js core modules into
+the REPL environment when used. For instance, unless otherwise declared
+as a global or scoped variable, the input \texttt{fs} will be evaluated
+on-demand as
+\texttt{global.fs\ =\ require(\textquotesingle{}node:fs\textquotesingle{})}.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{\textgreater{} fs.createReadStream(\textquotesingle{}./some/file\textquotesingle{});}
+\end{Highlighting}
+\end{Shaded}
+
+\paragraph{Global uncaught exceptions}\label{global-uncaught-exceptions}
+
+The REPL uses the \href{domain.md}{\texttt{domain}} module to catch all
+uncaught exceptions for that REPL session.
+
+This use of the \href{domain.md}{\texttt{domain}} module in the REPL has
+these side effects:
+
+\begin{itemize}
+\item
+  Uncaught exceptions only emit the
+  \href{process.md\#event-uncaughtexception}{\texttt{\textquotesingle{}uncaughtException\textquotesingle{}}}
+  event in the standalone REPL. Adding a listener for this event in a
+  REPL within another Node.js program results in
+  \href{errors.md\#err_invalid_repl_input}{\texttt{ERR\_INVALID\_REPL\_INPUT}}.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ r }\OperatorTok{=}\NormalTok{ repl}\OperatorTok{.}\FunctionTok{start}\NormalTok{()}\OperatorTok{;}
+
+\NormalTok{r}\OperatorTok{.}\FunctionTok{write}\NormalTok{(}\StringTok{\textquotesingle{}process.on("uncaughtException", () =\textgreater{} console.log("Foobar"));}\SpecialCharTok{\textbackslash{}n}\StringTok{\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// Output stream includes:}
+\CommentTok{//   TypeError [ERR\_INVALID\_REPL\_INPUT]: Listeners for \textasciigrave{}uncaughtException\textasciigrave{}}
+\CommentTok{//   cannot be used in the REPL}
+
+\NormalTok{r}\OperatorTok{.}\FunctionTok{close}\NormalTok{()}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+\item
+  Trying to use
+  \href{process.md\#processsetuncaughtexceptioncapturecallbackfn}{\texttt{process.setUncaughtExceptionCaptureCallback()}}
+  throws an
+  \href{errors.md\#err_domain_cannot_set_uncaught_exception_capture}{\texttt{ERR\_DOMAIN\_CANNOT\_SET\_UNCAUGHT\_EXCEPTION\_CAPTURE}}
+  error.
+\end{itemize}
+
+\paragraph{\texorpdfstring{Assignment of the \texttt{\_} (underscore)
+variable}{Assignment of the \_ (underscore) variable}}\label{assignment-of-the-_-underscore-variable}
+
+The default evaluator will, by default, assign the result of the most
+recently evaluated expression to the special variable \texttt{\_}
+(underscore). Explicitly setting \texttt{\_} to a value will disable
+this behavior.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{\textgreater{} [ \textquotesingle{}a\textquotesingle{}, \textquotesingle{}b\textquotesingle{}, \textquotesingle{}c\textquotesingle{} ]}
+\NormalTok{[ \textquotesingle{}a\textquotesingle{}, \textquotesingle{}b\textquotesingle{}, \textquotesingle{}c\textquotesingle{} ]}
+\NormalTok{\textgreater{} \_.length}
+\NormalTok{3}
+\NormalTok{\textgreater{} \_ += 1}
+\NormalTok{Expression assignment to \_ now disabled.}
+\NormalTok{4}
+\NormalTok{\textgreater{} 1 + 1}
+\NormalTok{2}
+\NormalTok{\textgreater{} \_}
+\NormalTok{4}
+\end{Highlighting}
+\end{Shaded}
+
+Similarly, \texttt{\_error} will refer to the last seen error, if there
+was any. Explicitly setting \texttt{\_error} to a value will disable
+this behavior.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{\textgreater{} throw new Error(\textquotesingle{}foo\textquotesingle{});}
+\NormalTok{Uncaught Error: foo}
+\NormalTok{\textgreater{} \_error.message}
+\NormalTok{\textquotesingle{}foo\textquotesingle{}}
+\end{Highlighting}
+\end{Shaded}
+
+\paragraph{\texorpdfstring{\texttt{await}
+keyword}{await keyword}}\label{await-keyword}
+
+Support for the \texttt{await} keyword is enabled at the top level.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{\textgreater{} await Promise.resolve(123)}
+\NormalTok{123}
+\NormalTok{\textgreater{} await Promise.reject(new Error(\textquotesingle{}REPL await\textquotesingle{}))}
+\NormalTok{Uncaught Error: REPL await}
+\NormalTok{    at REPL2:1:54}
+\NormalTok{\textgreater{} const timeout = util.promisify(setTimeout);}
+\NormalTok{undefined}
+\NormalTok{\textgreater{} const old = Date.now(); await timeout(1000); console.log(Date.now() {-} old);}
+\NormalTok{1002}
+\NormalTok{undefined}
+\end{Highlighting}
+\end{Shaded}
+
+One known limitation of using the \texttt{await} keyword in the REPL is
+that it will invalidate the lexical scoping of the \texttt{const} and
+\texttt{let} keywords.
+
+For example:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{\textgreater{} const m = await Promise.resolve(123)}
+\NormalTok{undefined}
+\NormalTok{\textgreater{} m}
+\NormalTok{123}
+\NormalTok{\textgreater{} const m = await Promise.resolve(234)}
+\NormalTok{undefined}
+\NormalTok{\textgreater{} m}
+\NormalTok{234}
+\end{Highlighting}
+\end{Shaded}
+
+\href{cli.md\#--no-experimental-repl-await}{\texttt{-\/-no-experimental-repl-await}}
+shall disable top-level await in REPL.
+
+\subsubsection{Reverse-i-search}\label{reverse-i-search}
+
+The REPL supports bi-directional reverse-i-search similar to
+\href{https://en.wikipedia.org/wiki/Z_shell}{ZSH}. It is triggered with
+Ctrl+R to search backward and Ctrl+S to search forwards.
+
+Duplicated history entries will be skipped.
+
+Entries are accepted as soon as any key is pressed that doesn't
+correspond with the reverse search. Cancelling is possible by pressing
+Esc or Ctrl+C.
+
+Changing the direction immediately searches for the next entry in the
+expected direction from the current position on.
+
+\subsubsection{Custom evaluation
+functions}\label{custom-evaluation-functions}
+
+When a new \hyperref[class-replserver]{\texttt{repl.REPLServer}} is
+created, a custom evaluation function may be provided. This can be used,
+for instance, to implement fully customized REPL applications.
+
+The following illustrates a hypothetical example of a REPL that performs
+translation of text from one language to another:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ repl }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:repl\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\KeywordTok{const}\NormalTok{ \{ Translator \} }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}translator\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+
+\KeywordTok{const}\NormalTok{ myTranslator }\OperatorTok{=} \KeywordTok{new} \FunctionTok{Translator}\NormalTok{(}\StringTok{\textquotesingle{}en\textquotesingle{}}\OperatorTok{,} \StringTok{\textquotesingle{}fr\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+
+\KeywordTok{function} \FunctionTok{myEval}\NormalTok{(cmd}\OperatorTok{,}\NormalTok{ context}\OperatorTok{,}\NormalTok{ filename}\OperatorTok{,}\NormalTok{ callback) \{}
+  \FunctionTok{callback}\NormalTok{(}\KeywordTok{null}\OperatorTok{,}\NormalTok{ myTranslator}\OperatorTok{.}\FunctionTok{translate}\NormalTok{(cmd))}\OperatorTok{;}
+\NormalTok{\}}
+
+\NormalTok{repl}\OperatorTok{.}\FunctionTok{start}\NormalTok{(\{ }\DataTypeTok{prompt}\OperatorTok{:} \StringTok{\textquotesingle{}\textgreater{} \textquotesingle{}}\OperatorTok{,} \DataTypeTok{eval}\OperatorTok{:}\NormalTok{ myEval \})}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+\paragraph{Recoverable errors}\label{recoverable-errors}
+
+At the REPL prompt, pressing Enter sends the current line of input to
+the \texttt{eval} function. In order to support multi-line input, the
+\texttt{eval} function can return an instance of
+\texttt{repl.Recoverable} to the provided callback function:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{function} \FunctionTok{myEval}\NormalTok{(cmd}\OperatorTok{,}\NormalTok{ context}\OperatorTok{,}\NormalTok{ filename}\OperatorTok{,}\NormalTok{ callback) \{}
+  \KeywordTok{let}\NormalTok{ result}\OperatorTok{;}
+  \ControlFlowTok{try}\NormalTok{ \{}
+\NormalTok{    result }\OperatorTok{=}\NormalTok{ vm}\OperatorTok{.}\FunctionTok{runInThisContext}\NormalTok{(cmd)}\OperatorTok{;}
+\NormalTok{  \} }\ControlFlowTok{catch}\NormalTok{ (e) \{}
+    \ControlFlowTok{if}\NormalTok{ (}\FunctionTok{isRecoverableError}\NormalTok{(e)) \{}
+      \ControlFlowTok{return} \FunctionTok{callback}\NormalTok{(}\KeywordTok{new}\NormalTok{ repl}\OperatorTok{.}\FunctionTok{Recoverable}\NormalTok{(e))}\OperatorTok{;}
+\NormalTok{    \}}
+\NormalTok{  \}}
+  \FunctionTok{callback}\NormalTok{(}\KeywordTok{null}\OperatorTok{,}\NormalTok{ result)}\OperatorTok{;}
+\NormalTok{\}}
+
+\KeywordTok{function} \FunctionTok{isRecoverableError}\NormalTok{(error) \{}
+  \ControlFlowTok{if}\NormalTok{ (error}\OperatorTok{.}\AttributeTok{name} \OperatorTok{===} \StringTok{\textquotesingle{}SyntaxError\textquotesingle{}}\NormalTok{) \{}
+    \ControlFlowTok{return} \SpecialStringTok{/}\SpecialCharTok{\^{}(}\SpecialStringTok{Unexpected end of input}\SpecialCharTok{|}\SpecialStringTok{Unexpected token}\SpecialCharTok{)}\SpecialStringTok{/}\OperatorTok{.}\FunctionTok{test}\NormalTok{(error}\OperatorTok{.}\AttributeTok{message}\NormalTok{)}\OperatorTok{;}
+\NormalTok{  \}}
+  \ControlFlowTok{return} \KeywordTok{false}\OperatorTok{;}
+\NormalTok{\}}
+\end{Highlighting}
+\end{Shaded}
+
+\subsubsection{Customizing REPL output}\label{customizing-repl-output}
+
+By default, \hyperref[class-replserver]{\texttt{repl.REPLServer}}
+instances format output using the
+\href{util.md\#utilinspectobject-options}{\texttt{util.inspect()}}
+method before writing the output to the provided \texttt{Writable}
+stream (\texttt{process.stdout} by default). The \texttt{showProxy}
+inspection option is set to true by default and the \texttt{colors}
+option is set to true depending on the REPL's \texttt{useColors} option.
+
+The \texttt{useColors} boolean option can be specified at construction
+to instruct the default writer to use ANSI style codes to colorize the
+output from the \texttt{util.inspect()} method.
+
+If the REPL is run as standalone program, it is also possible to change
+the REPL's \href{util.md\#utilinspectobject-options}{inspection
+defaults} from inside the REPL by using the
+\texttt{inspect.replDefaults} property which mirrors the
+\texttt{defaultOptions} from
+\href{util.md\#utilinspectobject-options}{\texttt{util.inspect()}}.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{\textgreater{} util.inspect.replDefaults.compact = false;}
+\NormalTok{false}
+\NormalTok{\textgreater{} [1]}
+\NormalTok{[}
+\NormalTok{  1}
+\NormalTok{]}
+\NormalTok{\textgreater{}}
+\end{Highlighting}
+\end{Shaded}
+
+To fully customize the output of a
+\hyperref[class-replserver]{\texttt{repl.REPLServer}} instance pass in a
+new function for the \texttt{writer} option on construction. The
+following example, for instance, simply converts any input text to upper
+case:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ repl }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:repl\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+
+\KeywordTok{const}\NormalTok{ r }\OperatorTok{=}\NormalTok{ repl}\OperatorTok{.}\FunctionTok{start}\NormalTok{(\{ }\DataTypeTok{prompt}\OperatorTok{:} \StringTok{\textquotesingle{}\textgreater{} \textquotesingle{}}\OperatorTok{,} \DataTypeTok{eval}\OperatorTok{:}\NormalTok{ myEval}\OperatorTok{,} \DataTypeTok{writer}\OperatorTok{:}\NormalTok{ myWriter \})}\OperatorTok{;}
+
+\KeywordTok{function} \FunctionTok{myEval}\NormalTok{(cmd}\OperatorTok{,}\NormalTok{ context}\OperatorTok{,}\NormalTok{ filename}\OperatorTok{,}\NormalTok{ callback) \{}
+  \FunctionTok{callback}\NormalTok{(}\KeywordTok{null}\OperatorTok{,}\NormalTok{ cmd)}\OperatorTok{;}
+\NormalTok{\}}
+
+\KeywordTok{function} \FunctionTok{myWriter}\NormalTok{(output) \{}
+  \ControlFlowTok{return}\NormalTok{ output}\OperatorTok{.}\FunctionTok{toUpperCase}\NormalTok{()}\OperatorTok{;}
+\NormalTok{\}}
+\end{Highlighting}
+\end{Shaded}
+
+\subsection{\texorpdfstring{Class:
+\texttt{REPLServer}}{Class: REPLServer}}\label{class-replserver}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{options} \{Object\textbar string\} See
+  \hyperref[replstartoptions]{\texttt{repl.start()}}
+\item
+  Extends: \{readline.Interface\}
+\end{itemize}
+
+Instances of \texttt{repl.REPLServer} are created using the
+\hyperref[replstartoptions]{\texttt{repl.start()}} method or directly
+using the JavaScript \texttt{new} keyword.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ repl }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:repl\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+
+\KeywordTok{const}\NormalTok{ options }\OperatorTok{=}\NormalTok{ \{ }\DataTypeTok{useColors}\OperatorTok{:} \KeywordTok{true}\NormalTok{ \}}\OperatorTok{;}
+
+\KeywordTok{const}\NormalTok{ firstInstance }\OperatorTok{=}\NormalTok{ repl}\OperatorTok{.}\FunctionTok{start}\NormalTok{(options)}\OperatorTok{;}
+\KeywordTok{const}\NormalTok{ secondInstance }\OperatorTok{=} \KeywordTok{new}\NormalTok{ repl}\OperatorTok{.}\FunctionTok{REPLServer}\NormalTok{(options)}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+\subsubsection{\texorpdfstring{Event:
+\texttt{\textquotesingle{}exit\textquotesingle{}}}{Event: \textquotesingle exit\textquotesingle{}}}\label{event-exit}
+
+The \texttt{\textquotesingle{}exit\textquotesingle{}} event is emitted
+when the REPL is exited either by receiving the \texttt{.exit} command
+as input, the user pressing Ctrl+C twice to signal \texttt{SIGINT}, or
+by pressing Ctrl+D to signal
+\texttt{\textquotesingle{}end\textquotesingle{}} on the input stream.
+The listener callback is invoked without any arguments.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{replServer}\OperatorTok{.}\FunctionTok{on}\NormalTok{(}\StringTok{\textquotesingle{}exit\textquotesingle{}}\OperatorTok{,}\NormalTok{ () }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+  \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\StringTok{\textquotesingle{}Received "exit" event from repl!\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+  \BuiltInTok{process}\OperatorTok{.}\FunctionTok{exit}\NormalTok{()}\OperatorTok{;}
+\NormalTok{\})}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+\subsubsection{\texorpdfstring{Event:
+\texttt{\textquotesingle{}reset\textquotesingle{}}}{Event: \textquotesingle reset\textquotesingle{}}}\label{event-reset}
+
+The \texttt{\textquotesingle{}reset\textquotesingle{}} event is emitted
+when the REPL's context is reset. This occurs whenever the
+\texttt{.clear} command is received as input \emph{unless} the REPL is
+using the default evaluator and the \texttt{repl.REPLServer} instance
+was created with the \texttt{useGlobal} option set to \texttt{true}. The
+listener callback will be called with a reference to the
+\texttt{context} object as the only argument.
+
+This can be used primarily to re-initialize REPL context to some
+pre-defined state:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ repl }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:repl\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+
+\KeywordTok{function} \FunctionTok{initializeContext}\NormalTok{(context) \{}
+\NormalTok{  context}\OperatorTok{.}\AttributeTok{m} \OperatorTok{=} \StringTok{\textquotesingle{}test\textquotesingle{}}\OperatorTok{;}
+\NormalTok{\}}
+
+\KeywordTok{const}\NormalTok{ r }\OperatorTok{=}\NormalTok{ repl}\OperatorTok{.}\FunctionTok{start}\NormalTok{(\{ }\DataTypeTok{prompt}\OperatorTok{:} \StringTok{\textquotesingle{}\textgreater{} \textquotesingle{}}\NormalTok{ \})}\OperatorTok{;}
+\FunctionTok{initializeContext}\NormalTok{(r}\OperatorTok{.}\AttributeTok{context}\NormalTok{)}\OperatorTok{;}
+
+\NormalTok{r}\OperatorTok{.}\FunctionTok{on}\NormalTok{(}\StringTok{\textquotesingle{}reset\textquotesingle{}}\OperatorTok{,}\NormalTok{ initializeContext)}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+When this code is executed, the global
+\texttt{\textquotesingle{}m\textquotesingle{}} variable can be modified
+but then reset to its initial value using the \texttt{.clear} command:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{$ ./node example.js}
+\NormalTok{\textgreater{} m}
+\NormalTok{\textquotesingle{}test\textquotesingle{}}
+\NormalTok{\textgreater{} m = 1}
+\NormalTok{1}
+\NormalTok{\textgreater{} m}
+\NormalTok{1}
+\NormalTok{\textgreater{} .clear}
+\NormalTok{Clearing context...}
+\NormalTok{\textgreater{} m}
+\NormalTok{\textquotesingle{}test\textquotesingle{}}
+\NormalTok{\textgreater{}}
+\end{Highlighting}
+\end{Shaded}
+
+\subsubsection{\texorpdfstring{\texttt{replServer.defineCommand(keyword,\ cmd)}}{replServer.defineCommand(keyword, cmd)}}\label{replserver.definecommandkeyword-cmd}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{keyword} \{string\} The command keyword (\emph{without} a
+  leading \texttt{.} character).
+\item
+  \texttt{cmd} \{Object\textbar Function\} The function to invoke when
+  the command is processed.
+\end{itemize}
+
+The \texttt{replServer.defineCommand()} method is used to add new
+\texttt{.}-prefixed commands to the REPL instance. Such commands are
+invoked by typing a \texttt{.} followed by the \texttt{keyword}. The
+\texttt{cmd} is either a \texttt{Function} or an \texttt{Object} with
+the following properties:
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{help} \{string\} Help text to be displayed when \texttt{.help}
+  is entered (Optional).
+\item
+  \texttt{action} \{Function\} The function to execute, optionally
+  accepting a single string argument.
+\end{itemize}
+
+The following example shows two new commands added to the REPL instance:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ repl }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:repl\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+
+\KeywordTok{const}\NormalTok{ replServer }\OperatorTok{=}\NormalTok{ repl}\OperatorTok{.}\FunctionTok{start}\NormalTok{(\{ }\DataTypeTok{prompt}\OperatorTok{:} \StringTok{\textquotesingle{}\textgreater{} \textquotesingle{}}\NormalTok{ \})}\OperatorTok{;}
+\NormalTok{replServer}\OperatorTok{.}\FunctionTok{defineCommand}\NormalTok{(}\StringTok{\textquotesingle{}sayhello\textquotesingle{}}\OperatorTok{,}\NormalTok{ \{}
+  \DataTypeTok{help}\OperatorTok{:} \StringTok{\textquotesingle{}Say hello\textquotesingle{}}\OperatorTok{,}
+  \FunctionTok{action}\NormalTok{(name) \{}
+    \KeywordTok{this}\OperatorTok{.}\FunctionTok{clearBufferedCommand}\NormalTok{()}\OperatorTok{;}
+    \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\VerbatimStringTok{\textasciigrave{}Hello, }\SpecialCharTok{$\{}\NormalTok{name}\SpecialCharTok{\}}\VerbatimStringTok{!\textasciigrave{}}\NormalTok{)}\OperatorTok{;}
+    \KeywordTok{this}\OperatorTok{.}\FunctionTok{displayPrompt}\NormalTok{()}\OperatorTok{;}
+\NormalTok{  \}}\OperatorTok{,}
+\NormalTok{\})}\OperatorTok{;}
+\NormalTok{replServer}\OperatorTok{.}\FunctionTok{defineCommand}\NormalTok{(}\StringTok{\textquotesingle{}saybye\textquotesingle{}}\OperatorTok{,} \KeywordTok{function} \FunctionTok{saybye}\NormalTok{() \{}
+  \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\StringTok{\textquotesingle{}Goodbye!\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+  \KeywordTok{this}\OperatorTok{.}\FunctionTok{close}\NormalTok{()}\OperatorTok{;}
+\NormalTok{\})}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+The new commands can then be used from within the REPL instance:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{\textgreater{} .sayhello Node.js User}
+\NormalTok{Hello, Node.js User!}
+\NormalTok{\textgreater{} .saybye}
+\NormalTok{Goodbye!}
+\end{Highlighting}
+\end{Shaded}
+
+\subsubsection{\texorpdfstring{\texttt{replServer.displayPrompt({[}preserveCursor{]})}}{replServer.displayPrompt({[}preserveCursor{]})}}\label{replserver.displaypromptpreservecursor}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{preserveCursor} \{boolean\}
+\end{itemize}
+
+The \texttt{replServer.displayPrompt()} method readies the REPL instance
+for input from the user, printing the configured \texttt{prompt} to a
+new line in the \texttt{output} and resuming the \texttt{input} to
+accept new input.
+
+When multi-line input is being entered, an ellipsis is printed rather
+than the `prompt'.
+
+When \texttt{preserveCursor} is \texttt{true}, the cursor placement will
+not be reset to \texttt{0}.
+
+The \texttt{replServer.displayPrompt} method is primarily intended to be
+called from within the action function for commands registered using the
+\texttt{replServer.defineCommand()} method.
+
+\subsubsection{\texorpdfstring{\texttt{replServer.clearBufferedCommand()}}{replServer.clearBufferedCommand()}}\label{replserver.clearbufferedcommand}
+
+The \texttt{replServer.clearBufferedCommand()} method clears any command
+that has been buffered but not yet executed. This method is primarily
+intended to be called from within the action function for commands
+registered using the \texttt{replServer.defineCommand()} method.
+
+\subsubsection{\texorpdfstring{\texttt{replServer.parseREPLKeyword(keyword{[},\ rest{]})}}{replServer.parseREPLKeyword(keyword{[}, rest{]})}}\label{replserver.parsereplkeywordkeyword-rest}
+
+\begin{quote}
+Stability: 0 - Deprecated.
+\end{quote}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{keyword} \{string\} the potential keyword to parse and execute
+\item
+  \texttt{rest} \{any\} any parameters to the keyword command
+\item
+  Returns: \{boolean\}
+\end{itemize}
+
+An internal method used to parse and execute \texttt{REPLServer}
+keywords. Returns \texttt{true} if \texttt{keyword} is a valid keyword,
+otherwise \texttt{false}.
+
+\subsubsection{\texorpdfstring{\texttt{replServer.setupHistory(historyPath,\ callback)}}{replServer.setupHistory(historyPath, callback)}}\label{replserver.setuphistoryhistorypath-callback}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{historyPath} \{string\} the path to the history file
+\item
+  \texttt{callback} \{Function\} called when history writes are ready or
+  upon error
+
+  \begin{itemize}
+  \tightlist
+  \item
+    \texttt{err} \{Error\}
+  \item
+    \texttt{repl} \{repl.REPLServer\}
+  \end{itemize}
+\end{itemize}
+
+Initializes a history log file for the REPL instance. When executing the
+Node.js binary and using the command-line REPL, a history file is
+initialized by default. However, this is not the case when creating a
+REPL programmatically. Use this method to initialize a history log file
+when working with REPL instances programmatically.
+
+\subsection{\texorpdfstring{\texttt{repl.builtinModules}}{repl.builtinModules}}\label{repl.builtinmodules}
+
+\begin{itemize}
+\tightlist
+\item
+  \{string{[}{]}\}
+\end{itemize}
+
+A list of the names of all Node.js modules, e.g.,
+\texttt{\textquotesingle{}http\textquotesingle{}}.
+
+\subsection{\texorpdfstring{\texttt{repl.start({[}options{]})}}{repl.start({[}options{]})}}\label{repl.startoptions}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{options} \{Object\textbar string\}
+
+  \begin{itemize}
+  \tightlist
+  \item
+    \texttt{prompt} \{string\} The input prompt to display.
+    \textbf{Default:}
+    \texttt{\textquotesingle{}\textgreater{}\ \textquotesingle{}} (with
+    a trailing space).
+  \item
+    \texttt{input} \{stream.Readable\} The \texttt{Readable} stream from
+    which REPL input will be read. \textbf{Default:}
+    \texttt{process.stdin}.
+  \item
+    \texttt{output} \{stream.Writable\} The \texttt{Writable} stream to
+    which REPL output will be written. \textbf{Default:}
+    \texttt{process.stdout}.
+  \item
+    \texttt{terminal} \{boolean\} If \texttt{true}, specifies that the
+    \texttt{output} should be treated as a TTY terminal.
+    \textbf{Default:} checking the value of the \texttt{isTTY} property
+    on the \texttt{output} stream upon instantiation.
+  \item
+    \texttt{eval} \{Function\} The function to be used when evaluating
+    each given line of input. \textbf{Default:} an async wrapper for the
+    JavaScript \texttt{eval()} function. An \texttt{eval} function can
+    error with \texttt{repl.Recoverable} to indicate the input was
+    incomplete and prompt for additional lines.
+  \item
+    \texttt{useColors} \{boolean\} If \texttt{true}, specifies that the
+    default \texttt{writer} function should include ANSI color styling
+    to REPL output. If a custom \texttt{writer} function is provided
+    then this has no effect. \textbf{Default:} checking color support on
+    the \texttt{output} stream if the REPL instance's \texttt{terminal}
+    value is \texttt{true}.
+  \item
+    \texttt{useGlobal} \{boolean\} If \texttt{true}, specifies that the
+    default evaluation function will use the JavaScript \texttt{global}
+    as the context as opposed to creating a new separate context for the
+    REPL instance. The node CLI REPL sets this value to \texttt{true}.
+    \textbf{Default:} \texttt{false}.
+  \item
+    \texttt{ignoreUndefined} \{boolean\} If \texttt{true}, specifies
+    that the default writer will not output the return value of a
+    command if it evaluates to \texttt{undefined}. \textbf{Default:}
+    \texttt{false}.
+  \item
+    \texttt{writer} \{Function\} The function to invoke to format the
+    output of each command before writing to \texttt{output}.
+    \textbf{Default:}
+    \href{util.md\#utilinspectobject-options}{\texttt{util.inspect()}}.
+  \item
+    \texttt{completer} \{Function\} An optional function used for custom
+    Tab auto completion. See
+    \href{readline.md\#use-of-the-completer-function}{\texttt{readline.InterfaceCompleter}}
+    for an example.
+  \item
+    \texttt{replMode} \{symbol\} A flag that specifies whether the
+    default evaluator executes all JavaScript commands in strict mode or
+    default (sloppy) mode. Acceptable values are:
+
+    \begin{itemize}
+    \tightlist
+    \item
+      \texttt{repl.REPL\_MODE\_SLOPPY} to evaluate expressions in sloppy
+      mode.
+    \item
+      \texttt{repl.REPL\_MODE\_STRICT} to evaluate expressions in strict
+      mode. This is equivalent to prefacing every repl statement with
+      \texttt{\textquotesingle{}use\ strict\textquotesingle{}}.
+    \end{itemize}
+  \item
+    \texttt{breakEvalOnSigint} \{boolean\} Stop evaluating the current
+    piece of code when \texttt{SIGINT} is received, such as when Ctrl+C
+    is pressed. This cannot be used together with a custom \texttt{eval}
+    function. \textbf{Default:} \texttt{false}.
+  \item
+    \texttt{preview} \{boolean\} Defines if the repl prints autocomplete
+    and output previews or not. \textbf{Default:} \texttt{true} with the
+    default eval function and \texttt{false} in case a custom eval
+    function is used. If \texttt{terminal} is falsy, then there are no
+    previews and the value of \texttt{preview} has no effect.
+  \end{itemize}
+\item
+  Returns: \{repl.REPLServer\}
+\end{itemize}
+
+The \texttt{repl.start()} method creates and starts a
+\hyperref[class-replserver]{\texttt{repl.REPLServer}} instance.
+
+If \texttt{options} is a string, then it specifies the input prompt:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ repl }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:repl\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+
+\CommentTok{// a Unix style prompt}
+\NormalTok{repl}\OperatorTok{.}\FunctionTok{start}\NormalTok{(}\StringTok{\textquotesingle{}$ \textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+\subsection{The Node.js REPL}\label{the-node.js-repl}
+
+Node.js itself uses the \texttt{node:repl} module to provide its own
+interactive interface for executing JavaScript. This can be used by
+executing the Node.js binary without passing any arguments (or by
+passing the \texttt{-i} argument):
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{$ node}
+\NormalTok{\textgreater{} const a = [1, 2, 3];}
+\NormalTok{undefined}
+\NormalTok{\textgreater{} a}
+\NormalTok{[ 1, 2, 3 ]}
+\NormalTok{\textgreater{} a.forEach((v) =\textgreater{} \{}
+\NormalTok{...   console.log(v);}
+\NormalTok{...   \});}
+\NormalTok{1}
+\NormalTok{2}
+\NormalTok{3}
+\end{Highlighting}
+\end{Shaded}
+
+\subsubsection{Environment variable
+options}\label{environment-variable-options}
+
+Various behaviors of the Node.js REPL can be customized using the
+following environment variables:
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{NODE\_REPL\_HISTORY}: When a valid path is given, persistent
+  REPL history will be saved to the specified file rather than
+  \texttt{.node\_repl\_history} in the user's home directory. Setting
+  this value to \texttt{\textquotesingle{}\textquotesingle{}} (an empty
+  string) will disable persistent REPL history. Whitespace will be
+  trimmed from the value. On Windows platforms environment variables
+  with empty values are invalid so set this variable to one or more
+  spaces to disable persistent REPL history.
+\item
+  \texttt{NODE\_REPL\_HISTORY\_SIZE}: Controls how many lines of history
+  will be persisted if history is available. Must be a positive number.
+  \textbf{Default:} \texttt{1000}.
+\item
+  \texttt{NODE\_REPL\_MODE}: May be either
+  \texttt{\textquotesingle{}sloppy\textquotesingle{}} or
+  \texttt{\textquotesingle{}strict\textquotesingle{}}. \textbf{Default:}
+  \texttt{\textquotesingle{}sloppy\textquotesingle{}}, which will allow
+  non-strict mode code to be run.
+\end{itemize}
+
+\subsubsection{Persistent history}\label{persistent-history}
+
+By default, the Node.js REPL will persist history between \texttt{node}
+REPL sessions by saving inputs to a \texttt{.node\_repl\_history} file
+located in the user's home directory. This can be disabled by setting
+the environment variable
+\texttt{NODE\_REPL\_HISTORY=\textquotesingle{}\textquotesingle{}}.
+
+\subsubsection{Using the Node.js REPL with advanced
+line-editors}\label{using-the-node.js-repl-with-advanced-line-editors}
+
+For advanced line-editors, start Node.js with the environment variable
+\texttt{NODE\_NO\_READLINE=1}. This will start the main and debugger
+REPL in canonical terminal settings, which will allow use with
+\texttt{rlwrap}.
+
+For example, the following can be added to a \texttt{.bashrc} file:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\BuiltInTok{alias}\NormalTok{ node=}\StringTok{"env NODE\_NO\_READLINE=1 rlwrap node"}
+\end{Highlighting}
+\end{Shaded}
+
+\subsubsection{Starting multiple REPL instances against a single running
+instance}\label{starting-multiple-repl-instances-against-a-single-running-instance}
+
+It is possible to create and run multiple REPL instances against a
+single running instance of Node.js that share a single \texttt{global}
+object but have separate I/O interfaces.
+
+The following example, for instance, provides separate REPLs on
+\texttt{stdin}, a Unix socket, and a TCP socket:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ net }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:net\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\KeywordTok{const}\NormalTok{ repl }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:repl\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\KeywordTok{let}\NormalTok{ connections }\OperatorTok{=} \DecValTok{0}\OperatorTok{;}
+
+\NormalTok{repl}\OperatorTok{.}\FunctionTok{start}\NormalTok{(\{}
+  \DataTypeTok{prompt}\OperatorTok{:} \StringTok{\textquotesingle{}Node.js via stdin\textgreater{} \textquotesingle{}}\OperatorTok{,}
+  \DataTypeTok{input}\OperatorTok{:} \BuiltInTok{process}\OperatorTok{.}\AttributeTok{stdin}\OperatorTok{,}
+  \DataTypeTok{output}\OperatorTok{:} \BuiltInTok{process}\OperatorTok{.}\AttributeTok{stdout}\OperatorTok{,}
+\NormalTok{\})}\OperatorTok{;}
+
+\NormalTok{net}\OperatorTok{.}\FunctionTok{createServer}\NormalTok{((socket) }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+\NormalTok{  connections }\OperatorTok{+=} \DecValTok{1}\OperatorTok{;}
+\NormalTok{  repl}\OperatorTok{.}\FunctionTok{start}\NormalTok{(\{}
+    \DataTypeTok{prompt}\OperatorTok{:} \StringTok{\textquotesingle{}Node.js via Unix socket\textgreater{} \textquotesingle{}}\OperatorTok{,}
+    \DataTypeTok{input}\OperatorTok{:}\NormalTok{ socket}\OperatorTok{,}
+    \DataTypeTok{output}\OperatorTok{:}\NormalTok{ socket}\OperatorTok{,}
+\NormalTok{  \})}\OperatorTok{.}\FunctionTok{on}\NormalTok{(}\StringTok{\textquotesingle{}exit\textquotesingle{}}\OperatorTok{,}\NormalTok{ () }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+\NormalTok{    socket}\OperatorTok{.}\FunctionTok{end}\NormalTok{()}\OperatorTok{;}
+\NormalTok{  \})}\OperatorTok{;}
+\NormalTok{\})}\OperatorTok{.}\FunctionTok{listen}\NormalTok{(}\StringTok{\textquotesingle{}/tmp/node{-}repl{-}sock\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+
+\NormalTok{net}\OperatorTok{.}\FunctionTok{createServer}\NormalTok{((socket) }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+\NormalTok{  connections }\OperatorTok{+=} \DecValTok{1}\OperatorTok{;}
+\NormalTok{  repl}\OperatorTok{.}\FunctionTok{start}\NormalTok{(\{}
+    \DataTypeTok{prompt}\OperatorTok{:} \StringTok{\textquotesingle{}Node.js via TCP socket\textgreater{} \textquotesingle{}}\OperatorTok{,}
+    \DataTypeTok{input}\OperatorTok{:}\NormalTok{ socket}\OperatorTok{,}
+    \DataTypeTok{output}\OperatorTok{:}\NormalTok{ socket}\OperatorTok{,}
+\NormalTok{  \})}\OperatorTok{.}\FunctionTok{on}\NormalTok{(}\StringTok{\textquotesingle{}exit\textquotesingle{}}\OperatorTok{,}\NormalTok{ () }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+\NormalTok{    socket}\OperatorTok{.}\FunctionTok{end}\NormalTok{()}\OperatorTok{;}
+\NormalTok{  \})}\OperatorTok{;}
+\NormalTok{\})}\OperatorTok{.}\FunctionTok{listen}\NormalTok{(}\DecValTok{5001}\NormalTok{)}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+Running this application from the command line will start a REPL on
+stdin. Other REPL clients may connect through the Unix socket or TCP
+socket. \texttt{telnet}, for instance, is useful for connecting to TCP
+sockets, while \texttt{socat} can be used to connect to both Unix and
+TCP sockets.
+
+By starting a REPL from a Unix socket-based server instead of stdin, it
+is possible to connect to a long-running Node.js process without
+restarting it.
+
+For an example of running a ``full-featured'' (\texttt{terminal}) REPL
+over a \texttt{net.Server} and \texttt{net.Socket} instance, see:
+\url{https://gist.github.com/TooTallNate/2209310}.
+
+For an example of running a REPL instance over
+\href{https://curl.haxx.se/docs/manpage.html}{\texttt{curl(1)}}, see:
+\url{https://gist.github.com/TooTallNate/2053342}.

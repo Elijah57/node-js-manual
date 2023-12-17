@@ -1,0 +1,916 @@
+\section{Global objects}\label{global-objects}
+
+These objects are available in all modules. The following variables may
+appear to be global but are not. They exist only in the scope of
+modules, see the \href{modules.md}{module system documentation}:
+
+\begin{itemize}
+\tightlist
+\item
+  \href{modules.md\#__dirname}{\texttt{\_\_dirname}}
+\item
+  \href{modules.md\#__filename}{\texttt{\_\_filename}}
+\item
+  \href{modules.md\#exports}{\texttt{exports}}
+\item
+  \href{modules.md\#module}{\texttt{module}}
+\item
+  \href{modules.md\#requireid}{\texttt{require()}}
+\end{itemize}
+
+The objects listed here are specific to Node.js. There are
+\href{https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects}{built-in
+objects} that are part of the JavaScript language itself, which are also
+globally accessible.
+
+\subsection{\texorpdfstring{Class:
+\texttt{AbortController}}{Class: AbortController}}\label{class-abortcontroller}
+
+A utility class used to signal cancelation in selected
+\texttt{Promise}-based APIs. The API is based on the Web API
+\href{https://developer.mozilla.org/en-US/docs/Web/API/AbortController}{\texttt{AbortController}}.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ ac }\OperatorTok{=} \KeywordTok{new} \FunctionTok{AbortController}\NormalTok{()}\OperatorTok{;}
+
+\NormalTok{ac}\OperatorTok{.}\AttributeTok{signal}\OperatorTok{.}\FunctionTok{addEventListener}\NormalTok{(}\StringTok{\textquotesingle{}abort\textquotesingle{}}\OperatorTok{,}\NormalTok{ () }\KeywordTok{=\textgreater{}} \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\StringTok{\textquotesingle{}Aborted!\textquotesingle{}}\NormalTok{)}\OperatorTok{,}
+\NormalTok{                           \{ }\DataTypeTok{once}\OperatorTok{:} \KeywordTok{true}\NormalTok{ \})}\OperatorTok{;}
+
+\NormalTok{ac}\OperatorTok{.}\FunctionTok{abort}\NormalTok{()}\OperatorTok{;}
+
+\BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(ac}\OperatorTok{.}\AttributeTok{signal}\OperatorTok{.}\AttributeTok{aborted}\NormalTok{)}\OperatorTok{;}  \CommentTok{// Prints true}
+\end{Highlighting}
+\end{Shaded}
+
+\subsubsection{\texorpdfstring{\texttt{abortController.abort({[}reason{]})}}{abortController.abort({[}reason{]})}}\label{abortcontroller.abortreason}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{reason} \{any\} An optional reason, retrievable on the
+  \texttt{AbortSignal}'s \texttt{reason} property.
+\end{itemize}
+
+Triggers the abort signal, causing the \texttt{abortController.signal}
+to emit the \texttt{\textquotesingle{}abort\textquotesingle{}} event.
+
+\subsubsection{\texorpdfstring{\texttt{abortController.signal}}{abortController.signal}}\label{abortcontroller.signal}
+
+\begin{itemize}
+\tightlist
+\item
+  Type: \{AbortSignal\}
+\end{itemize}
+
+\subsubsection{\texorpdfstring{Class:
+\texttt{AbortSignal}}{Class: AbortSignal}}\label{class-abortsignal}
+
+\begin{itemize}
+\tightlist
+\item
+  Extends: \{EventTarget\}
+\end{itemize}
+
+The \texttt{AbortSignal} is used to notify observers when the
+\texttt{abortController.abort()} method is called.
+
+\paragraph{\texorpdfstring{Static method:
+\texttt{AbortSignal.abort({[}reason{]})}}{Static method: AbortSignal.abort({[}reason{]})}}\label{static-method-abortsignal.abortreason}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{reason}: \{any\}
+\item
+  Returns: \{AbortSignal\}
+\end{itemize}
+
+Returns a new already aborted \texttt{AbortSignal}.
+
+\paragraph{\texorpdfstring{Static method:
+\texttt{AbortSignal.timeout(delay)}}{Static method: AbortSignal.timeout(delay)}}\label{static-method-abortsignal.timeoutdelay}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{delay} \{number\} The number of milliseconds to wait before
+  triggering the AbortSignal.
+\end{itemize}
+
+Returns a new \texttt{AbortSignal} which will be aborted in
+\texttt{delay} milliseconds.
+
+\paragraph{\texorpdfstring{Static method:
+\texttt{AbortSignal.any(signals)}}{Static method: AbortSignal.any(signals)}}\label{static-method-abortsignal.anysignals}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{signals} \{AbortSignal{[}{]}\} The \texttt{AbortSignal}s of
+  which to compose a new \texttt{AbortSignal}.
+\end{itemize}
+
+Returns a new \texttt{AbortSignal} which will be aborted if any of the
+provided signals are aborted. Its
+\hyperref[abortsignalreason]{\texttt{abortSignal.reason}} will be set to
+whichever one of the \texttt{signals} caused it to be aborted.
+
+\paragraph{\texorpdfstring{Event:
+\texttt{\textquotesingle{}abort\textquotesingle{}}}{Event: \textquotesingle abort\textquotesingle{}}}\label{event-abort}
+
+The \texttt{\textquotesingle{}abort\textquotesingle{}} event is emitted
+when the \texttt{abortController.abort()} method is called. The callback
+is invoked with a single object argument with a single \texttt{type}
+property set to \texttt{\textquotesingle{}abort\textquotesingle{}}:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ ac }\OperatorTok{=} \KeywordTok{new} \FunctionTok{AbortController}\NormalTok{()}\OperatorTok{;}
+
+\CommentTok{// Use either the onabort property...}
+\NormalTok{ac}\OperatorTok{.}\AttributeTok{signal}\OperatorTok{.}\AttributeTok{onabort} \OperatorTok{=}\NormalTok{ () }\KeywordTok{=\textgreater{}} \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\StringTok{\textquotesingle{}aborted!\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+
+\CommentTok{// Or the EventTarget API...}
+\NormalTok{ac}\OperatorTok{.}\AttributeTok{signal}\OperatorTok{.}\FunctionTok{addEventListener}\NormalTok{(}\StringTok{\textquotesingle{}abort\textquotesingle{}}\OperatorTok{,}\NormalTok{ (}\BuiltInTok{event}\NormalTok{) }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+  \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\BuiltInTok{event}\OperatorTok{.}\AttributeTok{type}\NormalTok{)}\OperatorTok{;}  \CommentTok{// Prints \textquotesingle{}abort\textquotesingle{}}
+\NormalTok{\}}\OperatorTok{,}\NormalTok{ \{ }\DataTypeTok{once}\OperatorTok{:} \KeywordTok{true}\NormalTok{ \})}\OperatorTok{;}
+
+\NormalTok{ac}\OperatorTok{.}\FunctionTok{abort}\NormalTok{()}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+The \texttt{AbortController} with which the \texttt{AbortSignal} is
+associated will only ever trigger the
+\texttt{\textquotesingle{}abort\textquotesingle{}} event once. We
+recommended that code check that the \texttt{abortSignal.aborted}
+attribute is \texttt{false} before adding an
+\texttt{\textquotesingle{}abort\textquotesingle{}} event listener.
+
+Any event listeners attached to the \texttt{AbortSignal} should use the
+\texttt{\{\ once:\ true\ \}} option (or, if using the
+\texttt{EventEmitter} APIs to attach a listener, use the \texttt{once()}
+method) to ensure that the event listener is removed as soon as the
+\texttt{\textquotesingle{}abort\textquotesingle{}} event is handled.
+Failure to do so may result in memory leaks.
+
+\paragraph{\texorpdfstring{\texttt{abortSignal.aborted}}{abortSignal.aborted}}\label{abortsignal.aborted}
+
+\begin{itemize}
+\tightlist
+\item
+  Type: \{boolean\} True after the \texttt{AbortController} has been
+  aborted.
+\end{itemize}
+
+\paragraph{\texorpdfstring{\texttt{abortSignal.onabort}}{abortSignal.onabort}}\label{abortsignal.onabort}
+
+\begin{itemize}
+\tightlist
+\item
+  Type: \{Function\}
+\end{itemize}
+
+An optional callback function that may be set by user code to be
+notified when the \texttt{abortController.abort()} function has been
+called.
+
+\paragraph{\texorpdfstring{\texttt{abortSignal.reason}}{abortSignal.reason}}\label{abortsignal.reason}
+
+\begin{itemize}
+\tightlist
+\item
+  Type: \{any\}
+\end{itemize}
+
+An optional reason specified when the \texttt{AbortSignal} was
+triggered.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ ac }\OperatorTok{=} \KeywordTok{new} \FunctionTok{AbortController}\NormalTok{()}\OperatorTok{;}
+\NormalTok{ac}\OperatorTok{.}\FunctionTok{abort}\NormalTok{(}\KeywordTok{new} \BuiltInTok{Error}\NormalTok{(}\StringTok{\textquotesingle{}boom!\textquotesingle{}}\NormalTok{))}\OperatorTok{;}
+\BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(ac}\OperatorTok{.}\AttributeTok{signal}\OperatorTok{.}\AttributeTok{reason}\NormalTok{)}\OperatorTok{;}  \CommentTok{// Error: boom!}
+\end{Highlighting}
+\end{Shaded}
+
+\paragraph{\texorpdfstring{\texttt{abortSignal.throwIfAborted()}}{abortSignal.throwIfAborted()}}\label{abortsignal.throwifaborted}
+
+If \texttt{abortSignal.aborted} is \texttt{true}, throws
+\texttt{abortSignal.reason}.
+
+\subsection{\texorpdfstring{Class:
+\texttt{Blob}}{Class: Blob}}\label{class-blob}
+
+See \{Blob\}.
+
+\subsection{\texorpdfstring{Class:
+\texttt{Buffer}}{Class: Buffer}}\label{class-buffer}
+
+\begin{itemize}
+\tightlist
+\item
+  \{Function\}
+\end{itemize}
+
+Used to handle binary data. See the \href{buffer.md}{buffer section}.
+
+\subsection{\texorpdfstring{Class:
+\texttt{ByteLengthQueuingStrategy}}{Class: ByteLengthQueuingStrategy}}\label{class-bytelengthqueuingstrategy}
+
+\begin{quote}
+Stability: 1 - Experimental.
+\end{quote}
+
+A browser-compatible implementation of
+\href{webstreams.md\#class-bytelengthqueuingstrategy}{\texttt{ByteLengthQueuingStrategy}}.
+
+\subsection{\texorpdfstring{\texttt{\_\_dirname}}{\_\_dirname}}\label{dirname}
+
+This variable may appear to be global but is not. See
+\href{modules.md\#__dirname}{\texttt{\_\_dirname}}.
+
+\subsection{\texorpdfstring{\texttt{\_\_filename}}{\_\_filename}}\label{filename}
+
+This variable may appear to be global but is not. See
+\href{modules.md\#__filename}{\texttt{\_\_filename}}.
+
+\subsection{\texorpdfstring{\texttt{atob(data)}}{atob(data)}}\label{atobdata}
+
+\begin{quote}
+Stability: 3 - Legacy. Use
+\texttt{Buffer.from(data,\ \textquotesingle{}base64\textquotesingle{})}
+instead.
+\end{quote}
+
+Global alias for
+\href{buffer.md\#bufferatobdata}{\texttt{buffer.atob()}}.
+
+\subsection{\texorpdfstring{\texttt{BroadcastChannel}}{BroadcastChannel}}\label{broadcastchannel}
+
+See \{BroadcastChannel\}.
+
+\subsection{\texorpdfstring{\texttt{btoa(data)}}{btoa(data)}}\label{btoadata}
+
+\begin{quote}
+Stability: 3 - Legacy. Use
+\texttt{buf.toString(\textquotesingle{}base64\textquotesingle{})}
+instead.
+\end{quote}
+
+Global alias for
+\href{buffer.md\#bufferbtoadata}{\texttt{buffer.btoa()}}.
+
+\subsection{\texorpdfstring{\texttt{clearImmediate(immediateObject)}}{clearImmediate(immediateObject)}}\label{clearimmediateimmediateobject}
+
+\href{timers.md\#clearimmediateimmediate}{\texttt{clearImmediate}} is
+described in the \href{timers.md}{timers} section.
+
+\subsection{\texorpdfstring{\texttt{clearInterval(intervalObject)}}{clearInterval(intervalObject)}}\label{clearintervalintervalobject}
+
+\href{timers.md\#clearintervaltimeout}{\texttt{clearInterval}} is
+described in the \href{timers.md}{timers} section.
+
+\subsection{\texorpdfstring{\texttt{clearTimeout(timeoutObject)}}{clearTimeout(timeoutObject)}}\label{cleartimeouttimeoutobject}
+
+\href{timers.md\#cleartimeouttimeout}{\texttt{clearTimeout}} is
+described in the \href{timers.md}{timers} section.
+
+\subsection{\texorpdfstring{Class:
+\texttt{CompressionStream}}{Class: CompressionStream}}\label{class-compressionstream}
+
+\begin{quote}
+Stability: 1 - Experimental.
+\end{quote}
+
+A browser-compatible implementation of
+\href{webstreams.md\#class-compressionstream}{\texttt{CompressionStream}}.
+
+\subsection{\texorpdfstring{\texttt{console}}{console}}\label{console}
+
+\begin{itemize}
+\tightlist
+\item
+  \{Object\}
+\end{itemize}
+
+Used to print to stdout and stderr. See the
+\href{console.md}{\texttt{console}} section.
+
+\subsection{\texorpdfstring{Class:
+\texttt{CountQueuingStrategy}}{Class: CountQueuingStrategy}}\label{class-countqueuingstrategy}
+
+\begin{quote}
+Stability: 1 - Experimental.
+\end{quote}
+
+A browser-compatible implementation of
+\href{webstreams.md\#class-countqueuingstrategy}{\texttt{CountQueuingStrategy}}.
+
+\subsection{\texorpdfstring{\texttt{Crypto}}{Crypto}}\label{crypto}
+
+\begin{quote}
+Stability: 1 - Experimental. Disable this API with the
+\href{cli.md\#--no-experimental-global-webcrypto}{\texttt{-\/-no-experimental-global-webcrypto}}
+CLI flag.
+\end{quote}
+
+A browser-compatible implementation of \{Crypto\}. This global is
+available only if the Node.js binary was compiled with including support
+for the \texttt{node:crypto} module.
+
+\subsection{\texorpdfstring{\texttt{crypto}}{crypto}}\label{crypto-1}
+
+\begin{quote}
+Stability: 1 - Experimental. Disable this API with the
+\href{cli.md\#--no-experimental-global-webcrypto}{\texttt{-\/-no-experimental-global-webcrypto}}
+CLI flag.
+\end{quote}
+
+A browser-compatible implementation of the \href{webcrypto.md}{Web
+Crypto API}.
+
+\subsection{\texorpdfstring{\texttt{CryptoKey}}{CryptoKey}}\label{cryptokey}
+
+\begin{quote}
+Stability: 1 - Experimental. Disable this API with the
+\href{cli.md\#--no-experimental-global-webcrypto}{\texttt{-\/-no-experimental-global-webcrypto}}
+CLI flag.
+\end{quote}
+
+A browser-compatible implementation of \{CryptoKey\}. This global is
+available only if the Node.js binary was compiled with including support
+for the \texttt{node:crypto} module.
+
+\subsection{\texorpdfstring{\texttt{CustomEvent}}{CustomEvent}}\label{customevent}
+
+\begin{quote}
+Stability: 1 - Experimental. Disable this API with the
+\href{cli.md\#--no-experimental-global-customevent}{\texttt{-\/-no-experimental-global-customevent}}
+CLI flag.
+\end{quote}
+
+A browser-compatible implementation of the
+\href{https://dom.spec.whatwg.org/\#customevent}{\texttt{CustomEvent}
+Web API}.
+
+\subsection{\texorpdfstring{Class:
+\texttt{DecompressionStream}}{Class: DecompressionStream}}\label{class-decompressionstream}
+
+\begin{quote}
+Stability: 1 - Experimental.
+\end{quote}
+
+A browser-compatible implementation of
+\href{webstreams.md\#class-decompressionstream}{\texttt{DecompressionStream}}.
+
+\subsection{\texorpdfstring{\texttt{Event}}{Event}}\label{event}
+
+A browser-compatible implementation of the \texttt{Event} class. See
+\href{events.md\#eventtarget-and-event-api}{\texttt{EventTarget} and
+\texttt{Event} API} for more details.
+
+\subsection{\texorpdfstring{\texttt{EventTarget}}{EventTarget}}\label{eventtarget}
+
+A browser-compatible implementation of the \texttt{EventTarget} class.
+See \href{events.md\#eventtarget-and-event-api}{\texttt{EventTarget} and
+\texttt{Event} API} for more details.
+
+\subsection{\texorpdfstring{\texttt{exports}}{exports}}\label{exports}
+
+This variable may appear to be global but is not. See
+\href{modules.md\#exports}{\texttt{exports}}.
+
+\subsection{\texorpdfstring{\texttt{fetch}}{fetch}}\label{fetch}
+
+\begin{quote}
+Stability: 2 - Stable
+\end{quote}
+
+A browser-compatible implementation of the
+\href{https://developer.mozilla.org/en-US/docs/Web/API/fetch}{\texttt{fetch()}}
+function.
+
+\subsection{\texorpdfstring{Class:
+\texttt{File}}{Class: File}}\label{class-file}
+
+See \{File\}.
+
+\subsection{\texorpdfstring{Class
+\texttt{FormData}}{Class FormData}}\label{class-formdata}
+
+\begin{quote}
+Stability: 2 - Stable
+\end{quote}
+
+A browser-compatible implementation of \{FormData\}.
+
+\subsection{\texorpdfstring{\texttt{global}}{global}}\label{global}
+
+\begin{quote}
+Stability: 3 - Legacy. Use
+\href{https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/globalThis}{\texttt{globalThis}}
+instead.
+\end{quote}
+
+\begin{itemize}
+\tightlist
+\item
+  \{Object\} The global namespace object.
+\end{itemize}
+
+In browsers, the top-level scope has traditionally been the global
+scope. This means that \texttt{var\ something} will define a new global
+variable, except within ECMAScript modules. In Node.js, this is
+different. The top-level scope is not the global scope;
+\texttt{var\ something} inside a Node.js module will be local to that
+module, regardless of whether it is a \href{modules.md}{CommonJS module}
+or an \href{esm.md}{ECMAScript module}.
+
+\subsection{\texorpdfstring{Class
+\texttt{Headers}}{Class Headers}}\label{class-headers}
+
+\begin{quote}
+Stability: 2 - Stable
+\end{quote}
+
+A browser-compatible implementation of \{Headers\}.
+
+\subsection{\texorpdfstring{\texttt{MessageChannel}}{MessageChannel}}\label{messagechannel}
+
+The \texttt{MessageChannel} class. See
+\href{worker_threads.md\#class-messagechannel}{\texttt{MessageChannel}}
+for more details.
+
+\subsection{\texorpdfstring{\texttt{MessageEvent}}{MessageEvent}}\label{messageevent}
+
+The \texttt{MessageEvent} class. See
+\href{https://developer.mozilla.org/en-US/docs/Web/API/MessageEvent/MessageEvent}{\texttt{MessageEvent}}
+for more details.
+
+\subsection{\texorpdfstring{\texttt{MessagePort}}{MessagePort}}\label{messageport}
+
+The \texttt{MessagePort} class. See
+\href{worker_threads.md\#class-messageport}{\texttt{MessagePort}} for
+more details.
+
+\subsection{\texorpdfstring{\texttt{module}}{module}}\label{module}
+
+This variable may appear to be global but is not. See
+\href{modules.md\#module}{\texttt{module}}.
+
+\subsection{\texorpdfstring{\texttt{Navigator}}{Navigator}}\label{navigator}
+
+\begin{quote}
+Stability: 1.1 - Active development. Disable this API with the
+\href{cli.md\#--no-experimental-global-navigator}{\texttt{-\/-no-experimental-global-navigator}}
+CLI flag.
+\end{quote}
+
+A partial implementation of the
+\href{https://html.spec.whatwg.org/multipage/system-state.html\#the-navigator-object}{Navigator
+API}.
+
+\subsection{\texorpdfstring{\texttt{navigator}}{navigator}}\label{navigator-1}
+
+\begin{quote}
+Stability: 1.1 - Active development. Disable this API with the
+\href{cli.md\#--no-experimental-global-navigator}{\texttt{-\/-no-experimental-global-navigator}}
+CLI flag.
+\end{quote}
+
+A partial implementation of
+\href{https://developer.mozilla.org/en-US/docs/Web/API/Window/navigator}{\texttt{window.navigator}}.
+
+\subsubsection{\texorpdfstring{\texttt{navigator.hardwareConcurrency}}{navigator.hardwareConcurrency}}\label{navigator.hardwareconcurrency}
+
+\begin{itemize}
+\tightlist
+\item
+  \{number\}
+\end{itemize}
+
+The \texttt{navigator.hardwareConcurrency} read-only property returns
+the number of logical processors available to the current Node.js
+instance.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\VerbatimStringTok{\textasciigrave{}This process is running on }\SpecialCharTok{$\{}\BuiltInTok{navigator}\OperatorTok{.}\AttributeTok{hardwareConcurrency}\SpecialCharTok{\}}\VerbatimStringTok{ logical processors\textasciigrave{}}\NormalTok{)}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+\subsubsection{\texorpdfstring{\texttt{navigator.language}}{navigator.language}}\label{navigator.language}
+
+\begin{itemize}
+\tightlist
+\item
+  \{string\}
+\end{itemize}
+
+The \texttt{navigator.language} read-only property returns a string
+representing the preferred language of the Node.js instance. The
+language will be determined by the ICU library used by Node.js at
+runtime based on the default language of the operating system.
+
+The value is representing the language version as defined in
+\href{https://www.rfc-editor.org/rfc/rfc5646.txt}{RFC 5646}.
+
+The fallback value on builds without ICU is
+\texttt{\textquotesingle{}en-US\textquotesingle{}}.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\VerbatimStringTok{\textasciigrave{}The preferred language of the Node.js instance has the tag \textquotesingle{}}\SpecialCharTok{$\{}\BuiltInTok{navigator}\OperatorTok{.}\AttributeTok{language}\SpecialCharTok{\}}\VerbatimStringTok{\textquotesingle{}\textasciigrave{}}\NormalTok{)}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+\subsubsection{\texorpdfstring{\texttt{navigator.languages}}{navigator.languages}}\label{navigator.languages}
+
+\begin{itemize}
+\tightlist
+\item
+  \{Array\}
+\end{itemize}
+
+The \texttt{navigator.languages} read-only property returns an array of
+strings representing the preferred languages of the Node.js instance. By
+default \texttt{navigator.languages} contains only the value of
+\texttt{navigator.language}, which will be determined by the ICU library
+used by Node.js at runtime based on the default language of the
+operating system.
+
+The fallback value on builds without ICU is
+\texttt{{[}\textquotesingle{}en-US\textquotesingle{}{]}}.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\VerbatimStringTok{\textasciigrave{}The preferred languages are \textquotesingle{}}\SpecialCharTok{$\{}\BuiltInTok{navigator}\OperatorTok{.}\AttributeTok{languages}\SpecialCharTok{\}}\VerbatimStringTok{\textquotesingle{}\textasciigrave{}}\NormalTok{)}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+\subsubsection{\texorpdfstring{\texttt{navigator.platform}}{navigator.platform}}\label{navigator.platform}
+
+\begin{itemize}
+\tightlist
+\item
+  \{string\}
+\end{itemize}
+
+The \texttt{navigator.platform} read-only property returns a string
+identifying the platform on which the Node.js instance is running.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\VerbatimStringTok{\textasciigrave{}This process is running on }\SpecialCharTok{$\{}\BuiltInTok{navigator}\OperatorTok{.}\AttributeTok{platform}\SpecialCharTok{\}}\VerbatimStringTok{\textasciigrave{}}\NormalTok{)}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+\subsubsection{\texorpdfstring{\texttt{navigator.userAgent}}{navigator.userAgent}}\label{navigator.useragent}
+
+\begin{itemize}
+\tightlist
+\item
+  \{string\}
+\end{itemize}
+
+The \texttt{navigator.userAgent} read-only property returns user agent
+consisting of the runtime name and major version number.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\VerbatimStringTok{\textasciigrave{}The user{-}agent is }\SpecialCharTok{$\{}\BuiltInTok{navigator}\OperatorTok{.}\AttributeTok{userAgent}\SpecialCharTok{\}}\VerbatimStringTok{\textasciigrave{}}\NormalTok{)}\OperatorTok{;} \CommentTok{// Prints "Node.js/21"}
+\end{Highlighting}
+\end{Shaded}
+
+\subsection{\texorpdfstring{\texttt{PerformanceEntry}}{PerformanceEntry}}\label{performanceentry}
+
+The \texttt{PerformanceEntry} class. See
+\href{perf_hooks.md\#class-performanceentry}{\texttt{PerformanceEntry}}
+for more details.
+
+\subsection{\texorpdfstring{\texttt{PerformanceMark}}{PerformanceMark}}\label{performancemark}
+
+The \texttt{PerformanceMark} class. See
+\href{perf_hooks.md\#class-performancemark}{\texttt{PerformanceMark}}
+for more details.
+
+\subsection{\texorpdfstring{\texttt{PerformanceMeasure}}{PerformanceMeasure}}\label{performancemeasure}
+
+The \texttt{PerformanceMeasure} class. See
+\href{perf_hooks.md\#class-performancemeasure}{\texttt{PerformanceMeasure}}
+for more details.
+
+\subsection{\texorpdfstring{\texttt{PerformanceObserver}}{PerformanceObserver}}\label{performanceobserver}
+
+The \texttt{PerformanceObserver} class. See
+\href{perf_hooks.md\#class-performanceobserver}{\texttt{PerformanceObserver}}
+for more details.
+
+\subsection{\texorpdfstring{\texttt{PerformanceObserverEntryList}}{PerformanceObserverEntryList}}\label{performanceobserverentrylist}
+
+The \texttt{PerformanceObserverEntryList} class. See
+\href{perf_hooks.md\#class-performanceobserverentrylist}{\texttt{PerformanceObserverEntryList}}
+for more details.
+
+\subsection{\texorpdfstring{\texttt{PerformanceResourceTiming}}{PerformanceResourceTiming}}\label{performanceresourcetiming}
+
+The \texttt{PerformanceResourceTiming} class. See
+\href{perf_hooks.md\#class-performanceresourcetiming}{\texttt{PerformanceResourceTiming}}
+for more details.
+
+\subsection{\texorpdfstring{\texttt{performance}}{performance}}\label{performance}
+
+The
+\href{perf_hooks.md\#perf_hooksperformance}{\texttt{perf\_hooks.performance}}
+object.
+
+\subsection{\texorpdfstring{\texttt{process}}{process}}\label{process}
+
+\begin{itemize}
+\tightlist
+\item
+  \{Object\}
+\end{itemize}
+
+The process object. See the \href{process.md\#process}{\texttt{process}
+object} section.
+
+\subsection{\texorpdfstring{\texttt{queueMicrotask(callback)}}{queueMicrotask(callback)}}\label{queuemicrotaskcallback}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{callback} \{Function\} Function to be queued.
+\end{itemize}
+
+The \texttt{queueMicrotask()} method queues a microtask to invoke
+\texttt{callback}. If \texttt{callback} throws an exception, the
+\href{process.md\#process}{\texttt{process} object}
+\texttt{\textquotesingle{}uncaughtException\textquotesingle{}} event
+will be emitted.
+
+The microtask queue is managed by V8 and may be used in a similar manner
+to the
+\href{process.md\#processnexttickcallback-args}{\texttt{process.nextTick()}}
+queue, which is managed by Node.js. The \texttt{process.nextTick()}
+queue is always processed before the microtask queue within each turn of
+the Node.js event loop.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{// Here, \textasciigrave{}queueMicrotask()\textasciigrave{} is used to ensure the \textquotesingle{}load\textquotesingle{} event is always}
+\CommentTok{// emitted asynchronously, and therefore consistently. Using}
+\CommentTok{// \textasciigrave{}process.nextTick()\textasciigrave{} here would result in the \textquotesingle{}load\textquotesingle{} event always emitting}
+\CommentTok{// before any other promise jobs.}
+
+\NormalTok{DataHandler}\OperatorTok{.}\AttributeTok{prototype}\OperatorTok{.}\AttributeTok{load} \OperatorTok{=} \KeywordTok{async} \KeywordTok{function} \FunctionTok{load}\NormalTok{(key) \{}
+  \KeywordTok{const}\NormalTok{ hit }\OperatorTok{=} \KeywordTok{this}\OperatorTok{.}\AttributeTok{\_cache}\OperatorTok{.}\FunctionTok{get}\NormalTok{(key)}\OperatorTok{;}
+  \ControlFlowTok{if}\NormalTok{ (hit }\OperatorTok{!==} \KeywordTok{undefined}\NormalTok{) \{}
+    \FunctionTok{queueMicrotask}\NormalTok{(() }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+      \KeywordTok{this}\OperatorTok{.}\FunctionTok{emit}\NormalTok{(}\StringTok{\textquotesingle{}load\textquotesingle{}}\OperatorTok{,}\NormalTok{ hit)}\OperatorTok{;}
+\NormalTok{    \})}\OperatorTok{;}
+    \ControlFlowTok{return}\OperatorTok{;}
+\NormalTok{  \}}
+
+  \KeywordTok{const}\NormalTok{ data }\OperatorTok{=} \ControlFlowTok{await} \FunctionTok{fetchData}\NormalTok{(key)}\OperatorTok{;}
+  \KeywordTok{this}\OperatorTok{.}\AttributeTok{\_cache}\OperatorTok{.}\FunctionTok{set}\NormalTok{(key}\OperatorTok{,}\NormalTok{ data)}\OperatorTok{;}
+  \KeywordTok{this}\OperatorTok{.}\FunctionTok{emit}\NormalTok{(}\StringTok{\textquotesingle{}load\textquotesingle{}}\OperatorTok{,}\NormalTok{ data)}\OperatorTok{;}
+\NormalTok{\}}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+\subsection{\texorpdfstring{Class:
+\texttt{ReadableByteStreamController}}{Class: ReadableByteStreamController}}\label{class-readablebytestreamcontroller}
+
+\begin{quote}
+Stability: 1 - Experimental.
+\end{quote}
+
+A browser-compatible implementation of
+\href{webstreams.md\#class-readablebytestreamcontroller}{\texttt{ReadableByteStreamController}}.
+
+\subsection{\texorpdfstring{Class:
+\texttt{ReadableStream}}{Class: ReadableStream}}\label{class-readablestream}
+
+\begin{quote}
+Stability: 1 - Experimental.
+\end{quote}
+
+A browser-compatible implementation of
+\href{webstreams.md\#class-readablestream}{\texttt{ReadableStream}}.
+
+\subsection{\texorpdfstring{Class:
+\texttt{ReadableStreamBYOBReader}}{Class: ReadableStreamBYOBReader}}\label{class-readablestreambyobreader}
+
+\begin{quote}
+Stability: 1 - Experimental.
+\end{quote}
+
+A browser-compatible implementation of
+\href{webstreams.md\#class-readablestreambyobreader}{\texttt{ReadableStreamBYOBReader}}.
+
+\subsection{\texorpdfstring{Class:
+\texttt{ReadableStreamBYOBRequest}}{Class: ReadableStreamBYOBRequest}}\label{class-readablestreambyobrequest}
+
+\begin{quote}
+Stability: 1 - Experimental.
+\end{quote}
+
+A browser-compatible implementation of
+\href{webstreams.md\#class-readablestreambyobrequest}{\texttt{ReadableStreamBYOBRequest}}.
+
+\subsection{\texorpdfstring{Class:
+\texttt{ReadableStreamDefaultController}}{Class: ReadableStreamDefaultController}}\label{class-readablestreamdefaultcontroller}
+
+\begin{quote}
+Stability: 1 - Experimental.
+\end{quote}
+
+A browser-compatible implementation of
+\href{webstreams.md\#class-readablestreamdefaultcontroller}{\texttt{ReadableStreamDefaultController}}.
+
+\subsection{\texorpdfstring{Class:
+\texttt{ReadableStreamDefaultReader}}{Class: ReadableStreamDefaultReader}}\label{class-readablestreamdefaultreader}
+
+\begin{quote}
+Stability: 1 - Experimental.
+\end{quote}
+
+A browser-compatible implementation of
+\href{webstreams.md\#class-readablestreamdefaultreader}{\texttt{ReadableStreamDefaultReader}}.
+
+\subsection{\texorpdfstring{\texttt{require()}}{require()}}\label{require}
+
+This variable may appear to be global but is not. See
+\href{modules.md\#requireid}{\texttt{require()}}.
+
+\subsection{\texorpdfstring{\texttt{Response}}{Response}}\label{response}
+
+\begin{quote}
+Stability: 2 - Stable
+\end{quote}
+
+A browser-compatible implementation of \{Response\}.
+
+\subsection{\texorpdfstring{\texttt{Request}}{Request}}\label{request}
+
+\begin{quote}
+Stability: 2 - Stable
+\end{quote}
+
+A browser-compatible implementation of \{Request\}.
+
+\subsection{\texorpdfstring{\texttt{setImmediate(callback{[},\ ...args{]})}}{setImmediate(callback{[}, ...args{]})}}\label{setimmediatecallback-...args}
+
+\href{timers.md\#setimmediatecallback-args}{\texttt{setImmediate}} is
+described in the \href{timers.md}{timers} section.
+
+\subsection{\texorpdfstring{\texttt{setInterval(callback,\ delay{[},\ ...args{]})}}{setInterval(callback, delay{[}, ...args{]})}}\label{setintervalcallback-delay-...args}
+
+\href{timers.md\#setintervalcallback-delay-args}{\texttt{setInterval}}
+is described in the \href{timers.md}{timers} section.
+
+\subsection{\texorpdfstring{\texttt{setTimeout(callback,\ delay{[},\ ...args{]})}}{setTimeout(callback, delay{[}, ...args{]})}}\label{settimeoutcallback-delay-...args}
+
+\href{timers.md\#settimeoutcallback-delay-args}{\texttt{setTimeout}} is
+described in the \href{timers.md}{timers} section.
+
+\subsection{\texorpdfstring{\texttt{structuredClone(value{[},\ options{]})}}{structuredClone(value{[}, options{]})}}\label{structuredclonevalue-options}
+
+The WHATWG
+\href{https://developer.mozilla.org/en-US/docs/Web/API/structuredClone}{\texttt{structuredClone}}
+method.
+
+\subsection{\texorpdfstring{\texttt{SubtleCrypto}}{SubtleCrypto}}\label{subtlecrypto}
+
+\begin{quote}
+Stability: 1 - Experimental. Disable this API with the
+\href{cli.md\#--no-experimental-global-webcrypto}{\texttt{-\/-no-experimental-global-webcrypto}}
+CLI flag.
+\end{quote}
+
+A browser-compatible implementation of \{SubtleCrypto\}. This global is
+available only if the Node.js binary was compiled with including support
+for the \texttt{node:crypto} module.
+
+\subsection{\texorpdfstring{\texttt{DOMException}}{DOMException}}\label{domexception}
+
+The WHATWG \texttt{DOMException} class. See
+\href{https://developer.mozilla.org/en-US/docs/Web/API/DOMException}{\texttt{DOMException}}
+for more details.
+
+\subsection{\texorpdfstring{\texttt{TextDecoder}}{TextDecoder}}\label{textdecoder}
+
+The WHATWG \texttt{TextDecoder} class. See the
+\href{util.md\#class-utiltextdecoder}{\texttt{TextDecoder}} section.
+
+\subsection{\texorpdfstring{Class:
+\texttt{TextDecoderStream}}{Class: TextDecoderStream}}\label{class-textdecoderstream}
+
+\begin{quote}
+Stability: 1 - Experimental.
+\end{quote}
+
+A browser-compatible implementation of
+\href{webstreams.md\#class-textdecoderstream}{\texttt{TextDecoderStream}}.
+
+\subsection{\texorpdfstring{\texttt{TextEncoder}}{TextEncoder}}\label{textencoder}
+
+The WHATWG \texttt{TextEncoder} class. See the
+\href{util.md\#class-utiltextencoder}{\texttt{TextEncoder}} section.
+
+\subsection{\texorpdfstring{Class:
+\texttt{TextEncoderStream}}{Class: TextEncoderStream}}\label{class-textencoderstream}
+
+\begin{quote}
+Stability: 1 - Experimental.
+\end{quote}
+
+A browser-compatible implementation of
+\href{webstreams.md\#class-textencoderstream}{\texttt{TextEncoderStream}}.
+
+\subsection{\texorpdfstring{Class:
+\texttt{TransformStream}}{Class: TransformStream}}\label{class-transformstream}
+
+\begin{quote}
+Stability: 1 - Experimental.
+\end{quote}
+
+A browser-compatible implementation of
+\href{webstreams.md\#class-transformstream}{\texttt{TransformStream}}.
+
+\subsection{\texorpdfstring{Class:
+\texttt{TransformStreamDefaultController}}{Class: TransformStreamDefaultController}}\label{class-transformstreamdefaultcontroller}
+
+\begin{quote}
+Stability: 1 - Experimental.
+\end{quote}
+
+A browser-compatible implementation of
+\href{webstreams.md\#class-transformstreamdefaultcontroller}{\texttt{TransformStreamDefaultController}}.
+
+\subsection{\texorpdfstring{\texttt{URL}}{URL}}\label{url}
+
+The WHATWG \texttt{URL} class. See the
+\href{url.md\#class-url}{\texttt{URL}} section.
+
+\subsection{\texorpdfstring{\texttt{URLSearchParams}}{URLSearchParams}}\label{urlsearchparams}
+
+The WHATWG \texttt{URLSearchParams} class. See the
+\href{url.md\#class-urlsearchparams}{\texttt{URLSearchParams}} section.
+
+\subsection{\texorpdfstring{\texttt{WebAssembly}}{WebAssembly}}\label{webassembly}
+
+\begin{itemize}
+\tightlist
+\item
+  \{Object\}
+\end{itemize}
+
+The object that acts as the namespace for all W3C
+\href{https://webassembly.org}{WebAssembly} related functionality. See
+the \href{https://developer.mozilla.org/en-US/docs/WebAssembly}{Mozilla
+Developer Network} for usage and compatibility.
+
+\subsection{\texorpdfstring{\texttt{WebSocket}}{WebSocket}}\label{websocket}
+
+\begin{quote}
+Stability: 1 - Experimental.
+\end{quote}
+
+A browser-compatible implementation of
+\href{https://developer.mozilla.org/en-US/docs/Web/API/WebSocket}{\texttt{WebSocket}}.
+Enable this API with the
+\href{cli.md\#--experimental-websocket}{\texttt{-\/-experimental-websocket}}
+CLI flag.
+
+\subsection{\texorpdfstring{Class:
+\texttt{WritableStream}}{Class: WritableStream}}\label{class-writablestream}
+
+\begin{quote}
+Stability: 1 - Experimental.
+\end{quote}
+
+A browser-compatible implementation of
+\href{webstreams.md\#class-writablestream}{\texttt{WritableStream}}.
+
+\subsection{\texorpdfstring{Class:
+\texttt{WritableStreamDefaultController}}{Class: WritableStreamDefaultController}}\label{class-writablestreamdefaultcontroller}
+
+\begin{quote}
+Stability: 1 - Experimental.
+\end{quote}
+
+A browser-compatible implementation of
+\href{webstreams.md\#class-writablestreamdefaultcontroller}{\texttt{WritableStreamDefaultController}}.
+
+\subsection{\texorpdfstring{Class:
+\texttt{WritableStreamDefaultWriter}}{Class: WritableStreamDefaultWriter}}\label{class-writablestreamdefaultwriter}
+
+\begin{quote}
+Stability: 1 - Experimental.
+\end{quote}
+
+A browser-compatible implementation of
+\href{webstreams.md\#class-writablestreamdefaultwriter}{\texttt{WritableStreamDefaultWriter}}.

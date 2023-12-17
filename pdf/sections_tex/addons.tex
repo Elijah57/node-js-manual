@@ -1,0 +1,1517 @@
+\section{C++ addons}\label{c-addons}
+
+\emph{Addons} are dynamically-linked shared objects written in C++. The
+\href{modules.md\#requireid}{\texttt{require()}} function can load
+addons as ordinary Node.js modules. Addons provide an interface between
+JavaScript and C/C++ libraries.
+
+There are three options for implementing addons: Node-API, nan, or
+direct use of internal V8, libuv, and Node.js libraries. Unless there is
+a need for direct access to functionality which is not exposed by
+Node-API, use Node-API. Refer to \href{n-api.md}{C/C++ addons with
+Node-API} for more information on Node-API.
+
+When not using Node-API, implementing addons is complicated, involving
+knowledge of several components and APIs:
+
+\begin{itemize}
+\item
+  \href{https://v8.dev/}{V8}: the C++ library Node.js uses to provide
+  the JavaScript implementation. V8 provides the mechanisms for creating
+  objects, calling functions, etc. V8's API is documented mostly in the
+  \texttt{v8.h} header file (\texttt{deps/v8/include/v8.h} in the
+  Node.js source tree), which is also available
+  \href{https://v8docs.nodesource.com/}{online}.
+\item
+  \href{https://github.com/libuv/libuv}{libuv}: The C library that
+  implements the Node.js event loop, its worker threads and all of the
+  asynchronous behaviors of the platform. It also serves as a
+  cross-platform abstraction library, giving easy, POSIX-like access
+  across all major operating systems to many common system tasks, such
+  as interacting with the file system, sockets, timers, and system
+  events. libuv also provides a threading abstraction similar to POSIX
+  threads for more sophisticated asynchronous addons that need to move
+  beyond the standard event loop. Addon authors should avoid blocking
+  the event loop with I/O or other time-intensive tasks by offloading
+  work via libuv to non-blocking system operations, worker threads, or a
+  custom use of libuv threads.
+\item
+  Internal Node.js libraries. Node.js itself exports C++ APIs that
+  addons can use, the most important of which is the
+  \texttt{node::ObjectWrap} class.
+\item
+  Node.js includes other statically linked libraries including OpenSSL.
+  These other libraries are located in the \texttt{deps/} directory in
+  the Node.js source tree. Only the libuv, OpenSSL, V8, and zlib symbols
+  are purposefully re-exported by Node.js and may be used to various
+  extents by addons. See
+  \hyperref[linking-to-libraries-included-with-nodejs]{Linking to
+  libraries included with Node.js} for additional information.
+\end{itemize}
+
+All of the following examples are available for
+\href{https://github.com/nodejs/node-addon-examples}{download} and may
+be used as the starting-point for an addon.
+
+\subsection{Hello world}\label{hello-world}
+
+This ``Hello world'' example is a simple addon, written in C++, that is
+the equivalent of the following JavaScript code:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{module}\OperatorTok{.}\AttributeTok{exports}\OperatorTok{.}\AttributeTok{hello} \OperatorTok{=}\NormalTok{ () }\KeywordTok{=\textgreater{}} \StringTok{\textquotesingle{}world\textquotesingle{}}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+First, create the file \texttt{hello.cc}:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{// hello.cc}
+\PreprocessorTok{\#include }\ImportTok{\textless{}node.h\textgreater{}}
+
+\KeywordTok{namespace}\NormalTok{ demo }\OperatorTok{\{}
+
+\KeywordTok{using}\NormalTok{ v8}\OperatorTok{::}\NormalTok{FunctionCallbackInfo}\OperatorTok{;}
+\KeywordTok{using}\NormalTok{ v8}\OperatorTok{::}\NormalTok{Isolate}\OperatorTok{;}
+\KeywordTok{using}\NormalTok{ v8}\OperatorTok{::}\NormalTok{Local}\OperatorTok{;}
+\KeywordTok{using}\NormalTok{ v8}\OperatorTok{::}\NormalTok{Object}\OperatorTok{;}
+\KeywordTok{using}\NormalTok{ v8}\OperatorTok{::}\NormalTok{String}\OperatorTok{;}
+\KeywordTok{using}\NormalTok{ v8}\OperatorTok{::}\NormalTok{Value}\OperatorTok{;}
+
+\DataTypeTok{void}\NormalTok{ Method}\OperatorTok{(}\AttributeTok{const}\NormalTok{ FunctionCallbackInfo}\OperatorTok{\textless{}}\NormalTok{Value}\OperatorTok{\textgreater{}\&}\NormalTok{ args}\OperatorTok{)} \OperatorTok{\{}
+\NormalTok{  Isolate}\OperatorTok{*}\NormalTok{ isolate }\OperatorTok{=}\NormalTok{ args}\OperatorTok{.}\NormalTok{GetIsolate}\OperatorTok{();}
+\NormalTok{  args}\OperatorTok{.}\NormalTok{GetReturnValue}\OperatorTok{().}\NormalTok{Set}\OperatorTok{(}\NormalTok{String}\OperatorTok{::}\NormalTok{NewFromUtf8}\OperatorTok{(}
+\NormalTok{      isolate}\OperatorTok{,} \StringTok{"world"}\OperatorTok{).}\NormalTok{ToLocalChecked}\OperatorTok{());}
+\OperatorTok{\}}
+
+\DataTypeTok{void}\NormalTok{ Initialize}\OperatorTok{(}\NormalTok{Local}\OperatorTok{\textless{}}\NormalTok{Object}\OperatorTok{\textgreater{}}\NormalTok{ exports}\OperatorTok{)} \OperatorTok{\{}
+\NormalTok{  NODE\_SET\_METHOD}\OperatorTok{(}\NormalTok{exports}\OperatorTok{,} \StringTok{"hello"}\OperatorTok{,}\NormalTok{ Method}\OperatorTok{);}
+\OperatorTok{\}}
+
+\NormalTok{NODE\_MODULE}\OperatorTok{(}\NormalTok{NODE\_GYP\_MODULE\_NAME}\OperatorTok{,}\NormalTok{ Initialize}\OperatorTok{)}
+
+\OperatorTok{\}}  \CommentTok{// namespace demo}
+\end{Highlighting}
+\end{Shaded}
+
+All Node.js addons must export an initialization function following the
+pattern:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\DataTypeTok{void}\NormalTok{ Initialize}\OperatorTok{(}\NormalTok{Local}\OperatorTok{\textless{}}\NormalTok{Object}\OperatorTok{\textgreater{}}\NormalTok{ exports}\OperatorTok{);}
+\NormalTok{NODE\_MODULE}\OperatorTok{(}\NormalTok{NODE\_GYP\_MODULE\_NAME}\OperatorTok{,}\NormalTok{ Initialize}\OperatorTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+There is no semi-colon after \texttt{NODE\_MODULE} as it's not a
+function (see \texttt{node.h}).
+
+The \texttt{module\_name} must match the filename of the final binary
+(excluding the \texttt{.node} suffix).
+
+In the \texttt{hello.cc} example, then, the initialization function is
+\texttt{Initialize} and the addon module name is \texttt{addon}.
+
+When building addons with \texttt{node-gyp}, using the macro
+\texttt{NODE\_GYP\_MODULE\_NAME} as the first parameter of
+\texttt{NODE\_MODULE()} will ensure that the name of the final binary
+will be passed to \texttt{NODE\_MODULE()}.
+
+Addons defined with \texttt{NODE\_MODULE()} can not be loaded in
+multiple contexts or multiple threads at the same time.
+
+\subsubsection{Context-aware addons}\label{context-aware-addons}
+
+There are environments in which Node.js addons may need to be loaded
+multiple times in multiple contexts. For example, the
+\href{https://electronjs.org/}{Electron} runtime runs multiple instances
+of Node.js in a single process. Each instance will have its own
+\texttt{require()} cache, and thus each instance will need a native
+addon to behave correctly when loaded via \texttt{require()}. This means
+that the addon must support multiple initializations.
+
+A context-aware addon can be constructed by using the macro
+\texttt{NODE\_MODULE\_INITIALIZER}, which expands to the name of a
+function which Node.js will expect to find when it loads an addon. An
+addon can thus be initialized as in the following example:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{using} \KeywordTok{namespace}\NormalTok{ v8}\OperatorTok{;}
+
+\AttributeTok{extern} \StringTok{"C"}\NormalTok{ NODE\_MODULE\_EXPORT }\DataTypeTok{void}
+\NormalTok{NODE\_MODULE\_INITIALIZER}\OperatorTok{(}\NormalTok{Local}\OperatorTok{\textless{}}\NormalTok{Object}\OperatorTok{\textgreater{}}\NormalTok{ exports}\OperatorTok{,}
+\NormalTok{                        Local}\OperatorTok{\textless{}}\NormalTok{Value}\OperatorTok{\textgreater{}} \KeywordTok{module}\OperatorTok{,}
+\NormalTok{                        Local}\OperatorTok{\textless{}}\NormalTok{Context}\OperatorTok{\textgreater{}}\NormalTok{ context}\OperatorTok{)} \OperatorTok{\{}
+  \CommentTok{/* Perform addon initialization steps here. */}
+\OperatorTok{\}}
+\end{Highlighting}
+\end{Shaded}
+
+Another option is to use the macro \texttt{NODE\_MODULE\_INIT()}, which
+will also construct a context-aware addon. Unlike
+\texttt{NODE\_MODULE()}, which is used to construct an addon around a
+given addon initializer function, \texttt{NODE\_MODULE\_INIT()} serves
+as the declaration of such an initializer to be followed by a function
+body.
+
+The following three variables may be used inside the function body
+following an invocation of \texttt{NODE\_MODULE\_INIT()}:
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{Local\textless{}Object\textgreater{}\ exports},
+\item
+  \texttt{Local\textless{}Value\textgreater{}\ module}, and
+\item
+  \texttt{Local\textless{}Context\textgreater{}\ context}
+\end{itemize}
+
+The choice to build a context-aware addon carries with it the
+responsibility of carefully managing global static data. Since the addon
+may be loaded multiple times, potentially even from different threads,
+any global static data stored in the addon must be properly protected,
+and must not contain any persistent references to JavaScript objects.
+The reason for this is that JavaScript objects are only valid in one
+context, and will likely cause a crash when accessed from the wrong
+context or from a different thread than the one on which they were
+created.
+
+The context-aware addon can be structured to avoid global static data by
+performing the following steps:
+
+\begin{itemize}
+\item
+  Define a class which will hold per-addon-instance data and which has a
+  static member of the form
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\AttributeTok{static} \DataTypeTok{void}\NormalTok{ DeleteInstance}\OperatorTok{(}\DataTypeTok{void}\OperatorTok{*}\NormalTok{ data}\OperatorTok{)} \OperatorTok{\{}
+  \CommentTok{// Cast \textasciigrave{}data\textasciigrave{} to an instance of the class and delete it.}
+\OperatorTok{\}}
+\end{Highlighting}
+\end{Shaded}
+\item
+  Heap-allocate an instance of this class in the addon initializer. This
+  can be accomplished using the \texttt{new} keyword.
+\item
+  Call \texttt{node::AddEnvironmentCleanupHook()}, passing it the
+  above-created instance and a pointer to \texttt{DeleteInstance()}.
+  This will ensure the instance is deleted when the environment is torn
+  down.
+\item
+  Store the instance of the class in a \texttt{v8::External}, and
+\item
+  Pass the \texttt{v8::External} to all methods exposed to JavaScript by
+  passing it to \texttt{v8::FunctionTemplate::New()} or
+  \texttt{v8::Function::New()} which creates the native-backed
+  JavaScript functions. The third parameter of
+  \texttt{v8::FunctionTemplate::New()} or \texttt{v8::Function::New()}
+  accepts the \texttt{v8::External} and makes it available in the native
+  callback using the \texttt{v8::FunctionCallbackInfo::Data()} method.
+\end{itemize}
+
+This will ensure that the per-addon-instance data reaches each binding
+that can be called from JavaScript. The per-addon-instance data must
+also be passed into any asynchronous callbacks the addon may create.
+
+The following example illustrates the implementation of a context-aware
+addon:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\PreprocessorTok{\#include }\ImportTok{\textless{}node.h\textgreater{}}
+
+\KeywordTok{using} \KeywordTok{namespace}\NormalTok{ v8}\OperatorTok{;}
+
+\KeywordTok{class}\NormalTok{ AddonData }\OperatorTok{\{}
+ \KeywordTok{public}\OperatorTok{:}
+  \KeywordTok{explicit}\NormalTok{ AddonData}\OperatorTok{(}\NormalTok{Isolate}\OperatorTok{*}\NormalTok{ isolate}\OperatorTok{):}
+\NormalTok{      call\_count}\OperatorTok{(}\DecValTok{0}\OperatorTok{)} \OperatorTok{\{}
+    \CommentTok{// Ensure this per{-}addon{-}instance data is deleted at environment cleanup.}
+\NormalTok{    node}\OperatorTok{::}\NormalTok{AddEnvironmentCleanupHook}\OperatorTok{(}\NormalTok{isolate}\OperatorTok{,}\NormalTok{ DeleteInstance}\OperatorTok{,} \KeywordTok{this}\OperatorTok{);}
+  \OperatorTok{\}}
+
+  \CommentTok{// Per{-}addon data.}
+  \DataTypeTok{int}\NormalTok{ call\_count}\OperatorTok{;}
+
+  \AttributeTok{static} \DataTypeTok{void}\NormalTok{ DeleteInstance}\OperatorTok{(}\DataTypeTok{void}\OperatorTok{*}\NormalTok{ data}\OperatorTok{)} \OperatorTok{\{}
+    \KeywordTok{delete} \KeywordTok{static\_cast}\OperatorTok{\textless{}}\NormalTok{AddonData}\OperatorTok{*\textgreater{}(}\NormalTok{data}\OperatorTok{);}
+  \OperatorTok{\}}
+\OperatorTok{\};}
+
+\AttributeTok{static} \DataTypeTok{void}\NormalTok{ Method}\OperatorTok{(}\AttributeTok{const}\NormalTok{ v8}\OperatorTok{::}\NormalTok{FunctionCallbackInfo}\OperatorTok{\textless{}}\NormalTok{v8}\OperatorTok{::}\NormalTok{Value}\OperatorTok{\textgreater{}\&}\NormalTok{ info}\OperatorTok{)} \OperatorTok{\{}
+  \CommentTok{// Retrieve the per{-}addon{-}instance data.}
+\NormalTok{  AddonData}\OperatorTok{*}\NormalTok{ data }\OperatorTok{=}
+      \KeywordTok{reinterpret\_cast}\OperatorTok{\textless{}}\NormalTok{AddonData}\OperatorTok{*\textgreater{}(}\NormalTok{info}\OperatorTok{.}\NormalTok{Data}\OperatorTok{().}\NormalTok{As}\OperatorTok{\textless{}}\NormalTok{External}\OperatorTok{\textgreater{}(){-}\textgreater{}}\NormalTok{Value}\OperatorTok{());}
+\NormalTok{  data}\OperatorTok{{-}\textgreater{}}\NormalTok{call\_count}\OperatorTok{++;}
+\NormalTok{  info}\OperatorTok{.}\NormalTok{GetReturnValue}\OperatorTok{().}\NormalTok{Set}\OperatorTok{((}\DataTypeTok{double}\OperatorTok{)}\NormalTok{data}\OperatorTok{{-}\textgreater{}}\NormalTok{call\_count}\OperatorTok{);}
+\OperatorTok{\}}
+
+\CommentTok{// Initialize this addon to be context{-}aware.}
+\NormalTok{NODE\_MODULE\_INIT}\OperatorTok{(}\CommentTok{/* exports, module, context */}\OperatorTok{)} \OperatorTok{\{}
+\NormalTok{  Isolate}\OperatorTok{*}\NormalTok{ isolate }\OperatorTok{=}\NormalTok{ context}\OperatorTok{{-}\textgreater{}}\NormalTok{GetIsolate}\OperatorTok{();}
+
+  \CommentTok{// Create a new instance of \textasciigrave{}AddonData\textasciigrave{} for this instance of the addon and}
+  \CommentTok{// tie its life cycle to that of the Node.js environment.}
+\NormalTok{  AddonData}\OperatorTok{*}\NormalTok{ data }\OperatorTok{=} \KeywordTok{new}\NormalTok{ AddonData}\OperatorTok{(}\NormalTok{isolate}\OperatorTok{);}
+
+  \CommentTok{// Wrap the data in a \textasciigrave{}v8::External\textasciigrave{} so we can pass it to the method we}
+  \CommentTok{// expose.}
+\NormalTok{  Local}\OperatorTok{\textless{}}\NormalTok{External}\OperatorTok{\textgreater{}}\NormalTok{ external }\OperatorTok{=}\NormalTok{ External}\OperatorTok{::}\NormalTok{New}\OperatorTok{(}\NormalTok{isolate}\OperatorTok{,}\NormalTok{ data}\OperatorTok{);}
+
+  \CommentTok{// Expose the method \textasciigrave{}Method\textasciigrave{} to JavaScript, and make sure it receives the}
+  \CommentTok{// per{-}addon{-}instance data we created above by passing \textasciigrave{}external\textasciigrave{} as the}
+  \CommentTok{// third parameter to the \textasciigrave{}FunctionTemplate\textasciigrave{} constructor.}
+\NormalTok{  exports}\OperatorTok{{-}\textgreater{}}\NormalTok{Set}\OperatorTok{(}\NormalTok{context}\OperatorTok{,}
+\NormalTok{               String}\OperatorTok{::}\NormalTok{NewFromUtf8}\OperatorTok{(}\NormalTok{isolate}\OperatorTok{,} \StringTok{"method"}\OperatorTok{).}\NormalTok{ToLocalChecked}\OperatorTok{(),}
+\NormalTok{               FunctionTemplate}\OperatorTok{::}\NormalTok{New}\OperatorTok{(}\NormalTok{isolate}\OperatorTok{,}\NormalTok{ Method}\OperatorTok{,}\NormalTok{ external}\OperatorTok{)}
+                  \OperatorTok{{-}\textgreater{}}\NormalTok{GetFunction}\OperatorTok{(}\NormalTok{context}\OperatorTok{).}\NormalTok{ToLocalChecked}\OperatorTok{()).}\NormalTok{FromJust}\OperatorTok{();}
+\OperatorTok{\}}
+\end{Highlighting}
+\end{Shaded}
+
+\paragraph{Worker support}\label{worker-support}
+
+In order to be loaded from multiple Node.js environments, such as a main
+thread and a Worker thread, an add-on needs to either:
+
+\begin{itemize}
+\tightlist
+\item
+  Be an Node-API addon, or
+\item
+  Be declared as context-aware using \texttt{NODE\_MODULE\_INIT()} as
+  described above
+\end{itemize}
+
+In order to support
+\href{worker_threads.md\#class-worker}{\texttt{Worker}} threads, addons
+need to clean up any resources they may have allocated when such a
+thread exists. This can be achieved through the usage of the
+\texttt{AddEnvironmentCleanupHook()} function:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\DataTypeTok{void}\NormalTok{ AddEnvironmentCleanupHook}\OperatorTok{(}\NormalTok{v8}\OperatorTok{::}\NormalTok{Isolate}\OperatorTok{*}\NormalTok{ isolate}\OperatorTok{,}
+                               \DataTypeTok{void} \OperatorTok{(*}\NormalTok{fun}\OperatorTok{)(}\DataTypeTok{void}\OperatorTok{*}\NormalTok{ arg}\OperatorTok{),}
+                               \DataTypeTok{void}\OperatorTok{*}\NormalTok{ arg}\OperatorTok{);}
+\end{Highlighting}
+\end{Shaded}
+
+This function adds a hook that will run before a given Node.js instance
+shuts down. If necessary, such hooks can be removed before they are run
+using \texttt{RemoveEnvironmentCleanupHook()}, which has the same
+signature. Callbacks are run in last-in first-out order.
+
+If necessary, there is an additional pair of
+\texttt{AddEnvironmentCleanupHook()} and
+\texttt{RemoveEnvironmentCleanupHook()} overloads, where the cleanup
+hook takes a callback function. This can be used for shutting down
+asynchronous resources, such as any libuv handles registered by the
+addon.
+
+The following \texttt{addon.cc} uses \texttt{AddEnvironmentCleanupHook}:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{// addon.cc}
+\PreprocessorTok{\#include }\ImportTok{\textless{}node.h\textgreater{}}
+\PreprocessorTok{\#include }\ImportTok{\textless{}assert.h\textgreater{}}
+\PreprocessorTok{\#include }\ImportTok{\textless{}stdlib.h\textgreater{}}
+
+\KeywordTok{using}\NormalTok{ node}\OperatorTok{::}\NormalTok{AddEnvironmentCleanupHook}\OperatorTok{;}
+\KeywordTok{using}\NormalTok{ v8}\OperatorTok{::}\NormalTok{HandleScope}\OperatorTok{;}
+\KeywordTok{using}\NormalTok{ v8}\OperatorTok{::}\NormalTok{Isolate}\OperatorTok{;}
+\KeywordTok{using}\NormalTok{ v8}\OperatorTok{::}\NormalTok{Local}\OperatorTok{;}
+\KeywordTok{using}\NormalTok{ v8}\OperatorTok{::}\NormalTok{Object}\OperatorTok{;}
+
+\CommentTok{// Note: In a real{-}world application, do not rely on static/global data.}
+\AttributeTok{static} \DataTypeTok{char}\NormalTok{ cookie}\OperatorTok{[]} \OperatorTok{=} \StringTok{"yum yum"}\OperatorTok{;}
+\AttributeTok{static} \DataTypeTok{int}\NormalTok{ cleanup\_cb1\_called }\OperatorTok{=} \DecValTok{0}\OperatorTok{;}
+\AttributeTok{static} \DataTypeTok{int}\NormalTok{ cleanup\_cb2\_called }\OperatorTok{=} \DecValTok{0}\OperatorTok{;}
+
+\AttributeTok{static} \DataTypeTok{void}\NormalTok{ cleanup\_cb1}\OperatorTok{(}\DataTypeTok{void}\OperatorTok{*}\NormalTok{ arg}\OperatorTok{)} \OperatorTok{\{}
+\NormalTok{  Isolate}\OperatorTok{*}\NormalTok{ isolate }\OperatorTok{=} \KeywordTok{static\_cast}\OperatorTok{\textless{}}\NormalTok{Isolate}\OperatorTok{*\textgreater{}(}\NormalTok{arg}\OperatorTok{);}
+\NormalTok{  HandleScope scope}\OperatorTok{(}\NormalTok{isolate}\OperatorTok{);}
+\NormalTok{  Local}\OperatorTok{\textless{}}\NormalTok{Object}\OperatorTok{\textgreater{}}\NormalTok{ obj }\OperatorTok{=}\NormalTok{ Object}\OperatorTok{::}\NormalTok{New}\OperatorTok{(}\NormalTok{isolate}\OperatorTok{);}
+  \OtherTok{assert}\OperatorTok{(!}\NormalTok{obj}\OperatorTok{.}\NormalTok{IsEmpty}\OperatorTok{());}  \CommentTok{// assert VM is still alive}
+  \OtherTok{assert}\OperatorTok{(}\NormalTok{obj}\OperatorTok{{-}\textgreater{}}\NormalTok{IsObject}\OperatorTok{());}
+\NormalTok{  cleanup\_cb1\_called}\OperatorTok{++;}
+\OperatorTok{\}}
+
+\AttributeTok{static} \DataTypeTok{void}\NormalTok{ cleanup\_cb2}\OperatorTok{(}\DataTypeTok{void}\OperatorTok{*}\NormalTok{ arg}\OperatorTok{)} \OperatorTok{\{}
+  \OtherTok{assert}\OperatorTok{(}\NormalTok{arg }\OperatorTok{==} \KeywordTok{static\_cast}\OperatorTok{\textless{}}\DataTypeTok{void}\OperatorTok{*\textgreater{}(}\NormalTok{cookie}\OperatorTok{));}
+\NormalTok{  cleanup\_cb2\_called}\OperatorTok{++;}
+\OperatorTok{\}}
+
+\AttributeTok{static} \DataTypeTok{void}\NormalTok{ sanity\_check}\OperatorTok{(}\DataTypeTok{void}\OperatorTok{*)} \OperatorTok{\{}
+  \OtherTok{assert}\OperatorTok{(}\NormalTok{cleanup\_cb1\_called }\OperatorTok{==} \DecValTok{1}\OperatorTok{);}
+  \OtherTok{assert}\OperatorTok{(}\NormalTok{cleanup\_cb2\_called }\OperatorTok{==} \DecValTok{1}\OperatorTok{);}
+\OperatorTok{\}}
+
+\CommentTok{// Initialize this addon to be context{-}aware.}
+\NormalTok{NODE\_MODULE\_INIT}\OperatorTok{(}\CommentTok{/* exports, module, context */}\OperatorTok{)} \OperatorTok{\{}
+\NormalTok{  Isolate}\OperatorTok{*}\NormalTok{ isolate }\OperatorTok{=}\NormalTok{ context}\OperatorTok{{-}\textgreater{}}\NormalTok{GetIsolate}\OperatorTok{();}
+
+\NormalTok{  AddEnvironmentCleanupHook}\OperatorTok{(}\NormalTok{isolate}\OperatorTok{,}\NormalTok{ sanity\_check}\OperatorTok{,} \KeywordTok{nullptr}\OperatorTok{);}
+\NormalTok{  AddEnvironmentCleanupHook}\OperatorTok{(}\NormalTok{isolate}\OperatorTok{,}\NormalTok{ cleanup\_cb2}\OperatorTok{,}\NormalTok{ cookie}\OperatorTok{);}
+\NormalTok{  AddEnvironmentCleanupHook}\OperatorTok{(}\NormalTok{isolate}\OperatorTok{,}\NormalTok{ cleanup\_cb1}\OperatorTok{,}\NormalTok{ isolate}\OperatorTok{);}
+\OperatorTok{\}}
+\end{Highlighting}
+\end{Shaded}
+
+Test in JavaScript by running:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{// test.js}
+\PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}./build/Release/addon\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+\subsubsection{Building}\label{building}
+
+Once the source code has been written, it must be compiled into the
+binary \texttt{addon.node} file. To do so, create a file called
+\texttt{binding.gyp} in the top-level of the project describing the
+build configuration of the module using a JSON-like format. This file is
+used by \href{https://github.com/nodejs/node-gyp}{node-gyp}, a tool
+written specifically to compile Node.js addons.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{\{}
+  \DataTypeTok{"targets"}\FunctionTok{:} \OtherTok{[}
+    \FunctionTok{\{}
+      \DataTypeTok{"target\_name"}\FunctionTok{:} \StringTok{"addon"}\FunctionTok{,}
+      \DataTypeTok{"sources"}\FunctionTok{:} \OtherTok{[} \StringTok{"hello.cc"} \OtherTok{]}
+    \FunctionTok{\}}
+  \OtherTok{]}
+\FunctionTok{\}}
+\end{Highlighting}
+\end{Shaded}
+
+A version of the \texttt{node-gyp} utility is bundled and distributed
+with Node.js as part of \texttt{npm}. This version is not made directly
+available for developers to use and is intended only to support the
+ability to use the \texttt{npm\ install} command to compile and install
+addons. Developers who wish to use \texttt{node-gyp} directly can
+install it using the command \texttt{npm\ install\ -g\ node-gyp}. See
+the \texttt{node-gyp}
+\href{https://github.com/nodejs/node-gyp\#installation}{installation
+instructions} for more information, including platform-specific
+requirements.
+
+Once the \texttt{binding.gyp} file has been created, use
+\texttt{node-gyp\ configure} to generate the appropriate project build
+files for the current platform. This will generate either a
+\texttt{Makefile} (on Unix platforms) or a \texttt{vcxproj} file (on
+Windows) in the \texttt{build/} directory.
+
+Next, invoke the \texttt{node-gyp\ build} command to generate the
+compiled \texttt{addon.node} file. This will be put into the
+\texttt{build/Release/} directory.
+
+When using \texttt{npm\ install} to install a Node.js addon, npm uses
+its own bundled version of \texttt{node-gyp} to perform this same set of
+actions, generating a compiled version of the addon for the user's
+platform on demand.
+
+Once built, the binary addon can be used from within Node.js by pointing
+\href{modules.md\#requireid}{\texttt{require()}} to the built
+\texttt{addon.node} module:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{// hello.js}
+\KeywordTok{const}\NormalTok{ addon }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}./build/Release/addon\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+
+\BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(addon}\OperatorTok{.}\FunctionTok{hello}\NormalTok{())}\OperatorTok{;}
+\CommentTok{// Prints: \textquotesingle{}world\textquotesingle{}}
+\end{Highlighting}
+\end{Shaded}
+
+Because the exact path to the compiled addon binary can vary depending
+on how it is compiled (i.e.~sometimes it may be in
+\texttt{./build/Debug/}), addons can use the
+\href{https://github.com/TooTallNate/node-bindings}{bindings} package to
+load the compiled module.
+
+While the \texttt{bindings} package implementation is more sophisticated
+in how it locates addon modules, it is essentially using a
+\texttt{try…catch} pattern similar to:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\ControlFlowTok{try}\NormalTok{ \{}
+  \ControlFlowTok{return} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}./build/Release/addon.node\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{\} }\ControlFlowTok{catch}\NormalTok{ (err) \{}
+  \ControlFlowTok{return} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}./build/Debug/addon.node\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{\}}
+\end{Highlighting}
+\end{Shaded}
+
+\subsubsection{Linking to libraries included with
+Node.js}\label{linking-to-libraries-included-with-node.js}
+
+Node.js uses statically linked libraries such as V8, libuv, and OpenSSL.
+All addons are required to link to V8 and may link to any of the other
+dependencies as well. Typically, this is as simple as including the
+appropriate \texttt{\#include\ \textless{}...\textgreater{}} statements
+(e.g.~\texttt{\#include\ \textless{}v8.h\textgreater{}}) and
+\texttt{node-gyp} will locate the appropriate headers automatically.
+However, there are a few caveats to be aware of:
+
+\begin{itemize}
+\item
+  When \texttt{node-gyp} runs, it will detect the specific release
+  version of Node.js and download either the full source tarball or just
+  the headers. If the full source is downloaded, addons will have
+  complete access to the full set of Node.js dependencies. However, if
+  only the Node.js headers are downloaded, then only the symbols
+  exported by Node.js will be available.
+\item
+  \texttt{node-gyp} can be run using the \texttt{-\/-nodedir} flag
+  pointing at a local Node.js source image. Using this option, the addon
+  will have access to the full set of dependencies.
+\end{itemize}
+
+\subsubsection{\texorpdfstring{Loading addons using
+\texttt{require()}}{Loading addons using require()}}\label{loading-addons-using-require}
+
+The filename extension of the compiled addon binary is \texttt{.node}
+(as opposed to \texttt{.dll} or \texttt{.so}). The
+\href{modules.md\#requireid}{\texttt{require()}} function is written to
+look for files with the \texttt{.node} file extension and initialize
+those as dynamically-linked libraries.
+
+When calling \href{modules.md\#requireid}{\texttt{require()}}, the
+\texttt{.node} extension can usually be omitted and Node.js will still
+find and initialize the addon. One caveat, however, is that Node.js will
+first attempt to locate and load modules or JavaScript files that happen
+to share the same base name. For instance, if there is a file
+\texttt{addon.js} in the same directory as the binary
+\texttt{addon.node}, then
+\href{modules.md\#requireid}{\texttt{require(\textquotesingle{}addon\textquotesingle{})}}
+will give precedence to the \texttt{addon.js} file and load it instead.
+
+\subsection{Native abstractions for
+Node.js}\label{native-abstractions-for-node.js}
+
+Each of the examples illustrated in this document directly use the
+Node.js and V8 APIs for implementing addons. The V8 API can, and has,
+changed dramatically from one V8 release to the next (and one major
+Node.js release to the next). With each change, addons may need to be
+updated and recompiled in order to continue functioning. The Node.js
+release schedule is designed to minimize the frequency and impact of
+such changes but there is little that Node.js can do to ensure stability
+of the V8 APIs.
+
+The \href{https://github.com/nodejs/nan}{Native Abstractions for
+Node.js} (or \texttt{nan}) provide a set of tools that addon developers
+are recommended to use to keep compatibility between past and future
+releases of V8 and Node.js. See the \texttt{nan}
+\href{https://github.com/nodejs/nan/tree/HEAD/examples/}{examples} for
+an illustration of how it can be used.
+
+\subsection{Node-API}\label{node-api}
+
+\begin{quote}
+Stability: 2 - Stable
+\end{quote}
+
+Node-API is an API for building native addons. It is independent from
+the underlying JavaScript runtime (e.g.~V8) and is maintained as part of
+Node.js itself. This API will be Application Binary Interface (ABI)
+stable across versions of Node.js. It is intended to insulate addons
+from changes in the underlying JavaScript engine and allow modules
+compiled for one version to run on later versions of Node.js without
+recompilation. Addons are built/packaged with the same approach/tools
+outlined in this document (node-gyp, etc.). The only difference is the
+set of APIs that are used by the native code. Instead of using the V8 or
+\href{https://github.com/nodejs/nan}{Native Abstractions for Node.js}
+APIs, the functions available in the Node-API are used.
+
+Creating and maintaining an addon that benefits from the ABI stability
+provided by Node-API carries with it certain
+\href{n-api.md\#implications-of-abi-stability}{implementation
+considerations}.
+
+To use Node-API in the above ``Hello world'' example, replace the
+content of \texttt{hello.cc} with the following. All other instructions
+remain the same.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{// hello.cc using Node{-}API}
+\PreprocessorTok{\#include }\ImportTok{\textless{}node\_api.h\textgreater{}}
+
+\KeywordTok{namespace}\NormalTok{ demo }\OperatorTok{\{}
+
+\NormalTok{napi\_value Method}\OperatorTok{(}\NormalTok{napi\_env env}\OperatorTok{,}\NormalTok{ napi\_callback\_info args}\OperatorTok{)} \OperatorTok{\{}
+\NormalTok{  napi\_value greeting}\OperatorTok{;}
+\NormalTok{  napi\_status status}\OperatorTok{;}
+
+\NormalTok{  status }\OperatorTok{=}\NormalTok{ napi\_create\_string\_utf8}\OperatorTok{(}\NormalTok{env}\OperatorTok{,} \StringTok{"world"}\OperatorTok{,}\NormalTok{ NAPI\_AUTO\_LENGTH}\OperatorTok{,} \OperatorTok{\&}\NormalTok{greeting}\OperatorTok{);}
+  \ControlFlowTok{if} \OperatorTok{(}\NormalTok{status }\OperatorTok{!=}\NormalTok{ napi\_ok}\OperatorTok{)} \ControlFlowTok{return} \KeywordTok{nullptr}\OperatorTok{;}
+  \ControlFlowTok{return}\NormalTok{ greeting}\OperatorTok{;}
+\OperatorTok{\}}
+
+\NormalTok{napi\_value init}\OperatorTok{(}\NormalTok{napi\_env env}\OperatorTok{,}\NormalTok{ napi\_value exports}\OperatorTok{)} \OperatorTok{\{}
+\NormalTok{  napi\_status status}\OperatorTok{;}
+\NormalTok{  napi\_value fn}\OperatorTok{;}
+
+\NormalTok{  status }\OperatorTok{=}\NormalTok{ napi\_create\_function}\OperatorTok{(}\NormalTok{env}\OperatorTok{,} \KeywordTok{nullptr}\OperatorTok{,} \DecValTok{0}\OperatorTok{,}\NormalTok{ Method}\OperatorTok{,} \KeywordTok{nullptr}\OperatorTok{,} \OperatorTok{\&}\NormalTok{fn}\OperatorTok{);}
+  \ControlFlowTok{if} \OperatorTok{(}\NormalTok{status }\OperatorTok{!=}\NormalTok{ napi\_ok}\OperatorTok{)} \ControlFlowTok{return} \KeywordTok{nullptr}\OperatorTok{;}
+
+\NormalTok{  status }\OperatorTok{=}\NormalTok{ napi\_set\_named\_property}\OperatorTok{(}\NormalTok{env}\OperatorTok{,}\NormalTok{ exports}\OperatorTok{,} \StringTok{"hello"}\OperatorTok{,}\NormalTok{ fn}\OperatorTok{);}
+  \ControlFlowTok{if} \OperatorTok{(}\NormalTok{status }\OperatorTok{!=}\NormalTok{ napi\_ok}\OperatorTok{)} \ControlFlowTok{return} \KeywordTok{nullptr}\OperatorTok{;}
+  \ControlFlowTok{return}\NormalTok{ exports}\OperatorTok{;}
+\OperatorTok{\}}
+
+\NormalTok{NAPI\_MODULE}\OperatorTok{(}\NormalTok{NODE\_GYP\_MODULE\_NAME}\OperatorTok{,}\NormalTok{ init}\OperatorTok{)}
+
+\OperatorTok{\}}  \CommentTok{// namespace demo}
+\end{Highlighting}
+\end{Shaded}
+
+The functions available and how to use them are documented in
+\href{n-api.md}{C/C++ addons with Node-API}.
+
+\subsection{Addon examples}\label{addon-examples}
+
+Following are some example addons intended to help developers get
+started. The examples use the V8 APIs. Refer to the online
+\href{https://v8docs.nodesource.com/}{V8 reference} for help with the
+various V8 calls, and V8's \href{https://v8.dev/docs/embed}{Embedder's
+Guide} for an explanation of several concepts used such as handles,
+scopes, function templates, etc.
+
+Each of these examples using the following \texttt{binding.gyp} file:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{\{}
+  \DataTypeTok{"targets"}\FunctionTok{:} \OtherTok{[}
+    \FunctionTok{\{}
+      \DataTypeTok{"target\_name"}\FunctionTok{:} \StringTok{"addon"}\FunctionTok{,}
+      \DataTypeTok{"sources"}\FunctionTok{:} \OtherTok{[} \StringTok{"addon.cc"} \OtherTok{]}
+    \FunctionTok{\}}
+  \OtherTok{]}
+\FunctionTok{\}}
+\end{Highlighting}
+\end{Shaded}
+
+In cases where there is more than one \texttt{.cc} file, simply add the
+additional filename to the \texttt{sources} array:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\ErrorTok{"sources":} \OtherTok{[}\StringTok{"addon.cc"}\OtherTok{,} \StringTok{"myexample.cc"}\OtherTok{]}
+\end{Highlighting}
+\end{Shaded}
+
+Once the \texttt{binding.gyp} file is ready, the example addons can be
+configured and built using \texttt{node-gyp}:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\ExtensionTok{node{-}gyp}\NormalTok{ configure build}
+\end{Highlighting}
+\end{Shaded}
+
+\subsubsection{Function arguments}\label{function-arguments}
+
+Addons will typically expose objects and functions that can be accessed
+from JavaScript running within Node.js. When functions are invoked from
+JavaScript, the input arguments and return value must be mapped to and
+from the C/C++ code.
+
+The following example illustrates how to read function arguments passed
+from JavaScript and how to return a result:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{// addon.cc}
+\PreprocessorTok{\#include }\ImportTok{\textless{}node.h\textgreater{}}
+
+\KeywordTok{namespace}\NormalTok{ demo }\OperatorTok{\{}
+
+\KeywordTok{using}\NormalTok{ v8}\OperatorTok{::}\NormalTok{Exception}\OperatorTok{;}
+\KeywordTok{using}\NormalTok{ v8}\OperatorTok{::}\NormalTok{FunctionCallbackInfo}\OperatorTok{;}
+\KeywordTok{using}\NormalTok{ v8}\OperatorTok{::}\NormalTok{Isolate}\OperatorTok{;}
+\KeywordTok{using}\NormalTok{ v8}\OperatorTok{::}\NormalTok{Local}\OperatorTok{;}
+\KeywordTok{using}\NormalTok{ v8}\OperatorTok{::}\NormalTok{Number}\OperatorTok{;}
+\KeywordTok{using}\NormalTok{ v8}\OperatorTok{::}\NormalTok{Object}\OperatorTok{;}
+\KeywordTok{using}\NormalTok{ v8}\OperatorTok{::}\NormalTok{String}\OperatorTok{;}
+\KeywordTok{using}\NormalTok{ v8}\OperatorTok{::}\NormalTok{Value}\OperatorTok{;}
+
+\CommentTok{// This is the implementation of the "add" method}
+\CommentTok{// Input arguments are passed using the}
+\CommentTok{// const FunctionCallbackInfo\textless{}Value\textgreater{}\& args struct}
+\DataTypeTok{void}\NormalTok{ Add}\OperatorTok{(}\AttributeTok{const}\NormalTok{ FunctionCallbackInfo}\OperatorTok{\textless{}}\NormalTok{Value}\OperatorTok{\textgreater{}\&}\NormalTok{ args}\OperatorTok{)} \OperatorTok{\{}
+\NormalTok{  Isolate}\OperatorTok{*}\NormalTok{ isolate }\OperatorTok{=}\NormalTok{ args}\OperatorTok{.}\NormalTok{GetIsolate}\OperatorTok{();}
+
+  \CommentTok{// Check the number of arguments passed.}
+  \ControlFlowTok{if} \OperatorTok{(}\NormalTok{args}\OperatorTok{.}\NormalTok{Length}\OperatorTok{()} \OperatorTok{\textless{}} \DecValTok{2}\OperatorTok{)} \OperatorTok{\{}
+    \CommentTok{// Throw an Error that is passed back to JavaScript}
+\NormalTok{    isolate}\OperatorTok{{-}\textgreater{}}\NormalTok{ThrowException}\OperatorTok{(}\NormalTok{Exception}\OperatorTok{::}\NormalTok{TypeError}\OperatorTok{(}
+\NormalTok{        String}\OperatorTok{::}\NormalTok{NewFromUtf8}\OperatorTok{(}\NormalTok{isolate}\OperatorTok{,}
+                            \StringTok{"Wrong number of arguments"}\OperatorTok{).}\NormalTok{ToLocalChecked}\OperatorTok{()));}
+    \ControlFlowTok{return}\OperatorTok{;}
+  \OperatorTok{\}}
+
+  \CommentTok{// Check the argument types}
+  \ControlFlowTok{if} \OperatorTok{(!}\NormalTok{args}\OperatorTok{[}\DecValTok{0}\OperatorTok{]{-}\textgreater{}}\NormalTok{IsNumber}\OperatorTok{()} \OperatorTok{||} \OperatorTok{!}\NormalTok{args}\OperatorTok{[}\DecValTok{1}\OperatorTok{]{-}\textgreater{}}\NormalTok{IsNumber}\OperatorTok{())} \OperatorTok{\{}
+\NormalTok{    isolate}\OperatorTok{{-}\textgreater{}}\NormalTok{ThrowException}\OperatorTok{(}\NormalTok{Exception}\OperatorTok{::}\NormalTok{TypeError}\OperatorTok{(}
+\NormalTok{        String}\OperatorTok{::}\NormalTok{NewFromUtf8}\OperatorTok{(}\NormalTok{isolate}\OperatorTok{,}
+                            \StringTok{"Wrong arguments"}\OperatorTok{).}\NormalTok{ToLocalChecked}\OperatorTok{()));}
+    \ControlFlowTok{return}\OperatorTok{;}
+  \OperatorTok{\}}
+
+  \CommentTok{// Perform the operation}
+  \DataTypeTok{double}\NormalTok{ value }\OperatorTok{=}
+\NormalTok{      args}\OperatorTok{[}\DecValTok{0}\OperatorTok{].}\NormalTok{As}\OperatorTok{\textless{}}\NormalTok{Number}\OperatorTok{\textgreater{}(){-}\textgreater{}}\NormalTok{Value}\OperatorTok{()} \OperatorTok{+}\NormalTok{ args}\OperatorTok{[}\DecValTok{1}\OperatorTok{].}\NormalTok{As}\OperatorTok{\textless{}}\NormalTok{Number}\OperatorTok{\textgreater{}(){-}\textgreater{}}\NormalTok{Value}\OperatorTok{();}
+\NormalTok{  Local}\OperatorTok{\textless{}}\NormalTok{Number}\OperatorTok{\textgreater{}}\NormalTok{ num }\OperatorTok{=}\NormalTok{ Number}\OperatorTok{::}\NormalTok{New}\OperatorTok{(}\NormalTok{isolate}\OperatorTok{,}\NormalTok{ value}\OperatorTok{);}
+
+  \CommentTok{// Set the return value (using the passed in}
+  \CommentTok{// FunctionCallbackInfo\textless{}Value\textgreater{}\&)}
+\NormalTok{  args}\OperatorTok{.}\NormalTok{GetReturnValue}\OperatorTok{().}\NormalTok{Set}\OperatorTok{(}\NormalTok{num}\OperatorTok{);}
+\OperatorTok{\}}
+
+\DataTypeTok{void}\NormalTok{ Init}\OperatorTok{(}\NormalTok{Local}\OperatorTok{\textless{}}\NormalTok{Object}\OperatorTok{\textgreater{}}\NormalTok{ exports}\OperatorTok{)} \OperatorTok{\{}
+\NormalTok{  NODE\_SET\_METHOD}\OperatorTok{(}\NormalTok{exports}\OperatorTok{,} \StringTok{"add"}\OperatorTok{,}\NormalTok{ Add}\OperatorTok{);}
+\OperatorTok{\}}
+
+\NormalTok{NODE\_MODULE}\OperatorTok{(}\NormalTok{NODE\_GYP\_MODULE\_NAME}\OperatorTok{,}\NormalTok{ Init}\OperatorTok{)}
+
+\OperatorTok{\}}  \CommentTok{// namespace demo}
+\end{Highlighting}
+\end{Shaded}
+
+Once compiled, the example addon can be required and used from within
+Node.js:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{// test.js}
+\KeywordTok{const}\NormalTok{ addon }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}./build/Release/addon\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+
+\BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\StringTok{\textquotesingle{}This should be eight:\textquotesingle{}}\OperatorTok{,}\NormalTok{ addon}\OperatorTok{.}\FunctionTok{add}\NormalTok{(}\DecValTok{3}\OperatorTok{,} \DecValTok{5}\NormalTok{))}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+\subsubsection{Callbacks}\label{callbacks}
+
+It is common practice within addons to pass JavaScript functions to a
+C++ function and execute them from there. The following example
+illustrates how to invoke such callbacks:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{// addon.cc}
+\PreprocessorTok{\#include }\ImportTok{\textless{}node.h\textgreater{}}
+
+\KeywordTok{namespace}\NormalTok{ demo }\OperatorTok{\{}
+
+\KeywordTok{using}\NormalTok{ v8}\OperatorTok{::}\NormalTok{Context}\OperatorTok{;}
+\KeywordTok{using}\NormalTok{ v8}\OperatorTok{::}\NormalTok{Function}\OperatorTok{;}
+\KeywordTok{using}\NormalTok{ v8}\OperatorTok{::}\NormalTok{FunctionCallbackInfo}\OperatorTok{;}
+\KeywordTok{using}\NormalTok{ v8}\OperatorTok{::}\NormalTok{Isolate}\OperatorTok{;}
+\KeywordTok{using}\NormalTok{ v8}\OperatorTok{::}\NormalTok{Local}\OperatorTok{;}
+\KeywordTok{using}\NormalTok{ v8}\OperatorTok{::}\NormalTok{Null}\OperatorTok{;}
+\KeywordTok{using}\NormalTok{ v8}\OperatorTok{::}\NormalTok{Object}\OperatorTok{;}
+\KeywordTok{using}\NormalTok{ v8}\OperatorTok{::}\NormalTok{String}\OperatorTok{;}
+\KeywordTok{using}\NormalTok{ v8}\OperatorTok{::}\NormalTok{Value}\OperatorTok{;}
+
+\DataTypeTok{void}\NormalTok{ RunCallback}\OperatorTok{(}\AttributeTok{const}\NormalTok{ FunctionCallbackInfo}\OperatorTok{\textless{}}\NormalTok{Value}\OperatorTok{\textgreater{}\&}\NormalTok{ args}\OperatorTok{)} \OperatorTok{\{}
+\NormalTok{  Isolate}\OperatorTok{*}\NormalTok{ isolate }\OperatorTok{=}\NormalTok{ args}\OperatorTok{.}\NormalTok{GetIsolate}\OperatorTok{();}
+\NormalTok{  Local}\OperatorTok{\textless{}}\NormalTok{Context}\OperatorTok{\textgreater{}}\NormalTok{ context }\OperatorTok{=}\NormalTok{ isolate}\OperatorTok{{-}\textgreater{}}\NormalTok{GetCurrentContext}\OperatorTok{();}
+\NormalTok{  Local}\OperatorTok{\textless{}}\NormalTok{Function}\OperatorTok{\textgreater{}}\NormalTok{ cb }\OperatorTok{=}\NormalTok{ Local}\OperatorTok{\textless{}}\NormalTok{Function}\OperatorTok{\textgreater{}::}\NormalTok{Cast}\OperatorTok{(}\NormalTok{args}\OperatorTok{[}\DecValTok{0}\OperatorTok{]);}
+  \AttributeTok{const} \DataTypeTok{unsigned}\NormalTok{ argc }\OperatorTok{=} \DecValTok{1}\OperatorTok{;}
+\NormalTok{  Local}\OperatorTok{\textless{}}\NormalTok{Value}\OperatorTok{\textgreater{}}\NormalTok{ argv}\OperatorTok{[}\NormalTok{argc}\OperatorTok{]} \OperatorTok{=} \OperatorTok{\{}
+\NormalTok{      String}\OperatorTok{::}\NormalTok{NewFromUtf8}\OperatorTok{(}\NormalTok{isolate}\OperatorTok{,}
+                          \StringTok{"hello world"}\OperatorTok{).}\NormalTok{ToLocalChecked}\OperatorTok{()} \OperatorTok{\};}
+\NormalTok{  cb}\OperatorTok{{-}\textgreater{}}\NormalTok{Call}\OperatorTok{(}\NormalTok{context}\OperatorTok{,}\NormalTok{ Null}\OperatorTok{(}\NormalTok{isolate}\OperatorTok{),}\NormalTok{ argc}\OperatorTok{,}\NormalTok{ argv}\OperatorTok{).}\NormalTok{ToLocalChecked}\OperatorTok{();}
+\OperatorTok{\}}
+
+\DataTypeTok{void}\NormalTok{ Init}\OperatorTok{(}\NormalTok{Local}\OperatorTok{\textless{}}\NormalTok{Object}\OperatorTok{\textgreater{}}\NormalTok{ exports}\OperatorTok{,}\NormalTok{ Local}\OperatorTok{\textless{}}\NormalTok{Object}\OperatorTok{\textgreater{}} \KeywordTok{module}\OperatorTok{)} \OperatorTok{\{}
+\NormalTok{  NODE\_SET\_METHOD}\OperatorTok{(}\KeywordTok{module}\OperatorTok{,} \StringTok{"exports"}\OperatorTok{,}\NormalTok{ RunCallback}\OperatorTok{);}
+\OperatorTok{\}}
+
+\NormalTok{NODE\_MODULE}\OperatorTok{(}\NormalTok{NODE\_GYP\_MODULE\_NAME}\OperatorTok{,}\NormalTok{ Init}\OperatorTok{)}
+
+\OperatorTok{\}}  \CommentTok{// namespace demo}
+\end{Highlighting}
+\end{Shaded}
+
+This example uses a two-argument form of \texttt{Init()} that receives
+the full \texttt{module} object as the second argument. This allows the
+addon to completely overwrite \texttt{exports} with a single function
+instead of adding the function as a property of \texttt{exports}.
+
+To test it, run the following JavaScript:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{// test.js}
+\KeywordTok{const}\NormalTok{ addon }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}./build/Release/addon\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+
+\FunctionTok{addon}\NormalTok{((msg) }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+  \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(msg)}\OperatorTok{;}
+\CommentTok{// Prints: \textquotesingle{}hello world\textquotesingle{}}
+\NormalTok{\})}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+In this example, the callback function is invoked synchronously.
+
+\subsubsection{Object factory}\label{object-factory}
+
+Addons can create and return new objects from within a C++ function as
+illustrated in the following example. An object is created and returned
+with a property \texttt{msg} that echoes the string passed to
+\texttt{createObject()}:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{// addon.cc}
+\PreprocessorTok{\#include }\ImportTok{\textless{}node.h\textgreater{}}
+
+\KeywordTok{namespace}\NormalTok{ demo }\OperatorTok{\{}
+
+\KeywordTok{using}\NormalTok{ v8}\OperatorTok{::}\NormalTok{Context}\OperatorTok{;}
+\KeywordTok{using}\NormalTok{ v8}\OperatorTok{::}\NormalTok{FunctionCallbackInfo}\OperatorTok{;}
+\KeywordTok{using}\NormalTok{ v8}\OperatorTok{::}\NormalTok{Isolate}\OperatorTok{;}
+\KeywordTok{using}\NormalTok{ v8}\OperatorTok{::}\NormalTok{Local}\OperatorTok{;}
+\KeywordTok{using}\NormalTok{ v8}\OperatorTok{::}\NormalTok{Object}\OperatorTok{;}
+\KeywordTok{using}\NormalTok{ v8}\OperatorTok{::}\NormalTok{String}\OperatorTok{;}
+\KeywordTok{using}\NormalTok{ v8}\OperatorTok{::}\NormalTok{Value}\OperatorTok{;}
+
+\DataTypeTok{void}\NormalTok{ CreateObject}\OperatorTok{(}\AttributeTok{const}\NormalTok{ FunctionCallbackInfo}\OperatorTok{\textless{}}\NormalTok{Value}\OperatorTok{\textgreater{}\&}\NormalTok{ args}\OperatorTok{)} \OperatorTok{\{}
+\NormalTok{  Isolate}\OperatorTok{*}\NormalTok{ isolate }\OperatorTok{=}\NormalTok{ args}\OperatorTok{.}\NormalTok{GetIsolate}\OperatorTok{();}
+\NormalTok{  Local}\OperatorTok{\textless{}}\NormalTok{Context}\OperatorTok{\textgreater{}}\NormalTok{ context }\OperatorTok{=}\NormalTok{ isolate}\OperatorTok{{-}\textgreater{}}\NormalTok{GetCurrentContext}\OperatorTok{();}
+
+\NormalTok{  Local}\OperatorTok{\textless{}}\NormalTok{Object}\OperatorTok{\textgreater{}}\NormalTok{ obj }\OperatorTok{=}\NormalTok{ Object}\OperatorTok{::}\NormalTok{New}\OperatorTok{(}\NormalTok{isolate}\OperatorTok{);}
+\NormalTok{  obj}\OperatorTok{{-}\textgreater{}}\NormalTok{Set}\OperatorTok{(}\NormalTok{context}\OperatorTok{,}
+\NormalTok{           String}\OperatorTok{::}\NormalTok{NewFromUtf8}\OperatorTok{(}\NormalTok{isolate}\OperatorTok{,}
+                               \StringTok{"msg"}\OperatorTok{).}\NormalTok{ToLocalChecked}\OperatorTok{(),}
+\NormalTok{                               args}\OperatorTok{[}\DecValTok{0}\OperatorTok{]{-}\textgreater{}}\NormalTok{ToString}\OperatorTok{(}\NormalTok{context}\OperatorTok{).}\NormalTok{ToLocalChecked}\OperatorTok{())}
+           \OperatorTok{.}\NormalTok{FromJust}\OperatorTok{();}
+
+\NormalTok{  args}\OperatorTok{.}\NormalTok{GetReturnValue}\OperatorTok{().}\NormalTok{Set}\OperatorTok{(}\NormalTok{obj}\OperatorTok{);}
+\OperatorTok{\}}
+
+\DataTypeTok{void}\NormalTok{ Init}\OperatorTok{(}\NormalTok{Local}\OperatorTok{\textless{}}\NormalTok{Object}\OperatorTok{\textgreater{}}\NormalTok{ exports}\OperatorTok{,}\NormalTok{ Local}\OperatorTok{\textless{}}\NormalTok{Object}\OperatorTok{\textgreater{}} \KeywordTok{module}\OperatorTok{)} \OperatorTok{\{}
+\NormalTok{  NODE\_SET\_METHOD}\OperatorTok{(}\KeywordTok{module}\OperatorTok{,} \StringTok{"exports"}\OperatorTok{,}\NormalTok{ CreateObject}\OperatorTok{);}
+\OperatorTok{\}}
+
+\NormalTok{NODE\_MODULE}\OperatorTok{(}\NormalTok{NODE\_GYP\_MODULE\_NAME}\OperatorTok{,}\NormalTok{ Init}\OperatorTok{)}
+
+\OperatorTok{\}}  \CommentTok{// namespace demo}
+\end{Highlighting}
+\end{Shaded}
+
+To test it in JavaScript:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{// test.js}
+\KeywordTok{const}\NormalTok{ addon }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}./build/Release/addon\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+
+\KeywordTok{const}\NormalTok{ obj1 }\OperatorTok{=} \FunctionTok{addon}\NormalTok{(}\StringTok{\textquotesingle{}hello\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\KeywordTok{const}\NormalTok{ obj2 }\OperatorTok{=} \FunctionTok{addon}\NormalTok{(}\StringTok{\textquotesingle{}world\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(obj1}\OperatorTok{.}\AttributeTok{msg}\OperatorTok{,}\NormalTok{ obj2}\OperatorTok{.}\AttributeTok{msg}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// Prints: \textquotesingle{}hello world\textquotesingle{}}
+\end{Highlighting}
+\end{Shaded}
+
+\subsubsection{Function factory}\label{function-factory}
+
+Another common scenario is creating JavaScript functions that wrap C++
+functions and returning those back to JavaScript:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{// addon.cc}
+\PreprocessorTok{\#include }\ImportTok{\textless{}node.h\textgreater{}}
+
+\KeywordTok{namespace}\NormalTok{ demo }\OperatorTok{\{}
+
+\KeywordTok{using}\NormalTok{ v8}\OperatorTok{::}\NormalTok{Context}\OperatorTok{;}
+\KeywordTok{using}\NormalTok{ v8}\OperatorTok{::}\NormalTok{Function}\OperatorTok{;}
+\KeywordTok{using}\NormalTok{ v8}\OperatorTok{::}\NormalTok{FunctionCallbackInfo}\OperatorTok{;}
+\KeywordTok{using}\NormalTok{ v8}\OperatorTok{::}\NormalTok{FunctionTemplate}\OperatorTok{;}
+\KeywordTok{using}\NormalTok{ v8}\OperatorTok{::}\NormalTok{Isolate}\OperatorTok{;}
+\KeywordTok{using}\NormalTok{ v8}\OperatorTok{::}\NormalTok{Local}\OperatorTok{;}
+\KeywordTok{using}\NormalTok{ v8}\OperatorTok{::}\NormalTok{Object}\OperatorTok{;}
+\KeywordTok{using}\NormalTok{ v8}\OperatorTok{::}\NormalTok{String}\OperatorTok{;}
+\KeywordTok{using}\NormalTok{ v8}\OperatorTok{::}\NormalTok{Value}\OperatorTok{;}
+
+\DataTypeTok{void}\NormalTok{ MyFunction}\OperatorTok{(}\AttributeTok{const}\NormalTok{ FunctionCallbackInfo}\OperatorTok{\textless{}}\NormalTok{Value}\OperatorTok{\textgreater{}\&}\NormalTok{ args}\OperatorTok{)} \OperatorTok{\{}
+\NormalTok{  Isolate}\OperatorTok{*}\NormalTok{ isolate }\OperatorTok{=}\NormalTok{ args}\OperatorTok{.}\NormalTok{GetIsolate}\OperatorTok{();}
+\NormalTok{  args}\OperatorTok{.}\NormalTok{GetReturnValue}\OperatorTok{().}\NormalTok{Set}\OperatorTok{(}\NormalTok{String}\OperatorTok{::}\NormalTok{NewFromUtf8}\OperatorTok{(}
+\NormalTok{      isolate}\OperatorTok{,} \StringTok{"hello world"}\OperatorTok{).}\NormalTok{ToLocalChecked}\OperatorTok{());}
+\OperatorTok{\}}
+
+\DataTypeTok{void}\NormalTok{ CreateFunction}\OperatorTok{(}\AttributeTok{const}\NormalTok{ FunctionCallbackInfo}\OperatorTok{\textless{}}\NormalTok{Value}\OperatorTok{\textgreater{}\&}\NormalTok{ args}\OperatorTok{)} \OperatorTok{\{}
+\NormalTok{  Isolate}\OperatorTok{*}\NormalTok{ isolate }\OperatorTok{=}\NormalTok{ args}\OperatorTok{.}\NormalTok{GetIsolate}\OperatorTok{();}
+
+\NormalTok{  Local}\OperatorTok{\textless{}}\NormalTok{Context}\OperatorTok{\textgreater{}}\NormalTok{ context }\OperatorTok{=}\NormalTok{ isolate}\OperatorTok{{-}\textgreater{}}\NormalTok{GetCurrentContext}\OperatorTok{();}
+\NormalTok{  Local}\OperatorTok{\textless{}}\NormalTok{FunctionTemplate}\OperatorTok{\textgreater{}}\NormalTok{ tpl }\OperatorTok{=}\NormalTok{ FunctionTemplate}\OperatorTok{::}\NormalTok{New}\OperatorTok{(}\NormalTok{isolate}\OperatorTok{,}\NormalTok{ MyFunction}\OperatorTok{);}
+\NormalTok{  Local}\OperatorTok{\textless{}}\NormalTok{Function}\OperatorTok{\textgreater{}}\NormalTok{ fn }\OperatorTok{=}\NormalTok{ tpl}\OperatorTok{{-}\textgreater{}}\NormalTok{GetFunction}\OperatorTok{(}\NormalTok{context}\OperatorTok{).}\NormalTok{ToLocalChecked}\OperatorTok{();}
+
+  \CommentTok{// omit this to make it anonymous}
+\NormalTok{  fn}\OperatorTok{{-}\textgreater{}}\NormalTok{SetName}\OperatorTok{(}\NormalTok{String}\OperatorTok{::}\NormalTok{NewFromUtf8}\OperatorTok{(}
+\NormalTok{      isolate}\OperatorTok{,} \StringTok{"theFunction"}\OperatorTok{).}\NormalTok{ToLocalChecked}\OperatorTok{());}
+
+\NormalTok{  args}\OperatorTok{.}\NormalTok{GetReturnValue}\OperatorTok{().}\NormalTok{Set}\OperatorTok{(}\NormalTok{fn}\OperatorTok{);}
+\OperatorTok{\}}
+
+\DataTypeTok{void}\NormalTok{ Init}\OperatorTok{(}\NormalTok{Local}\OperatorTok{\textless{}}\NormalTok{Object}\OperatorTok{\textgreater{}}\NormalTok{ exports}\OperatorTok{,}\NormalTok{ Local}\OperatorTok{\textless{}}\NormalTok{Object}\OperatorTok{\textgreater{}} \KeywordTok{module}\OperatorTok{)} \OperatorTok{\{}
+\NormalTok{  NODE\_SET\_METHOD}\OperatorTok{(}\KeywordTok{module}\OperatorTok{,} \StringTok{"exports"}\OperatorTok{,}\NormalTok{ CreateFunction}\OperatorTok{);}
+\OperatorTok{\}}
+
+\NormalTok{NODE\_MODULE}\OperatorTok{(}\NormalTok{NODE\_GYP\_MODULE\_NAME}\OperatorTok{,}\NormalTok{ Init}\OperatorTok{)}
+
+\OperatorTok{\}}  \CommentTok{// namespace demo}
+\end{Highlighting}
+\end{Shaded}
+
+To test:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{// test.js}
+\KeywordTok{const}\NormalTok{ addon }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}./build/Release/addon\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+
+\KeywordTok{const}\NormalTok{ fn }\OperatorTok{=} \FunctionTok{addon}\NormalTok{()}\OperatorTok{;}
+\BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\FunctionTok{fn}\NormalTok{())}\OperatorTok{;}
+\CommentTok{// Prints: \textquotesingle{}hello world\textquotesingle{}}
+\end{Highlighting}
+\end{Shaded}
+
+\subsubsection{Wrapping C++ objects}\label{wrapping-c-objects}
+
+It is also possible to wrap C++ objects/classes in a way that allows new
+instances to be created using the JavaScript \texttt{new} operator:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{// addon.cc}
+\PreprocessorTok{\#include }\ImportTok{\textless{}node.h\textgreater{}}
+\PreprocessorTok{\#include }\ImportTok{"myobject.h"}
+
+\KeywordTok{namespace}\NormalTok{ demo }\OperatorTok{\{}
+
+\KeywordTok{using}\NormalTok{ v8}\OperatorTok{::}\NormalTok{Local}\OperatorTok{;}
+\KeywordTok{using}\NormalTok{ v8}\OperatorTok{::}\NormalTok{Object}\OperatorTok{;}
+
+\DataTypeTok{void}\NormalTok{ InitAll}\OperatorTok{(}\NormalTok{Local}\OperatorTok{\textless{}}\NormalTok{Object}\OperatorTok{\textgreater{}}\NormalTok{ exports}\OperatorTok{)} \OperatorTok{\{}
+\NormalTok{  MyObject}\OperatorTok{::}\NormalTok{Init}\OperatorTok{(}\NormalTok{exports}\OperatorTok{);}
+\OperatorTok{\}}
+
+\NormalTok{NODE\_MODULE}\OperatorTok{(}\NormalTok{NODE\_GYP\_MODULE\_NAME}\OperatorTok{,}\NormalTok{ InitAll}\OperatorTok{)}
+
+\OperatorTok{\}}  \CommentTok{// namespace demo}
+\end{Highlighting}
+\end{Shaded}
+
+Then, in \texttt{myobject.h}, the wrapper class inherits from
+\texttt{node::ObjectWrap}:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{// myobject.h}
+\PreprocessorTok{\#ifndef MYOBJECT\_H}
+\PreprocessorTok{\#define MYOBJECT\_H}
+
+\PreprocessorTok{\#include }\ImportTok{\textless{}node.h\textgreater{}}
+\PreprocessorTok{\#include }\ImportTok{\textless{}node\_object\_wrap.h\textgreater{}}
+
+\KeywordTok{namespace}\NormalTok{ demo }\OperatorTok{\{}
+
+\KeywordTok{class}\NormalTok{ MyObject }\OperatorTok{:} \KeywordTok{public}\NormalTok{ node}\OperatorTok{::}\NormalTok{ObjectWrap }\OperatorTok{\{}
+ \KeywordTok{public}\OperatorTok{:}
+  \AttributeTok{static} \DataTypeTok{void}\NormalTok{ Init}\OperatorTok{(}\NormalTok{v8}\OperatorTok{::}\NormalTok{Local}\OperatorTok{\textless{}}\NormalTok{v8}\OperatorTok{::}\NormalTok{Object}\OperatorTok{\textgreater{}}\NormalTok{ exports}\OperatorTok{);}
+
+ \KeywordTok{private}\OperatorTok{:}
+  \KeywordTok{explicit}\NormalTok{ MyObject}\OperatorTok{(}\DataTypeTok{double}\NormalTok{ value }\OperatorTok{=} \DecValTok{0}\OperatorTok{);}
+  \OperatorTok{\textasciitilde{}}\NormalTok{MyObject}\OperatorTok{();}
+
+  \AttributeTok{static} \DataTypeTok{void}\NormalTok{ New}\OperatorTok{(}\AttributeTok{const}\NormalTok{ v8}\OperatorTok{::}\NormalTok{FunctionCallbackInfo}\OperatorTok{\textless{}}\NormalTok{v8}\OperatorTok{::}\NormalTok{Value}\OperatorTok{\textgreater{}\&}\NormalTok{ args}\OperatorTok{);}
+  \AttributeTok{static} \DataTypeTok{void}\NormalTok{ PlusOne}\OperatorTok{(}\AttributeTok{const}\NormalTok{ v8}\OperatorTok{::}\NormalTok{FunctionCallbackInfo}\OperatorTok{\textless{}}\NormalTok{v8}\OperatorTok{::}\NormalTok{Value}\OperatorTok{\textgreater{}\&}\NormalTok{ args}\OperatorTok{);}
+
+  \DataTypeTok{double} \VariableTok{value\_}\OperatorTok{;}
+\OperatorTok{\};}
+
+\OperatorTok{\}}  \CommentTok{// namespace demo}
+
+\PreprocessorTok{\#endif}
+\end{Highlighting}
+\end{Shaded}
+
+In \texttt{myobject.cc}, implement the various methods that are to be
+exposed. Below, the method \texttt{plusOne()} is exposed by adding it to
+the constructor's prototype:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{// myobject.cc}
+\PreprocessorTok{\#include }\ImportTok{"myobject.h"}
+
+\KeywordTok{namespace}\NormalTok{ demo }\OperatorTok{\{}
+
+\KeywordTok{using}\NormalTok{ v8}\OperatorTok{::}\NormalTok{Context}\OperatorTok{;}
+\KeywordTok{using}\NormalTok{ v8}\OperatorTok{::}\NormalTok{Function}\OperatorTok{;}
+\KeywordTok{using}\NormalTok{ v8}\OperatorTok{::}\NormalTok{FunctionCallbackInfo}\OperatorTok{;}
+\KeywordTok{using}\NormalTok{ v8}\OperatorTok{::}\NormalTok{FunctionTemplate}\OperatorTok{;}
+\KeywordTok{using}\NormalTok{ v8}\OperatorTok{::}\NormalTok{Isolate}\OperatorTok{;}
+\KeywordTok{using}\NormalTok{ v8}\OperatorTok{::}\NormalTok{Local}\OperatorTok{;}
+\KeywordTok{using}\NormalTok{ v8}\OperatorTok{::}\NormalTok{Number}\OperatorTok{;}
+\KeywordTok{using}\NormalTok{ v8}\OperatorTok{::}\NormalTok{Object}\OperatorTok{;}
+\KeywordTok{using}\NormalTok{ v8}\OperatorTok{::}\NormalTok{ObjectTemplate}\OperatorTok{;}
+\KeywordTok{using}\NormalTok{ v8}\OperatorTok{::}\NormalTok{String}\OperatorTok{;}
+\KeywordTok{using}\NormalTok{ v8}\OperatorTok{::}\NormalTok{Value}\OperatorTok{;}
+
+\NormalTok{MyObject}\OperatorTok{::}\NormalTok{MyObject}\OperatorTok{(}\DataTypeTok{double}\NormalTok{ value}\OperatorTok{)} \OperatorTok{:} \VariableTok{value\_}\OperatorTok{(}\NormalTok{value}\OperatorTok{)} \OperatorTok{\{}
+\OperatorTok{\}}
+
+\NormalTok{MyObject}\OperatorTok{::\textasciitilde{}}\NormalTok{MyObject}\OperatorTok{()} \OperatorTok{\{}
+\OperatorTok{\}}
+
+\DataTypeTok{void}\NormalTok{ MyObject}\OperatorTok{::}\NormalTok{Init}\OperatorTok{(}\NormalTok{Local}\OperatorTok{\textless{}}\NormalTok{Object}\OperatorTok{\textgreater{}}\NormalTok{ exports}\OperatorTok{)} \OperatorTok{\{}
+\NormalTok{  Isolate}\OperatorTok{*}\NormalTok{ isolate }\OperatorTok{=}\NormalTok{ exports}\OperatorTok{{-}\textgreater{}}\NormalTok{GetIsolate}\OperatorTok{();}
+\NormalTok{  Local}\OperatorTok{\textless{}}\NormalTok{Context}\OperatorTok{\textgreater{}}\NormalTok{ context }\OperatorTok{=}\NormalTok{ isolate}\OperatorTok{{-}\textgreater{}}\NormalTok{GetCurrentContext}\OperatorTok{();}
+
+\NormalTok{  Local}\OperatorTok{\textless{}}\NormalTok{ObjectTemplate}\OperatorTok{\textgreater{}}\NormalTok{ addon\_data\_tpl }\OperatorTok{=}\NormalTok{ ObjectTemplate}\OperatorTok{::}\NormalTok{New}\OperatorTok{(}\NormalTok{isolate}\OperatorTok{);}
+\NormalTok{  addon\_data\_tpl}\OperatorTok{{-}\textgreater{}}\NormalTok{SetInternalFieldCount}\OperatorTok{(}\DecValTok{1}\OperatorTok{);}  \CommentTok{// 1 field for the MyObject::New()}
+\NormalTok{  Local}\OperatorTok{\textless{}}\NormalTok{Object}\OperatorTok{\textgreater{}}\NormalTok{ addon\_data }\OperatorTok{=}
+\NormalTok{      addon\_data\_tpl}\OperatorTok{{-}\textgreater{}}\NormalTok{NewInstance}\OperatorTok{(}\NormalTok{context}\OperatorTok{).}\NormalTok{ToLocalChecked}\OperatorTok{();}
+
+  \CommentTok{// Prepare constructor template}
+\NormalTok{  Local}\OperatorTok{\textless{}}\NormalTok{FunctionTemplate}\OperatorTok{\textgreater{}}\NormalTok{ tpl }\OperatorTok{=}\NormalTok{ FunctionTemplate}\OperatorTok{::}\NormalTok{New}\OperatorTok{(}\NormalTok{isolate}\OperatorTok{,}\NormalTok{ New}\OperatorTok{,}\NormalTok{ addon\_data}\OperatorTok{);}
+\NormalTok{  tpl}\OperatorTok{{-}\textgreater{}}\NormalTok{SetClassName}\OperatorTok{(}\NormalTok{String}\OperatorTok{::}\NormalTok{NewFromUtf8}\OperatorTok{(}\NormalTok{isolate}\OperatorTok{,} \StringTok{"MyObject"}\OperatorTok{).}\NormalTok{ToLocalChecked}\OperatorTok{());}
+\NormalTok{  tpl}\OperatorTok{{-}\textgreater{}}\NormalTok{InstanceTemplate}\OperatorTok{(){-}\textgreater{}}\NormalTok{SetInternalFieldCount}\OperatorTok{(}\DecValTok{1}\OperatorTok{);}
+
+  \CommentTok{// Prototype}
+\NormalTok{  NODE\_SET\_PROTOTYPE\_METHOD}\OperatorTok{(}\NormalTok{tpl}\OperatorTok{,} \StringTok{"plusOne"}\OperatorTok{,}\NormalTok{ PlusOne}\OperatorTok{);}
+
+\NormalTok{  Local}\OperatorTok{\textless{}}\NormalTok{Function}\OperatorTok{\textgreater{}}\NormalTok{ constructor }\OperatorTok{=}\NormalTok{ tpl}\OperatorTok{{-}\textgreater{}}\NormalTok{GetFunction}\OperatorTok{(}\NormalTok{context}\OperatorTok{).}\NormalTok{ToLocalChecked}\OperatorTok{();}
+\NormalTok{  addon\_data}\OperatorTok{{-}\textgreater{}}\NormalTok{SetInternalField}\OperatorTok{(}\DecValTok{0}\OperatorTok{,}\NormalTok{ constructor}\OperatorTok{);}
+\NormalTok{  exports}\OperatorTok{{-}\textgreater{}}\NormalTok{Set}\OperatorTok{(}\NormalTok{context}\OperatorTok{,}\NormalTok{ String}\OperatorTok{::}\NormalTok{NewFromUtf8}\OperatorTok{(}
+\NormalTok{      isolate}\OperatorTok{,} \StringTok{"MyObject"}\OperatorTok{).}\NormalTok{ToLocalChecked}\OperatorTok{(),}
+\NormalTok{      constructor}\OperatorTok{).}\NormalTok{FromJust}\OperatorTok{();}
+\OperatorTok{\}}
+
+\DataTypeTok{void}\NormalTok{ MyObject}\OperatorTok{::}\NormalTok{New}\OperatorTok{(}\AttributeTok{const}\NormalTok{ FunctionCallbackInfo}\OperatorTok{\textless{}}\NormalTok{Value}\OperatorTok{\textgreater{}\&}\NormalTok{ args}\OperatorTok{)} \OperatorTok{\{}
+\NormalTok{  Isolate}\OperatorTok{*}\NormalTok{ isolate }\OperatorTok{=}\NormalTok{ args}\OperatorTok{.}\NormalTok{GetIsolate}\OperatorTok{();}
+\NormalTok{  Local}\OperatorTok{\textless{}}\NormalTok{Context}\OperatorTok{\textgreater{}}\NormalTok{ context }\OperatorTok{=}\NormalTok{ isolate}\OperatorTok{{-}\textgreater{}}\NormalTok{GetCurrentContext}\OperatorTok{();}
+
+  \ControlFlowTok{if} \OperatorTok{(}\NormalTok{args}\OperatorTok{.}\NormalTok{IsConstructCall}\OperatorTok{())} \OperatorTok{\{}
+    \CommentTok{// Invoked as constructor: \textasciigrave{}new MyObject(...)\textasciigrave{}}
+    \DataTypeTok{double}\NormalTok{ value }\OperatorTok{=}\NormalTok{ args}\OperatorTok{[}\DecValTok{0}\OperatorTok{]{-}\textgreater{}}\NormalTok{IsUndefined}\OperatorTok{()} \OperatorTok{?}
+        \DecValTok{0} \OperatorTok{:}\NormalTok{ args}\OperatorTok{[}\DecValTok{0}\OperatorTok{]{-}\textgreater{}}\NormalTok{NumberValue}\OperatorTok{(}\NormalTok{context}\OperatorTok{).}\NormalTok{FromMaybe}\OperatorTok{(}\DecValTok{0}\OperatorTok{);}
+\NormalTok{    MyObject}\OperatorTok{*}\NormalTok{ obj }\OperatorTok{=} \KeywordTok{new}\NormalTok{ MyObject}\OperatorTok{(}\NormalTok{value}\OperatorTok{);}
+\NormalTok{    obj}\OperatorTok{{-}\textgreater{}}\NormalTok{Wrap}\OperatorTok{(}\NormalTok{args}\OperatorTok{.}\NormalTok{This}\OperatorTok{());}
+\NormalTok{    args}\OperatorTok{.}\NormalTok{GetReturnValue}\OperatorTok{().}\NormalTok{Set}\OperatorTok{(}\NormalTok{args}\OperatorTok{.}\NormalTok{This}\OperatorTok{());}
+  \OperatorTok{\}} \ControlFlowTok{else} \OperatorTok{\{}
+    \CommentTok{// Invoked as plain function \textasciigrave{}MyObject(...)\textasciigrave{}, turn into construct call.}
+    \AttributeTok{const} \DataTypeTok{int}\NormalTok{ argc }\OperatorTok{=} \DecValTok{1}\OperatorTok{;}
+\NormalTok{    Local}\OperatorTok{\textless{}}\NormalTok{Value}\OperatorTok{\textgreater{}}\NormalTok{ argv}\OperatorTok{[}\NormalTok{argc}\OperatorTok{]} \OperatorTok{=} \OperatorTok{\{}\NormalTok{ args}\OperatorTok{[}\DecValTok{0}\OperatorTok{]} \OperatorTok{\};}
+\NormalTok{    Local}\OperatorTok{\textless{}}\NormalTok{Function}\OperatorTok{\textgreater{}}\NormalTok{ cons }\OperatorTok{=}
+\NormalTok{        args}\OperatorTok{.}\NormalTok{Data}\OperatorTok{().}\NormalTok{As}\OperatorTok{\textless{}}\NormalTok{Object}\OperatorTok{\textgreater{}(){-}\textgreater{}}\NormalTok{GetInternalField}\OperatorTok{(}\DecValTok{0}\OperatorTok{)}
+            \OperatorTok{.}\NormalTok{As}\OperatorTok{\textless{}}\NormalTok{Value}\OperatorTok{\textgreater{}().}\NormalTok{As}\OperatorTok{\textless{}}\NormalTok{Function}\OperatorTok{\textgreater{}();}
+\NormalTok{    Local}\OperatorTok{\textless{}}\NormalTok{Object}\OperatorTok{\textgreater{}}\NormalTok{ result }\OperatorTok{=}
+\NormalTok{        cons}\OperatorTok{{-}\textgreater{}}\NormalTok{NewInstance}\OperatorTok{(}\NormalTok{context}\OperatorTok{,}\NormalTok{ argc}\OperatorTok{,}\NormalTok{ argv}\OperatorTok{).}\NormalTok{ToLocalChecked}\OperatorTok{();}
+\NormalTok{    args}\OperatorTok{.}\NormalTok{GetReturnValue}\OperatorTok{().}\NormalTok{Set}\OperatorTok{(}\NormalTok{result}\OperatorTok{);}
+  \OperatorTok{\}}
+\OperatorTok{\}}
+
+\DataTypeTok{void}\NormalTok{ MyObject}\OperatorTok{::}\NormalTok{PlusOne}\OperatorTok{(}\AttributeTok{const}\NormalTok{ FunctionCallbackInfo}\OperatorTok{\textless{}}\NormalTok{Value}\OperatorTok{\textgreater{}\&}\NormalTok{ args}\OperatorTok{)} \OperatorTok{\{}
+\NormalTok{  Isolate}\OperatorTok{*}\NormalTok{ isolate }\OperatorTok{=}\NormalTok{ args}\OperatorTok{.}\NormalTok{GetIsolate}\OperatorTok{();}
+
+\NormalTok{  MyObject}\OperatorTok{*}\NormalTok{ obj }\OperatorTok{=}\NormalTok{ ObjectWrap}\OperatorTok{::}\NormalTok{Unwrap}\OperatorTok{\textless{}}\NormalTok{MyObject}\OperatorTok{\textgreater{}(}\NormalTok{args}\OperatorTok{.}\NormalTok{Holder}\OperatorTok{());}
+\NormalTok{  obj}\OperatorTok{{-}\textgreater{}}\VariableTok{value\_} \OperatorTok{+=} \DecValTok{1}\OperatorTok{;}
+
+\NormalTok{  args}\OperatorTok{.}\NormalTok{GetReturnValue}\OperatorTok{().}\NormalTok{Set}\OperatorTok{(}\NormalTok{Number}\OperatorTok{::}\NormalTok{New}\OperatorTok{(}\NormalTok{isolate}\OperatorTok{,}\NormalTok{ obj}\OperatorTok{{-}\textgreater{}}\VariableTok{value\_}\OperatorTok{));}
+\OperatorTok{\}}
+
+\OperatorTok{\}}  \CommentTok{// namespace demo}
+\end{Highlighting}
+\end{Shaded}
+
+To build this example, the \texttt{myobject.cc} file must be added to
+the \texttt{binding.gyp}:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{\{}
+  \DataTypeTok{"targets"}\FunctionTok{:} \OtherTok{[}
+    \FunctionTok{\{}
+      \DataTypeTok{"target\_name"}\FunctionTok{:} \StringTok{"addon"}\FunctionTok{,}
+      \DataTypeTok{"sources"}\FunctionTok{:} \OtherTok{[}
+        \StringTok{"addon.cc"}\OtherTok{,}
+        \StringTok{"myobject.cc"}
+      \OtherTok{]}
+    \FunctionTok{\}}
+  \OtherTok{]}
+\FunctionTok{\}}
+\end{Highlighting}
+\end{Shaded}
+
+Test it with:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{// test.js}
+\KeywordTok{const}\NormalTok{ addon }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}./build/Release/addon\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+
+\KeywordTok{const}\NormalTok{ obj }\OperatorTok{=} \KeywordTok{new}\NormalTok{ addon}\OperatorTok{.}\FunctionTok{MyObject}\NormalTok{(}\DecValTok{10}\NormalTok{)}\OperatorTok{;}
+\BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(obj}\OperatorTok{.}\FunctionTok{plusOne}\NormalTok{())}\OperatorTok{;}
+\CommentTok{// Prints: 11}
+\BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(obj}\OperatorTok{.}\FunctionTok{plusOne}\NormalTok{())}\OperatorTok{;}
+\CommentTok{// Prints: 12}
+\BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(obj}\OperatorTok{.}\FunctionTok{plusOne}\NormalTok{())}\OperatorTok{;}
+\CommentTok{// Prints: 13}
+\end{Highlighting}
+\end{Shaded}
+
+The destructor for a wrapper object will run when the object is
+garbage-collected. For destructor testing, there are command-line flags
+that can be used to make it possible to force garbage collection. These
+flags are provided by the underlying V8 JavaScript engine. They are
+subject to change or removal at any time. They are not documented by
+Node.js or V8, and they should never be used outside of testing.
+
+During shutdown of the process or worker threads destructors are not
+called by the JS engine. Therefore it's the responsibility of the user
+to track these objects and ensure proper destruction to avoid resource
+leaks.
+
+\subsubsection{Factory of wrapped
+objects}\label{factory-of-wrapped-objects}
+
+Alternatively, it is possible to use a factory pattern to avoid
+explicitly creating object instances using the JavaScript \texttt{new}
+operator:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ obj }\OperatorTok{=}\NormalTok{ addon}\OperatorTok{.}\FunctionTok{createObject}\NormalTok{()}\OperatorTok{;}
+\CommentTok{// instead of:}
+\CommentTok{// const obj = new addon.Object();}
+\end{Highlighting}
+\end{Shaded}
+
+First, the \texttt{createObject()} method is implemented in
+\texttt{addon.cc}:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{// addon.cc}
+\PreprocessorTok{\#include }\ImportTok{\textless{}node.h\textgreater{}}
+\PreprocessorTok{\#include }\ImportTok{"myobject.h"}
+
+\KeywordTok{namespace}\NormalTok{ demo }\OperatorTok{\{}
+
+\KeywordTok{using}\NormalTok{ v8}\OperatorTok{::}\NormalTok{FunctionCallbackInfo}\OperatorTok{;}
+\KeywordTok{using}\NormalTok{ v8}\OperatorTok{::}\NormalTok{Isolate}\OperatorTok{;}
+\KeywordTok{using}\NormalTok{ v8}\OperatorTok{::}\NormalTok{Local}\OperatorTok{;}
+\KeywordTok{using}\NormalTok{ v8}\OperatorTok{::}\NormalTok{Object}\OperatorTok{;}
+\KeywordTok{using}\NormalTok{ v8}\OperatorTok{::}\NormalTok{String}\OperatorTok{;}
+\KeywordTok{using}\NormalTok{ v8}\OperatorTok{::}\NormalTok{Value}\OperatorTok{;}
+
+\DataTypeTok{void}\NormalTok{ CreateObject}\OperatorTok{(}\AttributeTok{const}\NormalTok{ FunctionCallbackInfo}\OperatorTok{\textless{}}\NormalTok{Value}\OperatorTok{\textgreater{}\&}\NormalTok{ args}\OperatorTok{)} \OperatorTok{\{}
+\NormalTok{  MyObject}\OperatorTok{::}\NormalTok{NewInstance}\OperatorTok{(}\NormalTok{args}\OperatorTok{);}
+\OperatorTok{\}}
+
+\DataTypeTok{void}\NormalTok{ InitAll}\OperatorTok{(}\NormalTok{Local}\OperatorTok{\textless{}}\NormalTok{Object}\OperatorTok{\textgreater{}}\NormalTok{ exports}\OperatorTok{,}\NormalTok{ Local}\OperatorTok{\textless{}}\NormalTok{Object}\OperatorTok{\textgreater{}} \KeywordTok{module}\OperatorTok{)} \OperatorTok{\{}
+\NormalTok{  MyObject}\OperatorTok{::}\NormalTok{Init}\OperatorTok{(}\NormalTok{exports}\OperatorTok{{-}\textgreater{}}\NormalTok{GetIsolate}\OperatorTok{());}
+
+\NormalTok{  NODE\_SET\_METHOD}\OperatorTok{(}\KeywordTok{module}\OperatorTok{,} \StringTok{"exports"}\OperatorTok{,}\NormalTok{ CreateObject}\OperatorTok{);}
+\OperatorTok{\}}
+
+\NormalTok{NODE\_MODULE}\OperatorTok{(}\NormalTok{NODE\_GYP\_MODULE\_NAME}\OperatorTok{,}\NormalTok{ InitAll}\OperatorTok{)}
+
+\OperatorTok{\}}  \CommentTok{// namespace demo}
+\end{Highlighting}
+\end{Shaded}
+
+In \texttt{myobject.h}, the static method \texttt{NewInstance()} is
+added to handle instantiating the object. This method takes the place of
+using \texttt{new} in JavaScript:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{// myobject.h}
+\PreprocessorTok{\#ifndef MYOBJECT\_H}
+\PreprocessorTok{\#define MYOBJECT\_H}
+
+\PreprocessorTok{\#include }\ImportTok{\textless{}node.h\textgreater{}}
+\PreprocessorTok{\#include }\ImportTok{\textless{}node\_object\_wrap.h\textgreater{}}
+
+\KeywordTok{namespace}\NormalTok{ demo }\OperatorTok{\{}
+
+\KeywordTok{class}\NormalTok{ MyObject }\OperatorTok{:} \KeywordTok{public}\NormalTok{ node}\OperatorTok{::}\NormalTok{ObjectWrap }\OperatorTok{\{}
+ \KeywordTok{public}\OperatorTok{:}
+  \AttributeTok{static} \DataTypeTok{void}\NormalTok{ Init}\OperatorTok{(}\NormalTok{v8}\OperatorTok{::}\NormalTok{Isolate}\OperatorTok{*}\NormalTok{ isolate}\OperatorTok{);}
+  \AttributeTok{static} \DataTypeTok{void}\NormalTok{ NewInstance}\OperatorTok{(}\AttributeTok{const}\NormalTok{ v8}\OperatorTok{::}\NormalTok{FunctionCallbackInfo}\OperatorTok{\textless{}}\NormalTok{v8}\OperatorTok{::}\NormalTok{Value}\OperatorTok{\textgreater{}\&}\NormalTok{ args}\OperatorTok{);}
+
+ \KeywordTok{private}\OperatorTok{:}
+  \KeywordTok{explicit}\NormalTok{ MyObject}\OperatorTok{(}\DataTypeTok{double}\NormalTok{ value }\OperatorTok{=} \DecValTok{0}\OperatorTok{);}
+  \OperatorTok{\textasciitilde{}}\NormalTok{MyObject}\OperatorTok{();}
+
+  \AttributeTok{static} \DataTypeTok{void}\NormalTok{ New}\OperatorTok{(}\AttributeTok{const}\NormalTok{ v8}\OperatorTok{::}\NormalTok{FunctionCallbackInfo}\OperatorTok{\textless{}}\NormalTok{v8}\OperatorTok{::}\NormalTok{Value}\OperatorTok{\textgreater{}\&}\NormalTok{ args}\OperatorTok{);}
+  \AttributeTok{static} \DataTypeTok{void}\NormalTok{ PlusOne}\OperatorTok{(}\AttributeTok{const}\NormalTok{ v8}\OperatorTok{::}\NormalTok{FunctionCallbackInfo}\OperatorTok{\textless{}}\NormalTok{v8}\OperatorTok{::}\NormalTok{Value}\OperatorTok{\textgreater{}\&}\NormalTok{ args}\OperatorTok{);}
+  \AttributeTok{static}\NormalTok{ v8}\OperatorTok{::}\NormalTok{Global}\OperatorTok{\textless{}}\NormalTok{v8}\OperatorTok{::}\NormalTok{Function}\OperatorTok{\textgreater{}}\NormalTok{ constructor}\OperatorTok{;}
+  \DataTypeTok{double} \VariableTok{value\_}\OperatorTok{;}
+\OperatorTok{\};}
+
+\OperatorTok{\}}  \CommentTok{// namespace demo}
+
+\PreprocessorTok{\#endif}
+\end{Highlighting}
+\end{Shaded}
+
+The implementation in \texttt{myobject.cc} is similar to the previous
+example:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{// myobject.cc}
+\PreprocessorTok{\#include }\ImportTok{\textless{}node.h\textgreater{}}
+\PreprocessorTok{\#include }\ImportTok{"myobject.h"}
+
+\KeywordTok{namespace}\NormalTok{ demo }\OperatorTok{\{}
+
+\KeywordTok{using}\NormalTok{ node}\OperatorTok{::}\NormalTok{AddEnvironmentCleanupHook}\OperatorTok{;}
+\KeywordTok{using}\NormalTok{ v8}\OperatorTok{::}\NormalTok{Context}\OperatorTok{;}
+\KeywordTok{using}\NormalTok{ v8}\OperatorTok{::}\NormalTok{Function}\OperatorTok{;}
+\KeywordTok{using}\NormalTok{ v8}\OperatorTok{::}\NormalTok{FunctionCallbackInfo}\OperatorTok{;}
+\KeywordTok{using}\NormalTok{ v8}\OperatorTok{::}\NormalTok{FunctionTemplate}\OperatorTok{;}
+\KeywordTok{using}\NormalTok{ v8}\OperatorTok{::}\NormalTok{Global}\OperatorTok{;}
+\KeywordTok{using}\NormalTok{ v8}\OperatorTok{::}\NormalTok{Isolate}\OperatorTok{;}
+\KeywordTok{using}\NormalTok{ v8}\OperatorTok{::}\NormalTok{Local}\OperatorTok{;}
+\KeywordTok{using}\NormalTok{ v8}\OperatorTok{::}\NormalTok{Number}\OperatorTok{;}
+\KeywordTok{using}\NormalTok{ v8}\OperatorTok{::}\NormalTok{Object}\OperatorTok{;}
+\KeywordTok{using}\NormalTok{ v8}\OperatorTok{::}\NormalTok{String}\OperatorTok{;}
+\KeywordTok{using}\NormalTok{ v8}\OperatorTok{::}\NormalTok{Value}\OperatorTok{;}
+
+\CommentTok{// Warning! This is not thread{-}safe, this addon cannot be used for worker}
+\CommentTok{// threads.}
+\NormalTok{Global}\OperatorTok{\textless{}}\NormalTok{Function}\OperatorTok{\textgreater{}}\NormalTok{ MyObject}\OperatorTok{::}\NormalTok{constructor}\OperatorTok{;}
+
+\NormalTok{MyObject}\OperatorTok{::}\NormalTok{MyObject}\OperatorTok{(}\DataTypeTok{double}\NormalTok{ value}\OperatorTok{)} \OperatorTok{:} \VariableTok{value\_}\OperatorTok{(}\NormalTok{value}\OperatorTok{)} \OperatorTok{\{}
+\OperatorTok{\}}
+
+\NormalTok{MyObject}\OperatorTok{::\textasciitilde{}}\NormalTok{MyObject}\OperatorTok{()} \OperatorTok{\{}
+\OperatorTok{\}}
+
+\DataTypeTok{void}\NormalTok{ MyObject}\OperatorTok{::}\NormalTok{Init}\OperatorTok{(}\NormalTok{Isolate}\OperatorTok{*}\NormalTok{ isolate}\OperatorTok{)} \OperatorTok{\{}
+  \CommentTok{// Prepare constructor template}
+\NormalTok{  Local}\OperatorTok{\textless{}}\NormalTok{FunctionTemplate}\OperatorTok{\textgreater{}}\NormalTok{ tpl }\OperatorTok{=}\NormalTok{ FunctionTemplate}\OperatorTok{::}\NormalTok{New}\OperatorTok{(}\NormalTok{isolate}\OperatorTok{,}\NormalTok{ New}\OperatorTok{);}
+\NormalTok{  tpl}\OperatorTok{{-}\textgreater{}}\NormalTok{SetClassName}\OperatorTok{(}\NormalTok{String}\OperatorTok{::}\NormalTok{NewFromUtf8}\OperatorTok{(}\NormalTok{isolate}\OperatorTok{,} \StringTok{"MyObject"}\OperatorTok{).}\NormalTok{ToLocalChecked}\OperatorTok{());}
+\NormalTok{  tpl}\OperatorTok{{-}\textgreater{}}\NormalTok{InstanceTemplate}\OperatorTok{(){-}\textgreater{}}\NormalTok{SetInternalFieldCount}\OperatorTok{(}\DecValTok{1}\OperatorTok{);}
+
+  \CommentTok{// Prototype}
+\NormalTok{  NODE\_SET\_PROTOTYPE\_METHOD}\OperatorTok{(}\NormalTok{tpl}\OperatorTok{,} \StringTok{"plusOne"}\OperatorTok{,}\NormalTok{ PlusOne}\OperatorTok{);}
+
+\NormalTok{  Local}\OperatorTok{\textless{}}\NormalTok{Context}\OperatorTok{\textgreater{}}\NormalTok{ context }\OperatorTok{=}\NormalTok{ isolate}\OperatorTok{{-}\textgreater{}}\NormalTok{GetCurrentContext}\OperatorTok{();}
+\NormalTok{  constructor}\OperatorTok{.}\NormalTok{Reset}\OperatorTok{(}\NormalTok{isolate}\OperatorTok{,}\NormalTok{ tpl}\OperatorTok{{-}\textgreater{}}\NormalTok{GetFunction}\OperatorTok{(}\NormalTok{context}\OperatorTok{).}\NormalTok{ToLocalChecked}\OperatorTok{());}
+
+\NormalTok{  AddEnvironmentCleanupHook}\OperatorTok{(}\NormalTok{isolate}\OperatorTok{,} \OperatorTok{[](}\DataTypeTok{void}\OperatorTok{*)} \OperatorTok{\{}
+\NormalTok{    constructor}\OperatorTok{.}\NormalTok{Reset}\OperatorTok{();}
+  \OperatorTok{\},} \KeywordTok{nullptr}\OperatorTok{);}
+\OperatorTok{\}}
+
+\DataTypeTok{void}\NormalTok{ MyObject}\OperatorTok{::}\NormalTok{New}\OperatorTok{(}\AttributeTok{const}\NormalTok{ FunctionCallbackInfo}\OperatorTok{\textless{}}\NormalTok{Value}\OperatorTok{\textgreater{}\&}\NormalTok{ args}\OperatorTok{)} \OperatorTok{\{}
+\NormalTok{  Isolate}\OperatorTok{*}\NormalTok{ isolate }\OperatorTok{=}\NormalTok{ args}\OperatorTok{.}\NormalTok{GetIsolate}\OperatorTok{();}
+\NormalTok{  Local}\OperatorTok{\textless{}}\NormalTok{Context}\OperatorTok{\textgreater{}}\NormalTok{ context }\OperatorTok{=}\NormalTok{ isolate}\OperatorTok{{-}\textgreater{}}\NormalTok{GetCurrentContext}\OperatorTok{();}
+
+  \ControlFlowTok{if} \OperatorTok{(}\NormalTok{args}\OperatorTok{.}\NormalTok{IsConstructCall}\OperatorTok{())} \OperatorTok{\{}
+    \CommentTok{// Invoked as constructor: \textasciigrave{}new MyObject(...)\textasciigrave{}}
+    \DataTypeTok{double}\NormalTok{ value }\OperatorTok{=}\NormalTok{ args}\OperatorTok{[}\DecValTok{0}\OperatorTok{]{-}\textgreater{}}\NormalTok{IsUndefined}\OperatorTok{()} \OperatorTok{?}
+        \DecValTok{0} \OperatorTok{:}\NormalTok{ args}\OperatorTok{[}\DecValTok{0}\OperatorTok{]{-}\textgreater{}}\NormalTok{NumberValue}\OperatorTok{(}\NormalTok{context}\OperatorTok{).}\NormalTok{FromMaybe}\OperatorTok{(}\DecValTok{0}\OperatorTok{);}
+\NormalTok{    MyObject}\OperatorTok{*}\NormalTok{ obj }\OperatorTok{=} \KeywordTok{new}\NormalTok{ MyObject}\OperatorTok{(}\NormalTok{value}\OperatorTok{);}
+\NormalTok{    obj}\OperatorTok{{-}\textgreater{}}\NormalTok{Wrap}\OperatorTok{(}\NormalTok{args}\OperatorTok{.}\NormalTok{This}\OperatorTok{());}
+\NormalTok{    args}\OperatorTok{.}\NormalTok{GetReturnValue}\OperatorTok{().}\NormalTok{Set}\OperatorTok{(}\NormalTok{args}\OperatorTok{.}\NormalTok{This}\OperatorTok{());}
+  \OperatorTok{\}} \ControlFlowTok{else} \OperatorTok{\{}
+    \CommentTok{// Invoked as plain function \textasciigrave{}MyObject(...)\textasciigrave{}, turn into construct call.}
+    \AttributeTok{const} \DataTypeTok{int}\NormalTok{ argc }\OperatorTok{=} \DecValTok{1}\OperatorTok{;}
+\NormalTok{    Local}\OperatorTok{\textless{}}\NormalTok{Value}\OperatorTok{\textgreater{}}\NormalTok{ argv}\OperatorTok{[}\NormalTok{argc}\OperatorTok{]} \OperatorTok{=} \OperatorTok{\{}\NormalTok{ args}\OperatorTok{[}\DecValTok{0}\OperatorTok{]} \OperatorTok{\};}
+\NormalTok{    Local}\OperatorTok{\textless{}}\NormalTok{Function}\OperatorTok{\textgreater{}}\NormalTok{ cons }\OperatorTok{=}\NormalTok{ Local}\OperatorTok{\textless{}}\NormalTok{Function}\OperatorTok{\textgreater{}::}\NormalTok{New}\OperatorTok{(}\NormalTok{isolate}\OperatorTok{,}\NormalTok{ constructor}\OperatorTok{);}
+\NormalTok{    Local}\OperatorTok{\textless{}}\NormalTok{Object}\OperatorTok{\textgreater{}}\NormalTok{ instance }\OperatorTok{=}
+\NormalTok{        cons}\OperatorTok{{-}\textgreater{}}\NormalTok{NewInstance}\OperatorTok{(}\NormalTok{context}\OperatorTok{,}\NormalTok{ argc}\OperatorTok{,}\NormalTok{ argv}\OperatorTok{).}\NormalTok{ToLocalChecked}\OperatorTok{();}
+\NormalTok{    args}\OperatorTok{.}\NormalTok{GetReturnValue}\OperatorTok{().}\NormalTok{Set}\OperatorTok{(}\NormalTok{instance}\OperatorTok{);}
+  \OperatorTok{\}}
+\OperatorTok{\}}
+
+\DataTypeTok{void}\NormalTok{ MyObject}\OperatorTok{::}\NormalTok{NewInstance}\OperatorTok{(}\AttributeTok{const}\NormalTok{ FunctionCallbackInfo}\OperatorTok{\textless{}}\NormalTok{Value}\OperatorTok{\textgreater{}\&}\NormalTok{ args}\OperatorTok{)} \OperatorTok{\{}
+\NormalTok{  Isolate}\OperatorTok{*}\NormalTok{ isolate }\OperatorTok{=}\NormalTok{ args}\OperatorTok{.}\NormalTok{GetIsolate}\OperatorTok{();}
+
+  \AttributeTok{const} \DataTypeTok{unsigned}\NormalTok{ argc }\OperatorTok{=} \DecValTok{1}\OperatorTok{;}
+\NormalTok{  Local}\OperatorTok{\textless{}}\NormalTok{Value}\OperatorTok{\textgreater{}}\NormalTok{ argv}\OperatorTok{[}\NormalTok{argc}\OperatorTok{]} \OperatorTok{=} \OperatorTok{\{}\NormalTok{ args}\OperatorTok{[}\DecValTok{0}\OperatorTok{]} \OperatorTok{\};}
+\NormalTok{  Local}\OperatorTok{\textless{}}\NormalTok{Function}\OperatorTok{\textgreater{}}\NormalTok{ cons }\OperatorTok{=}\NormalTok{ Local}\OperatorTok{\textless{}}\NormalTok{Function}\OperatorTok{\textgreater{}::}\NormalTok{New}\OperatorTok{(}\NormalTok{isolate}\OperatorTok{,}\NormalTok{ constructor}\OperatorTok{);}
+\NormalTok{  Local}\OperatorTok{\textless{}}\NormalTok{Context}\OperatorTok{\textgreater{}}\NormalTok{ context }\OperatorTok{=}\NormalTok{ isolate}\OperatorTok{{-}\textgreater{}}\NormalTok{GetCurrentContext}\OperatorTok{();}
+\NormalTok{  Local}\OperatorTok{\textless{}}\NormalTok{Object}\OperatorTok{\textgreater{}}\NormalTok{ instance }\OperatorTok{=}
+\NormalTok{      cons}\OperatorTok{{-}\textgreater{}}\NormalTok{NewInstance}\OperatorTok{(}\NormalTok{context}\OperatorTok{,}\NormalTok{ argc}\OperatorTok{,}\NormalTok{ argv}\OperatorTok{).}\NormalTok{ToLocalChecked}\OperatorTok{();}
+
+\NormalTok{  args}\OperatorTok{.}\NormalTok{GetReturnValue}\OperatorTok{().}\NormalTok{Set}\OperatorTok{(}\NormalTok{instance}\OperatorTok{);}
+\OperatorTok{\}}
+
+\DataTypeTok{void}\NormalTok{ MyObject}\OperatorTok{::}\NormalTok{PlusOne}\OperatorTok{(}\AttributeTok{const}\NormalTok{ FunctionCallbackInfo}\OperatorTok{\textless{}}\NormalTok{Value}\OperatorTok{\textgreater{}\&}\NormalTok{ args}\OperatorTok{)} \OperatorTok{\{}
+\NormalTok{  Isolate}\OperatorTok{*}\NormalTok{ isolate }\OperatorTok{=}\NormalTok{ args}\OperatorTok{.}\NormalTok{GetIsolate}\OperatorTok{();}
+
+\NormalTok{  MyObject}\OperatorTok{*}\NormalTok{ obj }\OperatorTok{=}\NormalTok{ ObjectWrap}\OperatorTok{::}\NormalTok{Unwrap}\OperatorTok{\textless{}}\NormalTok{MyObject}\OperatorTok{\textgreater{}(}\NormalTok{args}\OperatorTok{.}\NormalTok{Holder}\OperatorTok{());}
+\NormalTok{  obj}\OperatorTok{{-}\textgreater{}}\VariableTok{value\_} \OperatorTok{+=} \DecValTok{1}\OperatorTok{;}
+
+\NormalTok{  args}\OperatorTok{.}\NormalTok{GetReturnValue}\OperatorTok{().}\NormalTok{Set}\OperatorTok{(}\NormalTok{Number}\OperatorTok{::}\NormalTok{New}\OperatorTok{(}\NormalTok{isolate}\OperatorTok{,}\NormalTok{ obj}\OperatorTok{{-}\textgreater{}}\VariableTok{value\_}\OperatorTok{));}
+\OperatorTok{\}}
+
+\OperatorTok{\}}  \CommentTok{// namespace demo}
+\end{Highlighting}
+\end{Shaded}
+
+Once again, to build this example, the \texttt{myobject.cc} file must be
+added to the \texttt{binding.gyp}:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{\{}
+  \DataTypeTok{"targets"}\FunctionTok{:} \OtherTok{[}
+    \FunctionTok{\{}
+      \DataTypeTok{"target\_name"}\FunctionTok{:} \StringTok{"addon"}\FunctionTok{,}
+      \DataTypeTok{"sources"}\FunctionTok{:} \OtherTok{[}
+        \StringTok{"addon.cc"}\OtherTok{,}
+        \StringTok{"myobject.cc"}
+      \OtherTok{]}
+    \FunctionTok{\}}
+  \OtherTok{]}
+\FunctionTok{\}}
+\end{Highlighting}
+\end{Shaded}
+
+Test it with:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{// test.js}
+\KeywordTok{const}\NormalTok{ createObject }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}./build/Release/addon\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+
+\KeywordTok{const}\NormalTok{ obj }\OperatorTok{=} \FunctionTok{createObject}\NormalTok{(}\DecValTok{10}\NormalTok{)}\OperatorTok{;}
+\BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(obj}\OperatorTok{.}\FunctionTok{plusOne}\NormalTok{())}\OperatorTok{;}
+\CommentTok{// Prints: 11}
+\BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(obj}\OperatorTok{.}\FunctionTok{plusOne}\NormalTok{())}\OperatorTok{;}
+\CommentTok{// Prints: 12}
+\BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(obj}\OperatorTok{.}\FunctionTok{plusOne}\NormalTok{())}\OperatorTok{;}
+\CommentTok{// Prints: 13}
+
+\KeywordTok{const}\NormalTok{ obj2 }\OperatorTok{=} \FunctionTok{createObject}\NormalTok{(}\DecValTok{20}\NormalTok{)}\OperatorTok{;}
+\BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(obj2}\OperatorTok{.}\FunctionTok{plusOne}\NormalTok{())}\OperatorTok{;}
+\CommentTok{// Prints: 21}
+\BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(obj2}\OperatorTok{.}\FunctionTok{plusOne}\NormalTok{())}\OperatorTok{;}
+\CommentTok{// Prints: 22}
+\BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(obj2}\OperatorTok{.}\FunctionTok{plusOne}\NormalTok{())}\OperatorTok{;}
+\CommentTok{// Prints: 23}
+\end{Highlighting}
+\end{Shaded}
+
+\subsubsection{Passing wrapped objects
+around}\label{passing-wrapped-objects-around}
+
+In addition to wrapping and returning C++ objects, it is possible to
+pass wrapped objects around by unwrapping them with the Node.js helper
+function \texttt{node::ObjectWrap::Unwrap}. The following examples shows
+a function \texttt{add()} that can take two \texttt{MyObject} objects as
+input arguments:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{// addon.cc}
+\PreprocessorTok{\#include }\ImportTok{\textless{}node.h\textgreater{}}
+\PreprocessorTok{\#include }\ImportTok{\textless{}node\_object\_wrap.h\textgreater{}}
+\PreprocessorTok{\#include }\ImportTok{"myobject.h"}
+
+\KeywordTok{namespace}\NormalTok{ demo }\OperatorTok{\{}
+
+\KeywordTok{using}\NormalTok{ v8}\OperatorTok{::}\NormalTok{Context}\OperatorTok{;}
+\KeywordTok{using}\NormalTok{ v8}\OperatorTok{::}\NormalTok{FunctionCallbackInfo}\OperatorTok{;}
+\KeywordTok{using}\NormalTok{ v8}\OperatorTok{::}\NormalTok{Isolate}\OperatorTok{;}
+\KeywordTok{using}\NormalTok{ v8}\OperatorTok{::}\NormalTok{Local}\OperatorTok{;}
+\KeywordTok{using}\NormalTok{ v8}\OperatorTok{::}\NormalTok{Number}\OperatorTok{;}
+\KeywordTok{using}\NormalTok{ v8}\OperatorTok{::}\NormalTok{Object}\OperatorTok{;}
+\KeywordTok{using}\NormalTok{ v8}\OperatorTok{::}\NormalTok{String}\OperatorTok{;}
+\KeywordTok{using}\NormalTok{ v8}\OperatorTok{::}\NormalTok{Value}\OperatorTok{;}
+
+\DataTypeTok{void}\NormalTok{ CreateObject}\OperatorTok{(}\AttributeTok{const}\NormalTok{ FunctionCallbackInfo}\OperatorTok{\textless{}}\NormalTok{Value}\OperatorTok{\textgreater{}\&}\NormalTok{ args}\OperatorTok{)} \OperatorTok{\{}
+\NormalTok{  MyObject}\OperatorTok{::}\NormalTok{NewInstance}\OperatorTok{(}\NormalTok{args}\OperatorTok{);}
+\OperatorTok{\}}
+
+\DataTypeTok{void}\NormalTok{ Add}\OperatorTok{(}\AttributeTok{const}\NormalTok{ FunctionCallbackInfo}\OperatorTok{\textless{}}\NormalTok{Value}\OperatorTok{\textgreater{}\&}\NormalTok{ args}\OperatorTok{)} \OperatorTok{\{}
+\NormalTok{  Isolate}\OperatorTok{*}\NormalTok{ isolate }\OperatorTok{=}\NormalTok{ args}\OperatorTok{.}\NormalTok{GetIsolate}\OperatorTok{();}
+\NormalTok{  Local}\OperatorTok{\textless{}}\NormalTok{Context}\OperatorTok{\textgreater{}}\NormalTok{ context }\OperatorTok{=}\NormalTok{ isolate}\OperatorTok{{-}\textgreater{}}\NormalTok{GetCurrentContext}\OperatorTok{();}
+
+\NormalTok{  MyObject}\OperatorTok{*}\NormalTok{ obj1 }\OperatorTok{=}\NormalTok{ node}\OperatorTok{::}\NormalTok{ObjectWrap}\OperatorTok{::}\NormalTok{Unwrap}\OperatorTok{\textless{}}\NormalTok{MyObject}\OperatorTok{\textgreater{}(}
+\NormalTok{      args}\OperatorTok{[}\DecValTok{0}\OperatorTok{]{-}\textgreater{}}\NormalTok{ToObject}\OperatorTok{(}\NormalTok{context}\OperatorTok{).}\NormalTok{ToLocalChecked}\OperatorTok{());}
+\NormalTok{  MyObject}\OperatorTok{*}\NormalTok{ obj2 }\OperatorTok{=}\NormalTok{ node}\OperatorTok{::}\NormalTok{ObjectWrap}\OperatorTok{::}\NormalTok{Unwrap}\OperatorTok{\textless{}}\NormalTok{MyObject}\OperatorTok{\textgreater{}(}
+\NormalTok{      args}\OperatorTok{[}\DecValTok{1}\OperatorTok{]{-}\textgreater{}}\NormalTok{ToObject}\OperatorTok{(}\NormalTok{context}\OperatorTok{).}\NormalTok{ToLocalChecked}\OperatorTok{());}
+
+  \DataTypeTok{double}\NormalTok{ sum }\OperatorTok{=}\NormalTok{ obj1}\OperatorTok{{-}\textgreater{}}\NormalTok{value}\OperatorTok{()} \OperatorTok{+}\NormalTok{ obj2}\OperatorTok{{-}\textgreater{}}\NormalTok{value}\OperatorTok{();}
+\NormalTok{  args}\OperatorTok{.}\NormalTok{GetReturnValue}\OperatorTok{().}\NormalTok{Set}\OperatorTok{(}\NormalTok{Number}\OperatorTok{::}\NormalTok{New}\OperatorTok{(}\NormalTok{isolate}\OperatorTok{,}\NormalTok{ sum}\OperatorTok{));}
+\OperatorTok{\}}
+
+\DataTypeTok{void}\NormalTok{ InitAll}\OperatorTok{(}\NormalTok{Local}\OperatorTok{\textless{}}\NormalTok{Object}\OperatorTok{\textgreater{}}\NormalTok{ exports}\OperatorTok{)} \OperatorTok{\{}
+\NormalTok{  MyObject}\OperatorTok{::}\NormalTok{Init}\OperatorTok{(}\NormalTok{exports}\OperatorTok{{-}\textgreater{}}\NormalTok{GetIsolate}\OperatorTok{());}
+
+\NormalTok{  NODE\_SET\_METHOD}\OperatorTok{(}\NormalTok{exports}\OperatorTok{,} \StringTok{"createObject"}\OperatorTok{,}\NormalTok{ CreateObject}\OperatorTok{);}
+\NormalTok{  NODE\_SET\_METHOD}\OperatorTok{(}\NormalTok{exports}\OperatorTok{,} \StringTok{"add"}\OperatorTok{,}\NormalTok{ Add}\OperatorTok{);}
+\OperatorTok{\}}
+
+\NormalTok{NODE\_MODULE}\OperatorTok{(}\NormalTok{NODE\_GYP\_MODULE\_NAME}\OperatorTok{,}\NormalTok{ InitAll}\OperatorTok{)}
+
+\OperatorTok{\}}  \CommentTok{// namespace demo}
+\end{Highlighting}
+\end{Shaded}
+
+In \texttt{myobject.h}, a new public method is added to allow access to
+private values after unwrapping the object.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{// myobject.h}
+\PreprocessorTok{\#ifndef MYOBJECT\_H}
+\PreprocessorTok{\#define MYOBJECT\_H}
+
+\PreprocessorTok{\#include }\ImportTok{\textless{}node.h\textgreater{}}
+\PreprocessorTok{\#include }\ImportTok{\textless{}node\_object\_wrap.h\textgreater{}}
+
+\KeywordTok{namespace}\NormalTok{ demo }\OperatorTok{\{}
+
+\KeywordTok{class}\NormalTok{ MyObject }\OperatorTok{:} \KeywordTok{public}\NormalTok{ node}\OperatorTok{::}\NormalTok{ObjectWrap }\OperatorTok{\{}
+ \KeywordTok{public}\OperatorTok{:}
+  \AttributeTok{static} \DataTypeTok{void}\NormalTok{ Init}\OperatorTok{(}\NormalTok{v8}\OperatorTok{::}\NormalTok{Isolate}\OperatorTok{*}\NormalTok{ isolate}\OperatorTok{);}
+  \AttributeTok{static} \DataTypeTok{void}\NormalTok{ NewInstance}\OperatorTok{(}\AttributeTok{const}\NormalTok{ v8}\OperatorTok{::}\NormalTok{FunctionCallbackInfo}\OperatorTok{\textless{}}\NormalTok{v8}\OperatorTok{::}\NormalTok{Value}\OperatorTok{\textgreater{}\&}\NormalTok{ args}\OperatorTok{);}
+  \KeywordTok{inline} \DataTypeTok{double}\NormalTok{ value}\OperatorTok{()} \AttributeTok{const} \OperatorTok{\{} \ControlFlowTok{return} \VariableTok{value\_}\OperatorTok{;} \OperatorTok{\}}
+
+ \KeywordTok{private}\OperatorTok{:}
+  \KeywordTok{explicit}\NormalTok{ MyObject}\OperatorTok{(}\DataTypeTok{double}\NormalTok{ value }\OperatorTok{=} \DecValTok{0}\OperatorTok{);}
+  \OperatorTok{\textasciitilde{}}\NormalTok{MyObject}\OperatorTok{();}
+
+  \AttributeTok{static} \DataTypeTok{void}\NormalTok{ New}\OperatorTok{(}\AttributeTok{const}\NormalTok{ v8}\OperatorTok{::}\NormalTok{FunctionCallbackInfo}\OperatorTok{\textless{}}\NormalTok{v8}\OperatorTok{::}\NormalTok{Value}\OperatorTok{\textgreater{}\&}\NormalTok{ args}\OperatorTok{);}
+  \AttributeTok{static}\NormalTok{ v8}\OperatorTok{::}\NormalTok{Global}\OperatorTok{\textless{}}\NormalTok{v8}\OperatorTok{::}\NormalTok{Function}\OperatorTok{\textgreater{}}\NormalTok{ constructor}\OperatorTok{;}
+  \DataTypeTok{double} \VariableTok{value\_}\OperatorTok{;}
+\OperatorTok{\};}
+
+\OperatorTok{\}}  \CommentTok{// namespace demo}
+
+\PreprocessorTok{\#endif}
+\end{Highlighting}
+\end{Shaded}
+
+The implementation of \texttt{myobject.cc} is similar to before:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{// myobject.cc}
+\PreprocessorTok{\#include }\ImportTok{\textless{}node.h\textgreater{}}
+\PreprocessorTok{\#include }\ImportTok{"myobject.h"}
+
+\KeywordTok{namespace}\NormalTok{ demo }\OperatorTok{\{}
+
+\KeywordTok{using}\NormalTok{ node}\OperatorTok{::}\NormalTok{AddEnvironmentCleanupHook}\OperatorTok{;}
+\KeywordTok{using}\NormalTok{ v8}\OperatorTok{::}\NormalTok{Context}\OperatorTok{;}
+\KeywordTok{using}\NormalTok{ v8}\OperatorTok{::}\NormalTok{Function}\OperatorTok{;}
+\KeywordTok{using}\NormalTok{ v8}\OperatorTok{::}\NormalTok{FunctionCallbackInfo}\OperatorTok{;}
+\KeywordTok{using}\NormalTok{ v8}\OperatorTok{::}\NormalTok{FunctionTemplate}\OperatorTok{;}
+\KeywordTok{using}\NormalTok{ v8}\OperatorTok{::}\NormalTok{Global}\OperatorTok{;}
+\KeywordTok{using}\NormalTok{ v8}\OperatorTok{::}\NormalTok{Isolate}\OperatorTok{;}
+\KeywordTok{using}\NormalTok{ v8}\OperatorTok{::}\NormalTok{Local}\OperatorTok{;}
+\KeywordTok{using}\NormalTok{ v8}\OperatorTok{::}\NormalTok{Object}\OperatorTok{;}
+\KeywordTok{using}\NormalTok{ v8}\OperatorTok{::}\NormalTok{String}\OperatorTok{;}
+\KeywordTok{using}\NormalTok{ v8}\OperatorTok{::}\NormalTok{Value}\OperatorTok{;}
+
+\CommentTok{// Warning! This is not thread{-}safe, this addon cannot be used for worker}
+\CommentTok{// threads.}
+\NormalTok{Global}\OperatorTok{\textless{}}\NormalTok{Function}\OperatorTok{\textgreater{}}\NormalTok{ MyObject}\OperatorTok{::}\NormalTok{constructor}\OperatorTok{;}
+
+\NormalTok{MyObject}\OperatorTok{::}\NormalTok{MyObject}\OperatorTok{(}\DataTypeTok{double}\NormalTok{ value}\OperatorTok{)} \OperatorTok{:} \VariableTok{value\_}\OperatorTok{(}\NormalTok{value}\OperatorTok{)} \OperatorTok{\{}
+\OperatorTok{\}}
+
+\NormalTok{MyObject}\OperatorTok{::\textasciitilde{}}\NormalTok{MyObject}\OperatorTok{()} \OperatorTok{\{}
+\OperatorTok{\}}
+
+\DataTypeTok{void}\NormalTok{ MyObject}\OperatorTok{::}\NormalTok{Init}\OperatorTok{(}\NormalTok{Isolate}\OperatorTok{*}\NormalTok{ isolate}\OperatorTok{)} \OperatorTok{\{}
+  \CommentTok{// Prepare constructor template}
+\NormalTok{  Local}\OperatorTok{\textless{}}\NormalTok{FunctionTemplate}\OperatorTok{\textgreater{}}\NormalTok{ tpl }\OperatorTok{=}\NormalTok{ FunctionTemplate}\OperatorTok{::}\NormalTok{New}\OperatorTok{(}\NormalTok{isolate}\OperatorTok{,}\NormalTok{ New}\OperatorTok{);}
+\NormalTok{  tpl}\OperatorTok{{-}\textgreater{}}\NormalTok{SetClassName}\OperatorTok{(}\NormalTok{String}\OperatorTok{::}\NormalTok{NewFromUtf8}\OperatorTok{(}\NormalTok{isolate}\OperatorTok{,} \StringTok{"MyObject"}\OperatorTok{).}\NormalTok{ToLocalChecked}\OperatorTok{());}
+\NormalTok{  tpl}\OperatorTok{{-}\textgreater{}}\NormalTok{InstanceTemplate}\OperatorTok{(){-}\textgreater{}}\NormalTok{SetInternalFieldCount}\OperatorTok{(}\DecValTok{1}\OperatorTok{);}
+
+\NormalTok{  Local}\OperatorTok{\textless{}}\NormalTok{Context}\OperatorTok{\textgreater{}}\NormalTok{ context }\OperatorTok{=}\NormalTok{ isolate}\OperatorTok{{-}\textgreater{}}\NormalTok{GetCurrentContext}\OperatorTok{();}
+\NormalTok{  constructor}\OperatorTok{.}\NormalTok{Reset}\OperatorTok{(}\NormalTok{isolate}\OperatorTok{,}\NormalTok{ tpl}\OperatorTok{{-}\textgreater{}}\NormalTok{GetFunction}\OperatorTok{(}\NormalTok{context}\OperatorTok{).}\NormalTok{ToLocalChecked}\OperatorTok{());}
+
+\NormalTok{  AddEnvironmentCleanupHook}\OperatorTok{(}\NormalTok{isolate}\OperatorTok{,} \OperatorTok{[](}\DataTypeTok{void}\OperatorTok{*)} \OperatorTok{\{}
+\NormalTok{    constructor}\OperatorTok{.}\NormalTok{Reset}\OperatorTok{();}
+  \OperatorTok{\},} \KeywordTok{nullptr}\OperatorTok{);}
+\OperatorTok{\}}
+
+\DataTypeTok{void}\NormalTok{ MyObject}\OperatorTok{::}\NormalTok{New}\OperatorTok{(}\AttributeTok{const}\NormalTok{ FunctionCallbackInfo}\OperatorTok{\textless{}}\NormalTok{Value}\OperatorTok{\textgreater{}\&}\NormalTok{ args}\OperatorTok{)} \OperatorTok{\{}
+\NormalTok{  Isolate}\OperatorTok{*}\NormalTok{ isolate }\OperatorTok{=}\NormalTok{ args}\OperatorTok{.}\NormalTok{GetIsolate}\OperatorTok{();}
+\NormalTok{  Local}\OperatorTok{\textless{}}\NormalTok{Context}\OperatorTok{\textgreater{}}\NormalTok{ context }\OperatorTok{=}\NormalTok{ isolate}\OperatorTok{{-}\textgreater{}}\NormalTok{GetCurrentContext}\OperatorTok{();}
+
+  \ControlFlowTok{if} \OperatorTok{(}\NormalTok{args}\OperatorTok{.}\NormalTok{IsConstructCall}\OperatorTok{())} \OperatorTok{\{}
+    \CommentTok{// Invoked as constructor: \textasciigrave{}new MyObject(...)\textasciigrave{}}
+    \DataTypeTok{double}\NormalTok{ value }\OperatorTok{=}\NormalTok{ args}\OperatorTok{[}\DecValTok{0}\OperatorTok{]{-}\textgreater{}}\NormalTok{IsUndefined}\OperatorTok{()} \OperatorTok{?}
+        \DecValTok{0} \OperatorTok{:}\NormalTok{ args}\OperatorTok{[}\DecValTok{0}\OperatorTok{]{-}\textgreater{}}\NormalTok{NumberValue}\OperatorTok{(}\NormalTok{context}\OperatorTok{).}\NormalTok{FromMaybe}\OperatorTok{(}\DecValTok{0}\OperatorTok{);}
+\NormalTok{    MyObject}\OperatorTok{*}\NormalTok{ obj }\OperatorTok{=} \KeywordTok{new}\NormalTok{ MyObject}\OperatorTok{(}\NormalTok{value}\OperatorTok{);}
+\NormalTok{    obj}\OperatorTok{{-}\textgreater{}}\NormalTok{Wrap}\OperatorTok{(}\NormalTok{args}\OperatorTok{.}\NormalTok{This}\OperatorTok{());}
+\NormalTok{    args}\OperatorTok{.}\NormalTok{GetReturnValue}\OperatorTok{().}\NormalTok{Set}\OperatorTok{(}\NormalTok{args}\OperatorTok{.}\NormalTok{This}\OperatorTok{());}
+  \OperatorTok{\}} \ControlFlowTok{else} \OperatorTok{\{}
+    \CommentTok{// Invoked as plain function \textasciigrave{}MyObject(...)\textasciigrave{}, turn into construct call.}
+    \AttributeTok{const} \DataTypeTok{int}\NormalTok{ argc }\OperatorTok{=} \DecValTok{1}\OperatorTok{;}
+\NormalTok{    Local}\OperatorTok{\textless{}}\NormalTok{Value}\OperatorTok{\textgreater{}}\NormalTok{ argv}\OperatorTok{[}\NormalTok{argc}\OperatorTok{]} \OperatorTok{=} \OperatorTok{\{}\NormalTok{ args}\OperatorTok{[}\DecValTok{0}\OperatorTok{]} \OperatorTok{\};}
+\NormalTok{    Local}\OperatorTok{\textless{}}\NormalTok{Function}\OperatorTok{\textgreater{}}\NormalTok{ cons }\OperatorTok{=}\NormalTok{ Local}\OperatorTok{\textless{}}\NormalTok{Function}\OperatorTok{\textgreater{}::}\NormalTok{New}\OperatorTok{(}\NormalTok{isolate}\OperatorTok{,}\NormalTok{ constructor}\OperatorTok{);}
+\NormalTok{    Local}\OperatorTok{\textless{}}\NormalTok{Object}\OperatorTok{\textgreater{}}\NormalTok{ instance }\OperatorTok{=}
+\NormalTok{        cons}\OperatorTok{{-}\textgreater{}}\NormalTok{NewInstance}\OperatorTok{(}\NormalTok{context}\OperatorTok{,}\NormalTok{ argc}\OperatorTok{,}\NormalTok{ argv}\OperatorTok{).}\NormalTok{ToLocalChecked}\OperatorTok{();}
+\NormalTok{    args}\OperatorTok{.}\NormalTok{GetReturnValue}\OperatorTok{().}\NormalTok{Set}\OperatorTok{(}\NormalTok{instance}\OperatorTok{);}
+  \OperatorTok{\}}
+\OperatorTok{\}}
+
+\DataTypeTok{void}\NormalTok{ MyObject}\OperatorTok{::}\NormalTok{NewInstance}\OperatorTok{(}\AttributeTok{const}\NormalTok{ FunctionCallbackInfo}\OperatorTok{\textless{}}\NormalTok{Value}\OperatorTok{\textgreater{}\&}\NormalTok{ args}\OperatorTok{)} \OperatorTok{\{}
+\NormalTok{  Isolate}\OperatorTok{*}\NormalTok{ isolate }\OperatorTok{=}\NormalTok{ args}\OperatorTok{.}\NormalTok{GetIsolate}\OperatorTok{();}
+
+  \AttributeTok{const} \DataTypeTok{unsigned}\NormalTok{ argc }\OperatorTok{=} \DecValTok{1}\OperatorTok{;}
+\NormalTok{  Local}\OperatorTok{\textless{}}\NormalTok{Value}\OperatorTok{\textgreater{}}\NormalTok{ argv}\OperatorTok{[}\NormalTok{argc}\OperatorTok{]} \OperatorTok{=} \OperatorTok{\{}\NormalTok{ args}\OperatorTok{[}\DecValTok{0}\OperatorTok{]} \OperatorTok{\};}
+\NormalTok{  Local}\OperatorTok{\textless{}}\NormalTok{Function}\OperatorTok{\textgreater{}}\NormalTok{ cons }\OperatorTok{=}\NormalTok{ Local}\OperatorTok{\textless{}}\NormalTok{Function}\OperatorTok{\textgreater{}::}\NormalTok{New}\OperatorTok{(}\NormalTok{isolate}\OperatorTok{,}\NormalTok{ constructor}\OperatorTok{);}
+\NormalTok{  Local}\OperatorTok{\textless{}}\NormalTok{Context}\OperatorTok{\textgreater{}}\NormalTok{ context }\OperatorTok{=}\NormalTok{ isolate}\OperatorTok{{-}\textgreater{}}\NormalTok{GetCurrentContext}\OperatorTok{();}
+\NormalTok{  Local}\OperatorTok{\textless{}}\NormalTok{Object}\OperatorTok{\textgreater{}}\NormalTok{ instance }\OperatorTok{=}
+\NormalTok{      cons}\OperatorTok{{-}\textgreater{}}\NormalTok{NewInstance}\OperatorTok{(}\NormalTok{context}\OperatorTok{,}\NormalTok{ argc}\OperatorTok{,}\NormalTok{ argv}\OperatorTok{).}\NormalTok{ToLocalChecked}\OperatorTok{();}
+
+\NormalTok{  args}\OperatorTok{.}\NormalTok{GetReturnValue}\OperatorTok{().}\NormalTok{Set}\OperatorTok{(}\NormalTok{instance}\OperatorTok{);}
+\OperatorTok{\}}
+
+\OperatorTok{\}}  \CommentTok{// namespace demo}
+\end{Highlighting}
+\end{Shaded}
+
+Test it with:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{// test.js}
+\KeywordTok{const}\NormalTok{ addon }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}./build/Release/addon\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+
+\KeywordTok{const}\NormalTok{ obj1 }\OperatorTok{=}\NormalTok{ addon}\OperatorTok{.}\FunctionTok{createObject}\NormalTok{(}\DecValTok{10}\NormalTok{)}\OperatorTok{;}
+\KeywordTok{const}\NormalTok{ obj2 }\OperatorTok{=}\NormalTok{ addon}\OperatorTok{.}\FunctionTok{createObject}\NormalTok{(}\DecValTok{20}\NormalTok{)}\OperatorTok{;}
+\KeywordTok{const}\NormalTok{ result }\OperatorTok{=}\NormalTok{ addon}\OperatorTok{.}\FunctionTok{add}\NormalTok{(obj1}\OperatorTok{,}\NormalTok{ obj2)}\OperatorTok{;}
+
+\BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(result)}\OperatorTok{;}
+\CommentTok{// Prints: 30}
+\end{Highlighting}
+\end{Shaded}

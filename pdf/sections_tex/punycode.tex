@@ -1,0 +1,182 @@
+\section{Punycode}\label{punycode}
+
+\begin{quote}
+Stability: 0 - Deprecated
+\end{quote}
+
+\textbf{The version of the punycode module bundled in Node.js is being
+deprecated.} In a future major version of Node.js this module will be
+removed. Users currently depending on the \texttt{punycode} module
+should switch to using the userland-provided
+\href{https://github.com/bestiejs/punycode.js}{Punycode.js} module
+instead. For punycode-based URL encoding, see
+\href{url.md\#urldomaintoasciidomain}{\texttt{url.domainToASCII}} or,
+more generally, the \href{url.md\#the-whatwg-url-api}{WHATWG URL API}.
+
+The \texttt{punycode} module is a bundled version of the
+\href{https://github.com/bestiejs/punycode.js}{Punycode.js} module. It
+can be accessed using:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ punycode }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}punycode\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+\href{https://tools.ietf.org/html/rfc3492}{Punycode} is a character
+encoding scheme defined by RFC 3492 that is primarily intended for use
+in Internationalized Domain Names. Because host names in URLs are
+limited to ASCII characters only, Domain Names that contain non-ASCII
+characters must be converted into ASCII using the Punycode scheme. For
+instance, the Japanese character that translates into the English word,
+\texttt{\textquotesingle{}example\textquotesingle{}} is
+\texttt{\textquotesingle{}例\textquotesingle{}}. The Internationalized
+Domain Name, \texttt{\textquotesingle{}例.com\textquotesingle{}}
+(equivalent to \texttt{\textquotesingle{}example.com\textquotesingle{}})
+is represented by Punycode as the ASCII string
+\texttt{\textquotesingle{}xn-\/-fsq.com\textquotesingle{}}.
+
+The \texttt{punycode} module provides a simple implementation of the
+Punycode standard.
+
+The \texttt{punycode} module is a third-party dependency used by Node.js
+and made available to developers as a convenience. Fixes or other
+modifications to the module must be directed to the
+\href{https://github.com/bestiejs/punycode.js}{Punycode.js} project.
+
+\subsection{\texorpdfstring{\texttt{punycode.decode(string)}}{punycode.decode(string)}}\label{punycode.decodestring}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{string} \{string\}
+\end{itemize}
+
+The \texttt{punycode.decode()} method converts a
+\href{https://tools.ietf.org/html/rfc3492}{Punycode} string of
+ASCII-only characters to the equivalent string of Unicode codepoints.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{punycode}\OperatorTok{.}\FunctionTok{decode}\NormalTok{(}\StringTok{\textquotesingle{}maana{-}pta\textquotesingle{}}\NormalTok{)}\OperatorTok{;} \CommentTok{// \textquotesingle{}mañana\textquotesingle{}}
+\NormalTok{punycode}\OperatorTok{.}\FunctionTok{decode}\NormalTok{(}\StringTok{\textquotesingle{}{-}{-}dqo34k\textquotesingle{}}\NormalTok{)}\OperatorTok{;} \CommentTok{// \textquotesingle{}☃{-}⌘\textquotesingle{}}
+\end{Highlighting}
+\end{Shaded}
+
+\subsection{\texorpdfstring{\texttt{punycode.encode(string)}}{punycode.encode(string)}}\label{punycode.encodestring}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{string} \{string\}
+\end{itemize}
+
+The \texttt{punycode.encode()} method converts a string of Unicode
+codepoints to a \href{https://tools.ietf.org/html/rfc3492}{Punycode}
+string of ASCII-only characters.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{punycode}\OperatorTok{.}\FunctionTok{encode}\NormalTok{(}\StringTok{\textquotesingle{}mañana\textquotesingle{}}\NormalTok{)}\OperatorTok{;} \CommentTok{// \textquotesingle{}maana{-}pta\textquotesingle{}}
+\NormalTok{punycode}\OperatorTok{.}\FunctionTok{encode}\NormalTok{(}\StringTok{\textquotesingle{}☃{-}⌘\textquotesingle{}}\NormalTok{)}\OperatorTok{;} \CommentTok{// \textquotesingle{}{-}{-}dqo34k\textquotesingle{}}
+\end{Highlighting}
+\end{Shaded}
+
+\subsection{\texorpdfstring{\texttt{punycode.toASCII(domain)}}{punycode.toASCII(domain)}}\label{punycode.toasciidomain}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{domain} \{string\}
+\end{itemize}
+
+The \texttt{punycode.toASCII()} method converts a Unicode string
+representing an Internationalized Domain Name to
+\href{https://tools.ietf.org/html/rfc3492}{Punycode}. Only the non-ASCII
+parts of the domain name will be converted. Calling
+\texttt{punycode.toASCII()} on a string that already only contains ASCII
+characters will have no effect.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{// encode domain names}
+\NormalTok{punycode}\OperatorTok{.}\FunctionTok{toASCII}\NormalTok{(}\StringTok{\textquotesingle{}mañana.com\textquotesingle{}}\NormalTok{)}\OperatorTok{;}  \CommentTok{// \textquotesingle{}xn{-}{-}maana{-}pta.com\textquotesingle{}}
+\NormalTok{punycode}\OperatorTok{.}\FunctionTok{toASCII}\NormalTok{(}\StringTok{\textquotesingle{}☃{-}⌘.com\textquotesingle{}}\NormalTok{)}\OperatorTok{;}   \CommentTok{// \textquotesingle{}xn{-}{-}{-}{-}dqo34k.com\textquotesingle{}}
+\NormalTok{punycode}\OperatorTok{.}\FunctionTok{toASCII}\NormalTok{(}\StringTok{\textquotesingle{}example.com\textquotesingle{}}\NormalTok{)}\OperatorTok{;} \CommentTok{// \textquotesingle{}example.com\textquotesingle{}}
+\end{Highlighting}
+\end{Shaded}
+
+\subsection{\texorpdfstring{\texttt{punycode.toUnicode(domain)}}{punycode.toUnicode(domain)}}\label{punycode.tounicodedomain}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{domain} \{string\}
+\end{itemize}
+
+The \texttt{punycode.toUnicode()} method converts a string representing
+a domain name containing
+\href{https://tools.ietf.org/html/rfc3492}{Punycode} encoded characters
+into Unicode. Only the
+\href{https://tools.ietf.org/html/rfc3492}{Punycode} encoded parts of
+the domain name are be converted.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{// decode domain names}
+\NormalTok{punycode}\OperatorTok{.}\FunctionTok{toUnicode}\NormalTok{(}\StringTok{\textquotesingle{}xn{-}{-}maana{-}pta.com\textquotesingle{}}\NormalTok{)}\OperatorTok{;} \CommentTok{// \textquotesingle{}mañana.com\textquotesingle{}}
+\NormalTok{punycode}\OperatorTok{.}\FunctionTok{toUnicode}\NormalTok{(}\StringTok{\textquotesingle{}xn{-}{-}{-}{-}dqo34k.com\textquotesingle{}}\NormalTok{)}\OperatorTok{;}  \CommentTok{// \textquotesingle{}☃{-}⌘.com\textquotesingle{}}
+\NormalTok{punycode}\OperatorTok{.}\FunctionTok{toUnicode}\NormalTok{(}\StringTok{\textquotesingle{}example.com\textquotesingle{}}\NormalTok{)}\OperatorTok{;}       \CommentTok{// \textquotesingle{}example.com\textquotesingle{}}
+\end{Highlighting}
+\end{Shaded}
+
+\subsection{\texorpdfstring{\texttt{punycode.ucs2}}{punycode.ucs2}}\label{punycode.ucs2}
+
+\subsubsection{\texorpdfstring{\texttt{punycode.ucs2.decode(string)}}{punycode.ucs2.decode(string)}}\label{punycode.ucs2.decodestring}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{string} \{string\}
+\end{itemize}
+
+The \texttt{punycode.ucs2.decode()} method returns an array containing
+the numeric codepoint values of each Unicode symbol in the string.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{punycode}\OperatorTok{.}\AttributeTok{ucs2}\OperatorTok{.}\FunctionTok{decode}\NormalTok{(}\StringTok{\textquotesingle{}abc\textquotesingle{}}\NormalTok{)}\OperatorTok{;} \CommentTok{// [0x61, 0x62, 0x63]}
+\CommentTok{// surrogate pair for U+1D306 tetragram for centre:}
+\NormalTok{punycode}\OperatorTok{.}\AttributeTok{ucs2}\OperatorTok{.}\FunctionTok{decode}\NormalTok{(}\StringTok{\textquotesingle{}}\SpecialCharTok{\textbackslash{}uD834\textbackslash{}uDF06}\StringTok{\textquotesingle{}}\NormalTok{)}\OperatorTok{;} \CommentTok{// [0x1D306]}
+\end{Highlighting}
+\end{Shaded}
+
+\subsubsection{\texorpdfstring{\texttt{punycode.ucs2.encode(codePoints)}}{punycode.ucs2.encode(codePoints)}}\label{punycode.ucs2.encodecodepoints}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{codePoints} \{integer{[}{]}\}
+\end{itemize}
+
+The \texttt{punycode.ucs2.encode()} method returns a string based on an
+array of numeric code point values.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{punycode}\OperatorTok{.}\AttributeTok{ucs2}\OperatorTok{.}\FunctionTok{encode}\NormalTok{([}\BaseNTok{0x61}\OperatorTok{,} \BaseNTok{0x62}\OperatorTok{,} \BaseNTok{0x63}\NormalTok{])}\OperatorTok{;} \CommentTok{// \textquotesingle{}abc\textquotesingle{}}
+\NormalTok{punycode}\OperatorTok{.}\AttributeTok{ucs2}\OperatorTok{.}\FunctionTok{encode}\NormalTok{([}\BaseNTok{0x1D306}\NormalTok{])}\OperatorTok{;} \CommentTok{// \textquotesingle{}\textbackslash{}uD834\textbackslash{}uDF06\textquotesingle{}}
+\end{Highlighting}
+\end{Shaded}
+
+\subsection{\texorpdfstring{\texttt{punycode.version}}{punycode.version}}\label{punycode.version}
+
+\begin{itemize}
+\tightlist
+\item
+  \{string\}
+\end{itemize}
+
+Returns a string identifying the current
+\href{https://github.com/bestiejs/punycode.js}{Punycode.js} version
+number.

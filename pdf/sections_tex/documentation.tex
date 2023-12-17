@@ -1,0 +1,92 @@
+\section{About this documentation}\label{about-this-documentation}
+
+Welcome to the official API reference documentation for Node.js!
+
+Node.js is a JavaScript runtime built on the \href{https://v8.dev/}{V8
+JavaScript engine}.
+
+\subsection{Contributing}\label{contributing}
+
+Report errors in this documentation in
+\href{https://github.com/nodejs/node/issues/new}{the issue tracker}. See
+\href{https://github.com/nodejs/node/blob/HEAD/CONTRIBUTING.md}{the
+contributing guide} for directions on how to submit pull requests.
+
+\subsection{Stability index}\label{stability-index}
+
+Throughout the documentation are indications of a section's stability.
+Some APIs are so proven and so relied upon that they are unlikely to
+ever change at all. Others are brand new and experimental, or known to
+be hazardous.
+
+The stability indices are as follows:
+
+\begin{quote}
+Stability: 0 - Deprecated. The feature may emit warnings. Backward
+compatibility is not guaranteed.
+\end{quote}
+
+\begin{quote}
+Stability: 1 - Experimental. The feature is not subject to
+\href{https://semver.org/}{semantic versioning} rules. Non-backward
+compatible changes or removal may occur in any future release. Use of
+the feature is not recommended in production environments.
+
+Experimental features are subdivided into stages:
+
+\begin{itemize}
+\tightlist
+\item
+  1.0 - Early development. Experimental features at this stage are
+  unfinished and subject to substantial change.
+\item
+  1.1 - Active development. Experimental features at this stage are
+  nearing minimum viability.
+\item
+  1.2 - Release candidate. Experimental features at this stage are
+  hopefully ready to become stable. No further breaking changes are
+  anticipated but may still occur in response to user feedback. We
+  encourage user testing and feedback so that we can know that this
+  feature is ready to be marked as stable.
+\end{itemize}
+\end{quote}
+
+\begin{quote}
+Stability: 2 - Stable. Compatibility with the npm ecosystem is a high
+priority.
+\end{quote}
+
+\begin{quote}
+Stability: 3 - Legacy. Although this feature is unlikely to be removed
+and is still covered by semantic versioning guarantees, it is no longer
+actively maintained, and other alternatives are available.
+\end{quote}
+
+Features are marked as legacy rather than being deprecated if their use
+does no harm, and they are widely relied upon within the npm ecosystem.
+Bugs found in legacy features are unlikely to be fixed.
+
+Use caution when making use of Experimental features, particularly when
+authoring libraries. Users may not be aware that experimental features
+are being used. Bugs or behavior changes may surprise users when
+Experimental API modifications occur. To avoid surprises, use of an
+Experimental feature may need a command-line flag. Experimental features
+may also emit a \href{process.md\#event-warning}{warning}.
+
+\subsection{Stability overview}\label{stability-overview}
+
+\subsection{JSON output}\label{json-output}
+
+Every \texttt{.html} document has a corresponding \texttt{.json}
+document. This is for IDEs and other utilities that consume the
+documentation.
+
+\subsection{System calls and man
+pages}\label{system-calls-and-man-pages}
+
+Node.js functions which wrap a system call will document that. The docs
+link to the corresponding man pages which describe how the system call
+works.
+
+Most Unix system calls have Windows analogues. Still, behavior
+differences may be unavoidable.

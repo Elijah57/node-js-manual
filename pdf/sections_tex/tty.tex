@@ -1,0 +1,336 @@
+\section{TTY}\label{tty}
+
+\begin{quote}
+Stability: 2 - Stable
+\end{quote}
+
+The \texttt{node:tty} module provides the \texttt{tty.ReadStream} and
+\texttt{tty.WriteStream} classes. In most cases, it will not be
+necessary or possible to use this module directly. However, it can be
+accessed using:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ tty }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:tty\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+When Node.js detects that it is being run with a text terminal (``TTY'')
+attached, \href{process.md\#processstdin}{\texttt{process.stdin}} will,
+by default, be initialized as an instance of \texttt{tty.ReadStream} and
+both \href{process.md\#processstdout}{\texttt{process.stdout}} and
+\href{process.md\#processstderr}{\texttt{process.stderr}} will, by
+default, be instances of \texttt{tty.WriteStream}. The preferred method
+of determining whether Node.js is being run within a TTY context is to
+check that the value of the \texttt{process.stdout.isTTY} property is
+\texttt{true}:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{$ node {-}p {-}e "Boolean(process.stdout.isTTY)"}
+\NormalTok{true}
+\NormalTok{$ node {-}p {-}e "Boolean(process.stdout.isTTY)" | cat}
+\NormalTok{false}
+\end{Highlighting}
+\end{Shaded}
+
+In most cases, there should be little to no reason for an application to
+manually create instances of the \texttt{tty.ReadStream} and
+\texttt{tty.WriteStream} classes.
+
+\subsection{\texorpdfstring{Class:
+\texttt{tty.ReadStream}}{Class: tty.ReadStream}}\label{class-tty.readstream}
+
+\begin{itemize}
+\tightlist
+\item
+  Extends: \{net.Socket\}
+\end{itemize}
+
+Represents the readable side of a TTY. In normal circumstances
+\href{process.md\#processstdin}{\texttt{process.stdin}} will be the only
+\texttt{tty.ReadStream} instance in a Node.js process and there should
+be no reason to create additional instances.
+
+\subsubsection{\texorpdfstring{\texttt{readStream.isRaw}}{readStream.isRaw}}\label{readstream.israw}
+
+A \texttt{boolean} that is \texttt{true} if the TTY is currently
+configured to operate as a raw device.
+
+This flag is always \texttt{false} when a process starts, even if the
+terminal is operating in raw mode. Its value will change with subsequent
+calls to \texttt{setRawMode}.
+
+\subsubsection{\texorpdfstring{\texttt{readStream.isTTY}}{readStream.isTTY}}\label{readstream.istty}
+
+A \texttt{boolean} that is always \texttt{true} for
+\texttt{tty.ReadStream} instances.
+
+\subsubsection{\texorpdfstring{\texttt{readStream.setRawMode(mode)}}{readStream.setRawMode(mode)}}\label{readstream.setrawmodemode}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{mode} \{boolean\} If \texttt{true}, configures the
+  \texttt{tty.ReadStream} to operate as a raw device. If \texttt{false},
+  configures the \texttt{tty.ReadStream} to operate in its default mode.
+  The \texttt{readStream.isRaw} property will be set to the resulting
+  mode.
+\item
+  Returns: \{this\} The read stream instance.
+\end{itemize}
+
+Allows configuration of \texttt{tty.ReadStream} so that it operates as a
+raw device.
+
+When in raw mode, input is always available character-by-character, not
+including modifiers. Additionally, all special processing of characters
+by the terminal is disabled, including echoing input characters. Ctrl+C
+will no longer cause a \texttt{SIGINT} when in this mode.
+
+\subsection{\texorpdfstring{Class:
+\texttt{tty.WriteStream}}{Class: tty.WriteStream}}\label{class-tty.writestream}
+
+\begin{itemize}
+\tightlist
+\item
+  Extends: \{net.Socket\}
+\end{itemize}
+
+Represents the writable side of a TTY. In normal circumstances,
+\href{process.md\#processstdout}{\texttt{process.stdout}} and
+\href{process.md\#processstderr}{\texttt{process.stderr}} will be the
+only \texttt{tty.WriteStream} instances created for a Node.js process
+and there should be no reason to create additional instances.
+
+\subsubsection{\texorpdfstring{Event:
+\texttt{\textquotesingle{}resize\textquotesingle{}}}{Event: \textquotesingle resize\textquotesingle{}}}\label{event-resize}
+
+The \texttt{\textquotesingle{}resize\textquotesingle{}} event is emitted
+whenever either of the \texttt{writeStream.columns} or
+\texttt{writeStream.rows} properties have changed. No arguments are
+passed to the listener callback when called.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\BuiltInTok{process}\OperatorTok{.}\AttributeTok{stdout}\OperatorTok{.}\FunctionTok{on}\NormalTok{(}\StringTok{\textquotesingle{}resize\textquotesingle{}}\OperatorTok{,}\NormalTok{ () }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+  \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\StringTok{\textquotesingle{}screen size has changed!\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+  \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\VerbatimStringTok{\textasciigrave{}}\SpecialCharTok{$\{}\BuiltInTok{process}\OperatorTok{.}\AttributeTok{stdout}\OperatorTok{.}\AttributeTok{columns}\SpecialCharTok{\}}\VerbatimStringTok{x}\SpecialCharTok{$\{}\BuiltInTok{process}\OperatorTok{.}\AttributeTok{stdout}\OperatorTok{.}\AttributeTok{rows}\SpecialCharTok{\}}\VerbatimStringTok{\textasciigrave{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{\})}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+\subsubsection{\texorpdfstring{\texttt{writeStream.clearLine(dir{[},\ callback{]})}}{writeStream.clearLine(dir{[}, callback{]})}}\label{writestream.clearlinedir-callback}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{dir} \{number\}
+
+  \begin{itemize}
+  \tightlist
+  \item
+    \texttt{-1}: to the left from cursor
+  \item
+    \texttt{1}: to the right from cursor
+  \item
+    \texttt{0}: the entire line
+  \end{itemize}
+\item
+  \texttt{callback} \{Function\} Invoked once the operation completes.
+\item
+  Returns: \{boolean\} \texttt{false} if the stream wishes for the
+  calling code to wait for the
+  \texttt{\textquotesingle{}drain\textquotesingle{}} event to be emitted
+  before continuing to write additional data; otherwise \texttt{true}.
+\end{itemize}
+
+\texttt{writeStream.clearLine()} clears the current line of this
+\texttt{WriteStream} in a direction identified by \texttt{dir}.
+
+\subsubsection{\texorpdfstring{\texttt{writeStream.clearScreenDown({[}callback{]})}}{writeStream.clearScreenDown({[}callback{]})}}\label{writestream.clearscreendowncallback}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{callback} \{Function\} Invoked once the operation completes.
+\item
+  Returns: \{boolean\} \texttt{false} if the stream wishes for the
+  calling code to wait for the
+  \texttt{\textquotesingle{}drain\textquotesingle{}} event to be emitted
+  before continuing to write additional data; otherwise \texttt{true}.
+\end{itemize}
+
+\texttt{writeStream.clearScreenDown()} clears this \texttt{WriteStream}
+from the current cursor down.
+
+\subsubsection{\texorpdfstring{\texttt{writeStream.columns}}{writeStream.columns}}\label{writestream.columns}
+
+A \texttt{number} specifying the number of columns the TTY currently
+has. This property is updated whenever the
+\texttt{\textquotesingle{}resize\textquotesingle{}} event is emitted.
+
+\subsubsection{\texorpdfstring{\texttt{writeStream.cursorTo(x{[},\ y{]}{[},\ callback{]})}}{writeStream.cursorTo(x{[}, y{]}{[}, callback{]})}}\label{writestream.cursortox-y-callback}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{x} \{number\}
+\item
+  \texttt{y} \{number\}
+\item
+  \texttt{callback} \{Function\} Invoked once the operation completes.
+\item
+  Returns: \{boolean\} \texttt{false} if the stream wishes for the
+  calling code to wait for the
+  \texttt{\textquotesingle{}drain\textquotesingle{}} event to be emitted
+  before continuing to write additional data; otherwise \texttt{true}.
+\end{itemize}
+
+\texttt{writeStream.cursorTo()} moves this \texttt{WriteStream}'s cursor
+to the specified position.
+
+\subsubsection{\texorpdfstring{\texttt{writeStream.getColorDepth({[}env{]})}}{writeStream.getColorDepth({[}env{]})}}\label{writestream.getcolordepthenv}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{env} \{Object\} An object containing the environment variables
+  to check. This enables simulating the usage of a specific terminal.
+  \textbf{Default:} \texttt{process.env}.
+\item
+  Returns: \{number\}
+\end{itemize}
+
+Returns:
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{1} for 2,
+\item
+  \texttt{4} for 16,
+\item
+  \texttt{8} for 256,
+\item
+  \texttt{24} for 16,777,216 colors supported.
+\end{itemize}
+
+Use this to determine what colors the terminal supports. Due to the
+nature of colors in terminals it is possible to either have false
+positives or false negatives. It depends on process information and the
+environment variables that may lie about what terminal is used. It is
+possible to pass in an \texttt{env} object to simulate the usage of a
+specific terminal. This can be useful to check how specific environment
+settings behave.
+
+To enforce a specific color support, use one of the below environment
+settings.
+
+\begin{itemize}
+\tightlist
+\item
+  2 colors: \texttt{FORCE\_COLOR\ =\ 0} (Disables colors)
+\item
+  16 colors: \texttt{FORCE\_COLOR\ =\ 1}
+\item
+  256 colors: \texttt{FORCE\_COLOR\ =\ 2}
+\item
+  16,777,216 colors: \texttt{FORCE\_COLOR\ =\ 3}
+\end{itemize}
+
+Disabling color support is also possible by using the \texttt{NO\_COLOR}
+and \texttt{NODE\_DISABLE\_COLORS} environment variables.
+
+\subsubsection{\texorpdfstring{\texttt{writeStream.getWindowSize()}}{writeStream.getWindowSize()}}\label{writestream.getwindowsize}
+
+\begin{itemize}
+\tightlist
+\item
+  Returns: \{number{[}{]}\}
+\end{itemize}
+
+\texttt{writeStream.getWindowSize()} returns the size of the TTY
+corresponding to this \texttt{WriteStream}. The array is of the type
+\texttt{{[}numColumns,\ numRows{]}} where \texttt{numColumns} and
+\texttt{numRows} represent the number of columns and rows in the
+corresponding TTY.
+
+\subsubsection{\texorpdfstring{\texttt{writeStream.hasColors({[}count{]}{[},\ env{]})}}{writeStream.hasColors({[}count{]}{[}, env{]})}}\label{writestream.hascolorscount-env}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{count} \{integer\} The number of colors that are requested
+  (minimum 2). \textbf{Default:} 16.
+\item
+  \texttt{env} \{Object\} An object containing the environment variables
+  to check. This enables simulating the usage of a specific terminal.
+  \textbf{Default:} \texttt{process.env}.
+\item
+  Returns: \{boolean\}
+\end{itemize}
+
+Returns \texttt{true} if the \texttt{writeStream} supports at least as
+many colors as provided in \texttt{count}. Minimum support is 2 (black
+and white).
+
+This has the same false positives and negatives as described in
+\hyperref[writestreamgetcolordepthenv]{\texttt{writeStream.getColorDepth()}}.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\BuiltInTok{process}\OperatorTok{.}\AttributeTok{stdout}\OperatorTok{.}\FunctionTok{hasColors}\NormalTok{()}\OperatorTok{;}
+\CommentTok{// Returns true or false depending on if \textasciigrave{}stdout\textasciigrave{} supports at least 16 colors.}
+\BuiltInTok{process}\OperatorTok{.}\AttributeTok{stdout}\OperatorTok{.}\FunctionTok{hasColors}\NormalTok{(}\DecValTok{256}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// Returns true or false depending on if \textasciigrave{}stdout\textasciigrave{} supports at least 256 colors.}
+\BuiltInTok{process}\OperatorTok{.}\AttributeTok{stdout}\OperatorTok{.}\FunctionTok{hasColors}\NormalTok{(\{ }\DataTypeTok{TMUX}\OperatorTok{:} \StringTok{\textquotesingle{}1\textquotesingle{}}\NormalTok{ \})}\OperatorTok{;}
+\CommentTok{// Returns true.}
+\BuiltInTok{process}\OperatorTok{.}\AttributeTok{stdout}\OperatorTok{.}\FunctionTok{hasColors}\NormalTok{(}\DecValTok{2} \OperatorTok{**} \DecValTok{24}\OperatorTok{,}\NormalTok{ \{ }\DataTypeTok{TMUX}\OperatorTok{:} \StringTok{\textquotesingle{}1\textquotesingle{}}\NormalTok{ \})}\OperatorTok{;}
+\CommentTok{// Returns false (the environment setting pretends to support 2 ** 8 colors).}
+\end{Highlighting}
+\end{Shaded}
+
+\subsubsection{\texorpdfstring{\texttt{writeStream.isTTY}}{writeStream.isTTY}}\label{writestream.istty}
+
+A \texttt{boolean} that is always \texttt{true}.
+
+\subsubsection{\texorpdfstring{\texttt{writeStream.moveCursor(dx,\ dy{[},\ callback{]})}}{writeStream.moveCursor(dx, dy{[}, callback{]})}}\label{writestream.movecursordx-dy-callback}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{dx} \{number\}
+\item
+  \texttt{dy} \{number\}
+\item
+  \texttt{callback} \{Function\} Invoked once the operation completes.
+\item
+  Returns: \{boolean\} \texttt{false} if the stream wishes for the
+  calling code to wait for the
+  \texttt{\textquotesingle{}drain\textquotesingle{}} event to be emitted
+  before continuing to write additional data; otherwise \texttt{true}.
+\end{itemize}
+
+\texttt{writeStream.moveCursor()} moves this \texttt{WriteStream}'s
+cursor \emph{relative} to its current position.
+
+\subsubsection{\texorpdfstring{\texttt{writeStream.rows}}{writeStream.rows}}\label{writestream.rows}
+
+A \texttt{number} specifying the number of rows the TTY currently has.
+This property is updated whenever the
+\texttt{\textquotesingle{}resize\textquotesingle{}} event is emitted.
+
+\subsection{\texorpdfstring{\texttt{tty.isatty(fd)}}{tty.isatty(fd)}}\label{tty.isattyfd}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{fd} \{number\} A numeric file descriptor
+\item
+  Returns: \{boolean\}
+\end{itemize}
+
+The \texttt{tty.isatty()} method returns \texttt{true} if the given
+\texttt{fd} is associated with a TTY and \texttt{false} if it is not,
+including whenever \texttt{fd} is not a non-negative integer.

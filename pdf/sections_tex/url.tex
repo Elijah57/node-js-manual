@@ -1,0 +1,2071 @@
+\section{URL}\label{url}
+
+\begin{quote}
+Stability: 2 - Stable
+\end{quote}
+
+The \texttt{node:url} module provides utilities for URL resolution and
+parsing. It can be accessed using:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\ImportTok{import}\NormalTok{ url }\ImportTok{from} \StringTok{\textquotesingle{}node:url\textquotesingle{}}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ url }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:url\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+\subsection{URL strings and URL
+objects}\label{url-strings-and-url-objects}
+
+A URL string is a structured string containing multiple meaningful
+components. When parsed, a URL object is returned containing properties
+for each of these components.
+
+The \texttt{node:url} module provides two APIs for working with URLs: a
+legacy API that is Node.js specific, and a newer API that implements the
+same \href{https://url.spec.whatwg.org/}{WHATWG URL Standard} used by
+web browsers.
+
+A comparison between the WHATWG and legacy APIs is provided below. Above
+the URL
+\texttt{\textquotesingle{}https://user:pass@sub.example.com:8080/p/a/t/h?query=string\#hash\textquotesingle{}},
+properties of an object returned by the legacy \texttt{url.parse()} are
+shown. Below it are properties of a WHATWG \texttt{URL} object.
+
+WHATWG URL's \texttt{origin} property includes \texttt{protocol} and
+\texttt{host}, but not \texttt{username} or \texttt{password}.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{┌────────────────────────────────────────────────────────────────────────────────────────────────┐}
+\NormalTok{│                                              href                                              │}
+\NormalTok{├──────────┬──┬─────────────────────┬────────────────────────┬───────────────────────────┬───────┤}
+\NormalTok{│ protocol │  │        auth         │          host          │           path            │ hash  │}
+\NormalTok{│          │  │                     ├─────────────────┬──────┼──────────┬────────────────┤       │}
+\NormalTok{│          │  │                     │    hostname     │ port │ pathname │     search     │       │}
+\NormalTok{│          │  │                     │                 │      │          ├─┬──────────────┤       │}
+\NormalTok{│          │  │                     │                 │      │          │ │    query     │       │}
+\NormalTok{"  https:   //    user   :   pass   @ sub.example.com : 8080   /p/a/t/h  ?  query=string   \#hash "}
+\NormalTok{│          │  │          │          │    hostname     │ port │          │                │       │}
+\NormalTok{│          │  │          │          ├─────────────────┴──────┤          │                │       │}
+\NormalTok{│ protocol │  │ username │ password │          host          │          │                │       │}
+\NormalTok{├──────────┴──┼──────────┴──────────┼────────────────────────┤          │                │       │}
+\NormalTok{│   origin    │                     │         origin         │ pathname │     search     │ hash  │}
+\NormalTok{├─────────────┴─────────────────────┴────────────────────────┴──────────┴────────────────┴───────┤}
+\NormalTok{│                                              href                                              │}
+\NormalTok{└────────────────────────────────────────────────────────────────────────────────────────────────┘}
+\NormalTok{(All spaces in the "" line should be ignored. They are purely for formatting.)}
+\end{Highlighting}
+\end{Shaded}
+
+Parsing the URL string using the WHATWG API:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ myURL }\OperatorTok{=}
+  \KeywordTok{new} \FunctionTok{URL}\NormalTok{(}\StringTok{\textquotesingle{}https://user:pass@sub.example.com:8080/p/a/t/h?query=string\#hash\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+Parsing the URL string using the legacy API:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\ImportTok{import}\NormalTok{ url }\ImportTok{from} \StringTok{\textquotesingle{}node:url\textquotesingle{}}\OperatorTok{;}
+\KeywordTok{const}\NormalTok{ myURL }\OperatorTok{=}
+\NormalTok{  url}\OperatorTok{.}\FunctionTok{parse}\NormalTok{(}\StringTok{\textquotesingle{}https://user:pass@sub.example.com:8080/p/a/t/h?query=string\#hash\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ url }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:url\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\KeywordTok{const}\NormalTok{ myURL }\OperatorTok{=}
+\NormalTok{  url}\OperatorTok{.}\FunctionTok{parse}\NormalTok{(}\StringTok{\textquotesingle{}https://user:pass@sub.example.com:8080/p/a/t/h?query=string\#hash\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+\subsubsection{Constructing a URL from component parts and getting the
+constructed
+string}\label{constructing-a-url-from-component-parts-and-getting-the-constructed-string}
+
+It is possible to construct a WHATWG URL from component parts using
+either the property setters or a template literal string:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ myURL }\OperatorTok{=} \KeywordTok{new} \FunctionTok{URL}\NormalTok{(}\StringTok{\textquotesingle{}https://example.org\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{myURL}\OperatorTok{.}\AttributeTok{pathname} \OperatorTok{=} \StringTok{\textquotesingle{}/a/b/c\textquotesingle{}}\OperatorTok{;}
+\NormalTok{myURL}\OperatorTok{.}\AttributeTok{search} \OperatorTok{=} \StringTok{\textquotesingle{}?d=e\textquotesingle{}}\OperatorTok{;}
+\NormalTok{myURL}\OperatorTok{.}\AttributeTok{hash} \OperatorTok{=} \StringTok{\textquotesingle{}\#fgh\textquotesingle{}}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ pathname }\OperatorTok{=} \StringTok{\textquotesingle{}/a/b/c\textquotesingle{}}\OperatorTok{;}
+\KeywordTok{const}\NormalTok{ search }\OperatorTok{=} \StringTok{\textquotesingle{}?d=e\textquotesingle{}}\OperatorTok{;}
+\KeywordTok{const}\NormalTok{ hash }\OperatorTok{=} \StringTok{\textquotesingle{}\#fgh\textquotesingle{}}\OperatorTok{;}
+\KeywordTok{const}\NormalTok{ myURL }\OperatorTok{=} \KeywordTok{new} \FunctionTok{URL}\NormalTok{(}\VerbatimStringTok{\textasciigrave{}https://example.org}\SpecialCharTok{$\{}\NormalTok{pathname}\SpecialCharTok{\}$\{}\NormalTok{search}\SpecialCharTok{\}$\{}\NormalTok{hash}\SpecialCharTok{\}}\VerbatimStringTok{\textasciigrave{}}\NormalTok{)}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+To get the constructed URL string, use the \texttt{href} property
+accessor:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(myURL}\OperatorTok{.}\AttributeTok{href}\NormalTok{)}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+\subsection{The WHATWG URL API}\label{the-whatwg-url-api}
+
+\subsubsection{\texorpdfstring{Class:
+\texttt{URL}}{Class: URL}}\label{class-url}
+
+Browser-compatible \texttt{URL} class, implemented by following the
+WHATWG URL Standard.
+\href{https://url.spec.whatwg.org/\#example-url-parsing}{Examples of
+parsed URLs} may be found in the Standard itself. The \texttt{URL} class
+is also available on the global object.
+
+In accordance with browser conventions, all properties of \texttt{URL}
+objects are implemented as getters and setters on the class prototype,
+rather than as data properties on the object itself. Thus, unlike
+\hyperref[legacy-urlobject]{legacy \texttt{urlObject}}s, using the
+\texttt{delete} keyword on any properties of \texttt{URL} objects
+(e.g.~\texttt{delete\ myURL.protocol}, \texttt{delete\ myURL.pathname},
+etc) has no effect but will still return \texttt{true}.
+
+\paragraph{\texorpdfstring{\texttt{new\ URL(input{[},\ base{]})}}{new URL(input{[}, base{]})}}\label{new-urlinput-base}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{input} \{string\} The absolute or relative input URL to parse.
+  If \texttt{input} is relative, then \texttt{base} is required. If
+  \texttt{input} is absolute, the \texttt{base} is ignored. If
+  \texttt{input} is not a string, it is
+  \href{https://tc39.es/ecma262/\#sec-tostring}{converted to a string}
+  first.
+\item
+  \texttt{base} \{string\} The base URL to resolve against if the
+  \texttt{input} is not absolute. If \texttt{base} is not a string, it
+  is \href{https://tc39.es/ecma262/\#sec-tostring}{converted to a
+  string} first.
+\end{itemize}
+
+Creates a new \texttt{URL} object by parsing the \texttt{input} relative
+to the \texttt{base}. If \texttt{base} is passed as a string, it will be
+parsed equivalent to \texttt{new\ URL(base)}.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ myURL }\OperatorTok{=} \KeywordTok{new} \FunctionTok{URL}\NormalTok{(}\StringTok{\textquotesingle{}/foo\textquotesingle{}}\OperatorTok{,} \StringTok{\textquotesingle{}https://example.org/\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// https://example.org/foo}
+\end{Highlighting}
+\end{Shaded}
+
+The URL constructor is accessible as a property on the global object. It
+can also be imported from the built-in url module:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\ImportTok{import}\NormalTok{ \{ URL \} }\ImportTok{from} \StringTok{\textquotesingle{}node:url\textquotesingle{}}\OperatorTok{;}
+\BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(URL }\OperatorTok{===}\NormalTok{ globalThis}\OperatorTok{.}\AttributeTok{URL}\NormalTok{)}\OperatorTok{;} \CommentTok{// Prints \textquotesingle{}true\textquotesingle{}.}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(URL }\OperatorTok{===} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:url\textquotesingle{}}\NormalTok{)}\OperatorTok{.}\AttributeTok{URL}\NormalTok{)}\OperatorTok{;} \CommentTok{// Prints \textquotesingle{}true\textquotesingle{}.}
+\end{Highlighting}
+\end{Shaded}
+
+A \texttt{TypeError} will be thrown if the \texttt{input} or
+\texttt{base} are not valid URLs. Note that an effort will be made to
+coerce the given values into strings. For instance:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ myURL }\OperatorTok{=} \KeywordTok{new} \FunctionTok{URL}\NormalTok{(\{ }\DataTypeTok{toString}\OperatorTok{:}\NormalTok{ () }\KeywordTok{=\textgreater{}} \StringTok{\textquotesingle{}https://example.org/\textquotesingle{}}\NormalTok{ \})}\OperatorTok{;}
+\CommentTok{// https://example.org/}
+\end{Highlighting}
+\end{Shaded}
+
+Unicode characters appearing within the host name of \texttt{input} will
+be automatically converted to ASCII using the
+\href{https://tools.ietf.org/html/rfc5891\#section-4.4}{Punycode}
+algorithm.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ myURL }\OperatorTok{=} \KeywordTok{new} \FunctionTok{URL}\NormalTok{(}\StringTok{\textquotesingle{}https://測試\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// https://xn{-}{-}g6w251d/}
+\end{Highlighting}
+\end{Shaded}
+
+In cases where it is not known in advance if \texttt{input} is an
+absolute URL and a \texttt{base} is provided, it is advised to validate
+that the \texttt{origin} of the \texttt{URL} object is what is expected.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{let}\NormalTok{ myURL }\OperatorTok{=} \KeywordTok{new} \FunctionTok{URL}\NormalTok{(}\StringTok{\textquotesingle{}http://Example.com/\textquotesingle{}}\OperatorTok{,} \StringTok{\textquotesingle{}https://example.org/\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// http://example.com/}
+
+\NormalTok{myURL }\OperatorTok{=} \KeywordTok{new} \FunctionTok{URL}\NormalTok{(}\StringTok{\textquotesingle{}https://Example.com/\textquotesingle{}}\OperatorTok{,} \StringTok{\textquotesingle{}https://example.org/\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// https://example.com/}
+
+\NormalTok{myURL }\OperatorTok{=} \KeywordTok{new} \FunctionTok{URL}\NormalTok{(}\StringTok{\textquotesingle{}foo://Example.com/\textquotesingle{}}\OperatorTok{,} \StringTok{\textquotesingle{}https://example.org/\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// foo://Example.com/}
+
+\NormalTok{myURL }\OperatorTok{=} \KeywordTok{new} \FunctionTok{URL}\NormalTok{(}\StringTok{\textquotesingle{}http:Example.com/\textquotesingle{}}\OperatorTok{,} \StringTok{\textquotesingle{}https://example.org/\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// http://example.com/}
+
+\NormalTok{myURL }\OperatorTok{=} \KeywordTok{new} \FunctionTok{URL}\NormalTok{(}\StringTok{\textquotesingle{}https:Example.com/\textquotesingle{}}\OperatorTok{,} \StringTok{\textquotesingle{}https://example.org/\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// https://example.org/Example.com/}
+
+\NormalTok{myURL }\OperatorTok{=} \KeywordTok{new} \FunctionTok{URL}\NormalTok{(}\StringTok{\textquotesingle{}foo:Example.com/\textquotesingle{}}\OperatorTok{,} \StringTok{\textquotesingle{}https://example.org/\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// foo:Example.com/}
+\end{Highlighting}
+\end{Shaded}
+
+\paragraph{\texorpdfstring{\texttt{url.hash}}{url.hash}}\label{url.hash}
+
+\begin{itemize}
+\tightlist
+\item
+  \{string\}
+\end{itemize}
+
+Gets and sets the fragment portion of the URL.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ myURL }\OperatorTok{=} \KeywordTok{new} \FunctionTok{URL}\NormalTok{(}\StringTok{\textquotesingle{}https://example.org/foo\#bar\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(myURL}\OperatorTok{.}\AttributeTok{hash}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// Prints \#bar}
+
+\NormalTok{myURL}\OperatorTok{.}\AttributeTok{hash} \OperatorTok{=} \StringTok{\textquotesingle{}baz\textquotesingle{}}\OperatorTok{;}
+\BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(myURL}\OperatorTok{.}\AttributeTok{href}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// Prints https://example.org/foo\#baz}
+\end{Highlighting}
+\end{Shaded}
+
+Invalid URL characters included in the value assigned to the
+\texttt{hash} property are
+\hyperref[percent-encoding-in-urls]{percent-encoded}. The selection of
+which characters to percent-encode may vary somewhat from what the
+\hyperref[urlparseurlstring-parsequerystring-slashesdenotehost]{\texttt{url.parse()}}
+and \hyperref[urlformaturlobject]{\texttt{url.format()}} methods would
+produce.
+
+\paragraph{\texorpdfstring{\texttt{url.host}}{url.host}}\label{url.host}
+
+\begin{itemize}
+\tightlist
+\item
+  \{string\}
+\end{itemize}
+
+Gets and sets the host portion of the URL.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ myURL }\OperatorTok{=} \KeywordTok{new} \FunctionTok{URL}\NormalTok{(}\StringTok{\textquotesingle{}https://example.org:81/foo\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(myURL}\OperatorTok{.}\AttributeTok{host}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// Prints example.org:81}
+
+\NormalTok{myURL}\OperatorTok{.}\AttributeTok{host} \OperatorTok{=} \StringTok{\textquotesingle{}example.com:82\textquotesingle{}}\OperatorTok{;}
+\BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(myURL}\OperatorTok{.}\AttributeTok{href}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// Prints https://example.com:82/foo}
+\end{Highlighting}
+\end{Shaded}
+
+Invalid host values assigned to the \texttt{host} property are ignored.
+
+\paragraph{\texorpdfstring{\texttt{url.hostname}}{url.hostname}}\label{url.hostname}
+
+\begin{itemize}
+\tightlist
+\item
+  \{string\}
+\end{itemize}
+
+Gets and sets the host name portion of the URL. The key difference
+between \texttt{url.host} and \texttt{url.hostname} is that
+\texttt{url.hostname} does \emph{not} include the port.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ myURL }\OperatorTok{=} \KeywordTok{new} \FunctionTok{URL}\NormalTok{(}\StringTok{\textquotesingle{}https://example.org:81/foo\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(myURL}\OperatorTok{.}\AttributeTok{hostname}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// Prints example.org}
+
+\CommentTok{// Setting the hostname does not change the port}
+\NormalTok{myURL}\OperatorTok{.}\AttributeTok{hostname} \OperatorTok{=} \StringTok{\textquotesingle{}example.com\textquotesingle{}}\OperatorTok{;}
+\BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(myURL}\OperatorTok{.}\AttributeTok{href}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// Prints https://example.com:81/foo}
+
+\CommentTok{// Use myURL.host to change the hostname and port}
+\NormalTok{myURL}\OperatorTok{.}\AttributeTok{host} \OperatorTok{=} \StringTok{\textquotesingle{}example.org:82\textquotesingle{}}\OperatorTok{;}
+\BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(myURL}\OperatorTok{.}\AttributeTok{href}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// Prints https://example.org:82/foo}
+\end{Highlighting}
+\end{Shaded}
+
+Invalid host name values assigned to the \texttt{hostname} property are
+ignored.
+
+\paragraph{\texorpdfstring{\texttt{url.href}}{url.href}}\label{url.href}
+
+\begin{itemize}
+\tightlist
+\item
+  \{string\}
+\end{itemize}
+
+Gets and sets the serialized URL.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ myURL }\OperatorTok{=} \KeywordTok{new} \FunctionTok{URL}\NormalTok{(}\StringTok{\textquotesingle{}https://example.org/foo\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(myURL}\OperatorTok{.}\AttributeTok{href}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// Prints https://example.org/foo}
+
+\NormalTok{myURL}\OperatorTok{.}\AttributeTok{href} \OperatorTok{=} \StringTok{\textquotesingle{}https://example.com/bar\textquotesingle{}}\OperatorTok{;}
+\BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(myURL}\OperatorTok{.}\AttributeTok{href}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// Prints https://example.com/bar}
+\end{Highlighting}
+\end{Shaded}
+
+Getting the value of the \texttt{href} property is equivalent to calling
+\hyperref[urltostring]{\texttt{url.toString()}}.
+
+Setting the value of this property to a new value is equivalent to
+creating a new \texttt{URL} object using
+\hyperref[new-urlinput-base]{\texttt{new\ URL(value)}}. Each of the
+\texttt{URL} object's properties will be modified.
+
+If the value assigned to the \texttt{href} property is not a valid URL,
+a \texttt{TypeError} will be thrown.
+
+\paragraph{\texorpdfstring{\texttt{url.origin}}{url.origin}}\label{url.origin}
+
+\begin{itemize}
+\tightlist
+\item
+  \{string\}
+\end{itemize}
+
+Gets the read-only serialization of the URL's origin.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ myURL }\OperatorTok{=} \KeywordTok{new} \FunctionTok{URL}\NormalTok{(}\StringTok{\textquotesingle{}https://example.org/foo/bar?baz\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(myURL}\OperatorTok{.}\AttributeTok{origin}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// Prints https://example.org}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ idnURL }\OperatorTok{=} \KeywordTok{new} \FunctionTok{URL}\NormalTok{(}\StringTok{\textquotesingle{}https://測試\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(idnURL}\OperatorTok{.}\AttributeTok{origin}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// Prints https://xn{-}{-}g6w251d}
+
+\BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(idnURL}\OperatorTok{.}\AttributeTok{hostname}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// Prints xn{-}{-}g6w251d}
+\end{Highlighting}
+\end{Shaded}
+
+\paragraph{\texorpdfstring{\texttt{url.password}}{url.password}}\label{url.password}
+
+\begin{itemize}
+\tightlist
+\item
+  \{string\}
+\end{itemize}
+
+Gets and sets the password portion of the URL.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ myURL }\OperatorTok{=} \KeywordTok{new} \FunctionTok{URL}\NormalTok{(}\StringTok{\textquotesingle{}https://abc:xyz@example.com\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(myURL}\OperatorTok{.}\AttributeTok{password}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// Prints xyz}
+
+\NormalTok{myURL}\OperatorTok{.}\AttributeTok{password} \OperatorTok{=} \StringTok{\textquotesingle{}123\textquotesingle{}}\OperatorTok{;}
+\BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(myURL}\OperatorTok{.}\AttributeTok{href}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// Prints https://abc:123@example.com/}
+\end{Highlighting}
+\end{Shaded}
+
+Invalid URL characters included in the value assigned to the
+\texttt{password} property are
+\hyperref[percent-encoding-in-urls]{percent-encoded}. The selection of
+which characters to percent-encode may vary somewhat from what the
+\hyperref[urlparseurlstring-parsequerystring-slashesdenotehost]{\texttt{url.parse()}}
+and \hyperref[urlformaturlobject]{\texttt{url.format()}} methods would
+produce.
+
+\paragraph{\texorpdfstring{\texttt{url.pathname}}{url.pathname}}\label{url.pathname}
+
+\begin{itemize}
+\tightlist
+\item
+  \{string\}
+\end{itemize}
+
+Gets and sets the path portion of the URL.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ myURL }\OperatorTok{=} \KeywordTok{new} \FunctionTok{URL}\NormalTok{(}\StringTok{\textquotesingle{}https://example.org/abc/xyz?123\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(myURL}\OperatorTok{.}\AttributeTok{pathname}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// Prints /abc/xyz}
+
+\NormalTok{myURL}\OperatorTok{.}\AttributeTok{pathname} \OperatorTok{=} \StringTok{\textquotesingle{}/abcdef\textquotesingle{}}\OperatorTok{;}
+\BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(myURL}\OperatorTok{.}\AttributeTok{href}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// Prints https://example.org/abcdef?123}
+\end{Highlighting}
+\end{Shaded}
+
+Invalid URL characters included in the value assigned to the
+\texttt{pathname} property are
+\hyperref[percent-encoding-in-urls]{percent-encoded}. The selection of
+which characters to percent-encode may vary somewhat from what the
+\hyperref[urlparseurlstring-parsequerystring-slashesdenotehost]{\texttt{url.parse()}}
+and \hyperref[urlformaturlobject]{\texttt{url.format()}} methods would
+produce.
+
+\paragraph{\texorpdfstring{\texttt{url.port}}{url.port}}\label{url.port}
+
+\begin{itemize}
+\tightlist
+\item
+  \{string\}
+\end{itemize}
+
+Gets and sets the port portion of the URL.
+
+The port value may be a number or a string containing a number in the
+range \texttt{0} to \texttt{65535} (inclusive). Setting the value to the
+default port of the \texttt{URL} objects given \texttt{protocol} will
+result in the \texttt{port} value becoming the empty string
+(\texttt{\textquotesingle{}\textquotesingle{}}).
+
+The port value can be an empty string in which case the port depends on
+the protocol/scheme:
+
+\begin{longtable}[]{@{}ll@{}}
+\toprule\noalign{}
+protocol & port \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+``ftp'' & 21 \\
+``file'' & \\
+``http'' & 80 \\
+``https'' & 443 \\
+``ws'' & 80 \\
+``wss'' & 443 \\
+\end{longtable}
+
+Upon assigning a value to the port, the value will first be converted to
+a string using \texttt{.toString()}.
+
+If that string is invalid but it begins with a number, the leading
+number is assigned to \texttt{port}. If the number lies outside the
+range denoted above, it is ignored.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ myURL }\OperatorTok{=} \KeywordTok{new} \FunctionTok{URL}\NormalTok{(}\StringTok{\textquotesingle{}https://example.org:8888\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(myURL}\OperatorTok{.}\AttributeTok{port}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// Prints 8888}
+
+\CommentTok{// Default ports are automatically transformed to the empty string}
+\CommentTok{// (HTTPS protocol\textquotesingle{}s default port is 443)}
+\NormalTok{myURL}\OperatorTok{.}\AttributeTok{port} \OperatorTok{=} \StringTok{\textquotesingle{}443\textquotesingle{}}\OperatorTok{;}
+\BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(myURL}\OperatorTok{.}\AttributeTok{port}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// Prints the empty string}
+\BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(myURL}\OperatorTok{.}\AttributeTok{href}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// Prints https://example.org/}
+
+\NormalTok{myURL}\OperatorTok{.}\AttributeTok{port} \OperatorTok{=} \DecValTok{1234}\OperatorTok{;}
+\BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(myURL}\OperatorTok{.}\AttributeTok{port}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// Prints 1234}
+\BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(myURL}\OperatorTok{.}\AttributeTok{href}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// Prints https://example.org:1234/}
+
+\CommentTok{// Completely invalid port strings are ignored}
+\NormalTok{myURL}\OperatorTok{.}\AttributeTok{port} \OperatorTok{=} \StringTok{\textquotesingle{}abcd\textquotesingle{}}\OperatorTok{;}
+\BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(myURL}\OperatorTok{.}\AttributeTok{port}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// Prints 1234}
+
+\CommentTok{// Leading numbers are treated as a port number}
+\NormalTok{myURL}\OperatorTok{.}\AttributeTok{port} \OperatorTok{=} \StringTok{\textquotesingle{}5678abcd\textquotesingle{}}\OperatorTok{;}
+\BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(myURL}\OperatorTok{.}\AttributeTok{port}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// Prints 5678}
+
+\CommentTok{// Non{-}integers are truncated}
+\NormalTok{myURL}\OperatorTok{.}\AttributeTok{port} \OperatorTok{=} \FloatTok{1234.5678}\OperatorTok{;}
+\BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(myURL}\OperatorTok{.}\AttributeTok{port}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// Prints 1234}
+
+\CommentTok{// Out{-}of{-}range numbers which are not represented in scientific notation}
+\CommentTok{// will be ignored.}
+\NormalTok{myURL}\OperatorTok{.}\AttributeTok{port} \OperatorTok{=} \FloatTok{1e10}\OperatorTok{;} \CommentTok{// 10000000000, will be range{-}checked as described below}
+\BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(myURL}\OperatorTok{.}\AttributeTok{port}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// Prints 1234}
+\end{Highlighting}
+\end{Shaded}
+
+Numbers which contain a decimal point, such as floating-point numbers or
+numbers in scientific notation, are not an exception to this rule.
+Leading numbers up to the decimal point will be set as the URL's port,
+assuming they are valid:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{myURL}\OperatorTok{.}\AttributeTok{port} \OperatorTok{=} \FloatTok{4.567e21}\OperatorTok{;}
+\BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(myURL}\OperatorTok{.}\AttributeTok{port}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// Prints 4 (because it is the leading number in the string \textquotesingle{}4.567e21\textquotesingle{})}
+\end{Highlighting}
+\end{Shaded}
+
+\paragraph{\texorpdfstring{\texttt{url.protocol}}{url.protocol}}\label{url.protocol}
+
+\begin{itemize}
+\tightlist
+\item
+  \{string\}
+\end{itemize}
+
+Gets and sets the protocol portion of the URL.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ myURL }\OperatorTok{=} \KeywordTok{new} \FunctionTok{URL}\NormalTok{(}\StringTok{\textquotesingle{}https://example.org\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(myURL}\OperatorTok{.}\AttributeTok{protocol}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// Prints https:}
+
+\NormalTok{myURL}\OperatorTok{.}\AttributeTok{protocol} \OperatorTok{=} \StringTok{\textquotesingle{}ftp\textquotesingle{}}\OperatorTok{;}
+\BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(myURL}\OperatorTok{.}\AttributeTok{href}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// Prints ftp://example.org/}
+\end{Highlighting}
+\end{Shaded}
+
+Invalid URL protocol values assigned to the \texttt{protocol} property
+are ignored.
+
+\subparagraph{Special schemes}\label{special-schemes}
+
+The \href{https://url.spec.whatwg.org/}{WHATWG URL Standard} considers a
+handful of URL protocol schemes to be \emph{special} in terms of how
+they are parsed and serialized. When a URL is parsed using one of these
+special protocols, the \texttt{url.protocol} property may be changed to
+another special protocol but cannot be changed to a non-special
+protocol, and vice versa.
+
+For instance, changing from \texttt{http} to \texttt{https} works:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ u }\OperatorTok{=} \KeywordTok{new} \FunctionTok{URL}\NormalTok{(}\StringTok{\textquotesingle{}http://example.org\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{u}\OperatorTok{.}\AttributeTok{protocol} \OperatorTok{=} \StringTok{\textquotesingle{}https\textquotesingle{}}\OperatorTok{;}
+\BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(u}\OperatorTok{.}\AttributeTok{href}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// https://example.org/}
+\end{Highlighting}
+\end{Shaded}
+
+However, changing from \texttt{http} to a hypothetical \texttt{fish}
+protocol does not because the new protocol is not special.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ u }\OperatorTok{=} \KeywordTok{new} \FunctionTok{URL}\NormalTok{(}\StringTok{\textquotesingle{}http://example.org\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{u}\OperatorTok{.}\AttributeTok{protocol} \OperatorTok{=} \StringTok{\textquotesingle{}fish\textquotesingle{}}\OperatorTok{;}
+\BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(u}\OperatorTok{.}\AttributeTok{href}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// http://example.org/}
+\end{Highlighting}
+\end{Shaded}
+
+Likewise, changing from a non-special protocol to a special protocol is
+also not permitted:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ u }\OperatorTok{=} \KeywordTok{new} \FunctionTok{URL}\NormalTok{(}\StringTok{\textquotesingle{}fish://example.org\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{u}\OperatorTok{.}\AttributeTok{protocol} \OperatorTok{=} \StringTok{\textquotesingle{}http\textquotesingle{}}\OperatorTok{;}
+\BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(u}\OperatorTok{.}\AttributeTok{href}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// fish://example.org}
+\end{Highlighting}
+\end{Shaded}
+
+According to the WHATWG URL Standard, special protocol schemes are
+\texttt{ftp}, \texttt{file}, \texttt{http}, \texttt{https}, \texttt{ws},
+and \texttt{wss}.
+
+\paragraph{\texorpdfstring{\texttt{url.search}}{url.search}}\label{url.search}
+
+\begin{itemize}
+\tightlist
+\item
+  \{string\}
+\end{itemize}
+
+Gets and sets the serialized query portion of the URL.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ myURL }\OperatorTok{=} \KeywordTok{new} \FunctionTok{URL}\NormalTok{(}\StringTok{\textquotesingle{}https://example.org/abc?123\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(myURL}\OperatorTok{.}\AttributeTok{search}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// Prints ?123}
+
+\NormalTok{myURL}\OperatorTok{.}\AttributeTok{search} \OperatorTok{=} \StringTok{\textquotesingle{}abc=xyz\textquotesingle{}}\OperatorTok{;}
+\BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(myURL}\OperatorTok{.}\AttributeTok{href}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// Prints https://example.org/abc?abc=xyz}
+\end{Highlighting}
+\end{Shaded}
+
+Any invalid URL characters appearing in the value assigned the
+\texttt{search} property will be
+\hyperref[percent-encoding-in-urls]{percent-encoded}. The selection of
+which characters to percent-encode may vary somewhat from what the
+\hyperref[urlparseurlstring-parsequerystring-slashesdenotehost]{\texttt{url.parse()}}
+and \hyperref[urlformaturlobject]{\texttt{url.format()}} methods would
+produce.
+
+\paragraph{\texorpdfstring{\texttt{url.searchParams}}{url.searchParams}}\label{url.searchparams}
+
+\begin{itemize}
+\tightlist
+\item
+  \{URLSearchParams\}
+\end{itemize}
+
+Gets the \hyperref[class-urlsearchparams]{\texttt{URLSearchParams}}
+object representing the query parameters of the URL. This property is
+read-only but the \texttt{URLSearchParams} object it provides can be
+used to mutate the URL instance; to replace the entirety of query
+parameters of the URL, use the \hyperref[urlsearch]{\texttt{url.search}}
+setter. See \hyperref[class-urlsearchparams]{\texttt{URLSearchParams}}
+documentation for details.
+
+Use care when using \texttt{.searchParams} to modify the \texttt{URL}
+because, per the WHATWG specification, the \texttt{URLSearchParams}
+object uses different rules to determine which characters to
+percent-encode. For instance, the \texttt{URL} object will not percent
+encode the ASCII tilde (\texttt{\textasciitilde{}}) character, while
+\texttt{URLSearchParams} will always encode it:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ myURL }\OperatorTok{=} \KeywordTok{new} \FunctionTok{URL}\NormalTok{(}\StringTok{\textquotesingle{}https://example.org/abc?foo=\textasciitilde{}bar\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+
+\BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(myURL}\OperatorTok{.}\AttributeTok{search}\NormalTok{)}\OperatorTok{;}  \CommentTok{// prints ?foo=\textasciitilde{}bar}
+
+\CommentTok{// Modify the URL via searchParams...}
+\NormalTok{myURL}\OperatorTok{.}\AttributeTok{searchParams}\OperatorTok{.}\FunctionTok{sort}\NormalTok{()}\OperatorTok{;}
+
+\BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(myURL}\OperatorTok{.}\AttributeTok{search}\NormalTok{)}\OperatorTok{;}  \CommentTok{// prints ?foo=\%7Ebar}
+\end{Highlighting}
+\end{Shaded}
+
+\paragraph{\texorpdfstring{\texttt{url.username}}{url.username}}\label{url.username}
+
+\begin{itemize}
+\tightlist
+\item
+  \{string\}
+\end{itemize}
+
+Gets and sets the username portion of the URL.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ myURL }\OperatorTok{=} \KeywordTok{new} \FunctionTok{URL}\NormalTok{(}\StringTok{\textquotesingle{}https://abc:xyz@example.com\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(myURL}\OperatorTok{.}\AttributeTok{username}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// Prints abc}
+
+\NormalTok{myURL}\OperatorTok{.}\AttributeTok{username} \OperatorTok{=} \StringTok{\textquotesingle{}123\textquotesingle{}}\OperatorTok{;}
+\BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(myURL}\OperatorTok{.}\AttributeTok{href}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// Prints https://123:xyz@example.com/}
+\end{Highlighting}
+\end{Shaded}
+
+Any invalid URL characters appearing in the value assigned the
+\texttt{username} property will be
+\hyperref[percent-encoding-in-urls]{percent-encoded}. The selection of
+which characters to percent-encode may vary somewhat from what the
+\hyperref[urlparseurlstring-parsequerystring-slashesdenotehost]{\texttt{url.parse()}}
+and \hyperref[urlformaturlobject]{\texttt{url.format()}} methods would
+produce.
+
+\paragraph{\texorpdfstring{\texttt{url.toString()}}{url.toString()}}\label{url.tostring}
+
+\begin{itemize}
+\tightlist
+\item
+  Returns: \{string\}
+\end{itemize}
+
+The \texttt{toString()} method on the \texttt{URL} object returns the
+serialized URL. The value returned is equivalent to that of
+\hyperref[urlhref]{\texttt{url.href}} and
+\hyperref[urltojson]{\texttt{url.toJSON()}}.
+
+\paragraph{\texorpdfstring{\texttt{url.toJSON()}}{url.toJSON()}}\label{url.tojson}
+
+\begin{itemize}
+\tightlist
+\item
+  Returns: \{string\}
+\end{itemize}
+
+The \texttt{toJSON()} method on the \texttt{URL} object returns the
+serialized URL. The value returned is equivalent to that of
+\hyperref[urlhref]{\texttt{url.href}} and
+\hyperref[urltostring]{\texttt{url.toString()}}.
+
+This method is automatically called when an \texttt{URL} object is
+serialized with
+\href{https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/JSON/stringify}{\texttt{JSON.stringify()}}.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ myURLs }\OperatorTok{=}\NormalTok{ [}
+  \KeywordTok{new} \FunctionTok{URL}\NormalTok{(}\StringTok{\textquotesingle{}https://www.example.com\textquotesingle{}}\NormalTok{)}\OperatorTok{,}
+  \KeywordTok{new} \FunctionTok{URL}\NormalTok{(}\StringTok{\textquotesingle{}https://test.example.org\textquotesingle{}}\NormalTok{)}\OperatorTok{,}
+\NormalTok{]}\OperatorTok{;}
+\BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\BuiltInTok{JSON}\OperatorTok{.}\FunctionTok{stringify}\NormalTok{(myURLs))}\OperatorTok{;}
+\CommentTok{// Prints ["https://www.example.com/","https://test.example.org/"]}
+\end{Highlighting}
+\end{Shaded}
+
+\paragraph{\texorpdfstring{\texttt{URL.createObjectURL(blob)}}{URL.createObjectURL(blob)}}\label{url.createobjecturlblob}
+
+\begin{quote}
+Stability: 1 - Experimental
+\end{quote}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{blob} \{Blob\}
+\item
+  Returns: \{string\}
+\end{itemize}
+
+Creates a \texttt{\textquotesingle{}blob:nodedata:...\textquotesingle{}}
+URL string that represents the given \{Blob\} object and can be used to
+retrieve the \texttt{Blob} later.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ \{}
+  \BuiltInTok{Blob}\OperatorTok{,}
+\NormalTok{  resolveObjectURL}\OperatorTok{,}
+\NormalTok{\} }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:buffer\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+
+\KeywordTok{const}\NormalTok{ blob }\OperatorTok{=} \KeywordTok{new} \BuiltInTok{Blob}\NormalTok{([}\StringTok{\textquotesingle{}hello\textquotesingle{}}\NormalTok{])}\OperatorTok{;}
+\KeywordTok{const}\NormalTok{ id }\OperatorTok{=}\NormalTok{ URL}\OperatorTok{.}\FunctionTok{createObjectURL}\NormalTok{(blob)}\OperatorTok{;}
+
+\CommentTok{// later...}
+
+\KeywordTok{const}\NormalTok{ otherBlob }\OperatorTok{=} \FunctionTok{resolveObjectURL}\NormalTok{(id)}\OperatorTok{;}
+\BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(otherBlob}\OperatorTok{.}\AttributeTok{size}\NormalTok{)}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+The data stored by the registered \{Blob\} will be retained in memory
+until \texttt{URL.revokeObjectURL()} is called to remove it.
+
+\texttt{Blob} objects are registered within the current thread. If using
+Worker Threads, \texttt{Blob} objects registered within one Worker will
+not be available to other workers or the main thread.
+
+\paragraph{\texorpdfstring{\texttt{URL.revokeObjectURL(id)}}{URL.revokeObjectURL(id)}}\label{url.revokeobjecturlid}
+
+\begin{quote}
+Stability: 1 - Experimental
+\end{quote}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{id} \{string\} A \texttt{\textquotesingle{}blob:nodedata:...}
+  URL string returned by a prior call to \texttt{URL.createObjectURL()}.
+\end{itemize}
+
+Removes the stored \{Blob\} identified by the given ID. Attempting to
+revoke a ID that isn't registered will silently fail.
+
+\paragraph{\texorpdfstring{\texttt{URL.canParse(input{[},\ base{]})}}{URL.canParse(input{[}, base{]})}}\label{url.canparseinput-base}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{input} \{string\} The absolute or relative input URL to parse.
+  If \texttt{input} is relative, then \texttt{base} is required. If
+  \texttt{input} is absolute, the \texttt{base} is ignored. If
+  \texttt{input} is not a string, it is
+  \href{https://tc39.es/ecma262/\#sec-tostring}{converted to a string}
+  first.
+\item
+  \texttt{base} \{string\} The base URL to resolve against if the
+  \texttt{input} is not absolute. If \texttt{base} is not a string, it
+  is \href{https://tc39.es/ecma262/\#sec-tostring}{converted to a
+  string} first.
+\item
+  Returns: \{boolean\}
+\end{itemize}
+
+Checks if an \texttt{input} relative to the \texttt{base} can be parsed
+to a \texttt{URL}.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ isValid }\OperatorTok{=}\NormalTok{ URL}\OperatorTok{.}\FunctionTok{canParse}\NormalTok{(}\StringTok{\textquotesingle{}/foo\textquotesingle{}}\OperatorTok{,} \StringTok{\textquotesingle{}https://example.org/\textquotesingle{}}\NormalTok{)}\OperatorTok{;} \CommentTok{// true}
+
+\KeywordTok{const}\NormalTok{ isNotValid }\OperatorTok{=}\NormalTok{ URL}\OperatorTok{.}\FunctionTok{canParse}\NormalTok{(}\StringTok{\textquotesingle{}/foo\textquotesingle{}}\NormalTok{)}\OperatorTok{;} \CommentTok{// false}
+\end{Highlighting}
+\end{Shaded}
+
+\subsubsection{\texorpdfstring{Class:
+\texttt{URLSearchParams}}{Class: URLSearchParams}}\label{class-urlsearchparams}
+
+The \texttt{URLSearchParams} API provides read and write access to the
+query of a \texttt{URL}. The \texttt{URLSearchParams} class can also be
+used standalone with one of the four following constructors. The
+\texttt{URLSearchParams} class is also available on the global object.
+
+The WHATWG \texttt{URLSearchParams} interface and the
+\href{querystring.md}{\texttt{querystring}} module have similar purpose,
+but the purpose of the \href{querystring.md}{\texttt{querystring}}
+module is more general, as it allows the customization of delimiter
+characters (\texttt{\&} and \texttt{=}). On the other hand, this API is
+designed purely for URL query strings.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ myURL }\OperatorTok{=} \KeywordTok{new} \FunctionTok{URL}\NormalTok{(}\StringTok{\textquotesingle{}https://example.org/?abc=123\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(myURL}\OperatorTok{.}\AttributeTok{searchParams}\OperatorTok{.}\FunctionTok{get}\NormalTok{(}\StringTok{\textquotesingle{}abc\textquotesingle{}}\NormalTok{))}\OperatorTok{;}
+\CommentTok{// Prints 123}
+
+\NormalTok{myURL}\OperatorTok{.}\AttributeTok{searchParams}\OperatorTok{.}\FunctionTok{append}\NormalTok{(}\StringTok{\textquotesingle{}abc\textquotesingle{}}\OperatorTok{,} \StringTok{\textquotesingle{}xyz\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(myURL}\OperatorTok{.}\AttributeTok{href}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// Prints https://example.org/?abc=123\&abc=xyz}
+
+\NormalTok{myURL}\OperatorTok{.}\AttributeTok{searchParams}\OperatorTok{.}\FunctionTok{delete}\NormalTok{(}\StringTok{\textquotesingle{}abc\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{myURL}\OperatorTok{.}\AttributeTok{searchParams}\OperatorTok{.}\FunctionTok{set}\NormalTok{(}\StringTok{\textquotesingle{}a\textquotesingle{}}\OperatorTok{,} \StringTok{\textquotesingle{}b\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(myURL}\OperatorTok{.}\AttributeTok{href}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// Prints https://example.org/?a=b}
+
+\KeywordTok{const}\NormalTok{ newSearchParams }\OperatorTok{=} \KeywordTok{new} \FunctionTok{URLSearchParams}\NormalTok{(myURL}\OperatorTok{.}\AttributeTok{searchParams}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// The above is equivalent to}
+\CommentTok{// const newSearchParams = new URLSearchParams(myURL.search);}
+
+\NormalTok{newSearchParams}\OperatorTok{.}\FunctionTok{append}\NormalTok{(}\StringTok{\textquotesingle{}a\textquotesingle{}}\OperatorTok{,} \StringTok{\textquotesingle{}c\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(myURL}\OperatorTok{.}\AttributeTok{href}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// Prints https://example.org/?a=b}
+\BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(newSearchParams}\OperatorTok{.}\FunctionTok{toString}\NormalTok{())}\OperatorTok{;}
+\CommentTok{// Prints a=b\&a=c}
+
+\CommentTok{// newSearchParams.toString() is implicitly called}
+\NormalTok{myURL}\OperatorTok{.}\AttributeTok{search} \OperatorTok{=}\NormalTok{ newSearchParams}\OperatorTok{;}
+\BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(myURL}\OperatorTok{.}\AttributeTok{href}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// Prints https://example.org/?a=b\&a=c}
+\NormalTok{newSearchParams}\OperatorTok{.}\FunctionTok{delete}\NormalTok{(}\StringTok{\textquotesingle{}a\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(myURL}\OperatorTok{.}\AttributeTok{href}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// Prints https://example.org/?a=b\&a=c}
+\end{Highlighting}
+\end{Shaded}
+
+\paragraph{\texorpdfstring{\texttt{new\ URLSearchParams()}}{new URLSearchParams()}}\label{new-urlsearchparams}
+
+Instantiate a new empty \texttt{URLSearchParams} object.
+
+\paragraph{\texorpdfstring{\texttt{new\ URLSearchParams(string)}}{new URLSearchParams(string)}}\label{new-urlsearchparamsstring}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{string} \{string\} A query string
+\end{itemize}
+
+Parse the \texttt{string} as a query string, and use it to instantiate a
+new \texttt{URLSearchParams} object. A leading
+\texttt{\textquotesingle{}?\textquotesingle{}}, if present, is ignored.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{let}\NormalTok{ params}\OperatorTok{;}
+
+\NormalTok{params }\OperatorTok{=} \KeywordTok{new} \FunctionTok{URLSearchParams}\NormalTok{(}\StringTok{\textquotesingle{}user=abc\&query=xyz\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(params}\OperatorTok{.}\FunctionTok{get}\NormalTok{(}\StringTok{\textquotesingle{}user\textquotesingle{}}\NormalTok{))}\OperatorTok{;}
+\CommentTok{// Prints \textquotesingle{}abc\textquotesingle{}}
+\BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(params}\OperatorTok{.}\FunctionTok{toString}\NormalTok{())}\OperatorTok{;}
+\CommentTok{// Prints \textquotesingle{}user=abc\&query=xyz\textquotesingle{}}
+
+\NormalTok{params }\OperatorTok{=} \KeywordTok{new} \FunctionTok{URLSearchParams}\NormalTok{(}\StringTok{\textquotesingle{}?user=abc\&query=xyz\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(params}\OperatorTok{.}\FunctionTok{toString}\NormalTok{())}\OperatorTok{;}
+\CommentTok{// Prints \textquotesingle{}user=abc\&query=xyz\textquotesingle{}}
+\end{Highlighting}
+\end{Shaded}
+
+\paragraph{\texorpdfstring{\texttt{new\ URLSearchParams(obj)}}{new URLSearchParams(obj)}}\label{new-urlsearchparamsobj}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{obj} \{Object\} An object representing a collection of
+  key-value pairs
+\end{itemize}
+
+Instantiate a new \texttt{URLSearchParams} object with a query hash map.
+The key and value of each property of \texttt{obj} are always coerced to
+strings.
+
+Unlike \href{querystring.md}{\texttt{querystring}} module, duplicate
+keys in the form of array values are not allowed. Arrays are stringified
+using
+\href{https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/toString}{\texttt{array.toString()}},
+which simply joins all array elements with commas.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ params }\OperatorTok{=} \KeywordTok{new} \FunctionTok{URLSearchParams}\NormalTok{(\{}
+  \DataTypeTok{user}\OperatorTok{:} \StringTok{\textquotesingle{}abc\textquotesingle{}}\OperatorTok{,}
+  \DataTypeTok{query}\OperatorTok{:}\NormalTok{ [}\StringTok{\textquotesingle{}first\textquotesingle{}}\OperatorTok{,} \StringTok{\textquotesingle{}second\textquotesingle{}}\NormalTok{]}\OperatorTok{,}
+\NormalTok{\})}\OperatorTok{;}
+\BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(params}\OperatorTok{.}\FunctionTok{getAll}\NormalTok{(}\StringTok{\textquotesingle{}query\textquotesingle{}}\NormalTok{))}\OperatorTok{;}
+\CommentTok{// Prints [ \textquotesingle{}first,second\textquotesingle{} ]}
+\BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(params}\OperatorTok{.}\FunctionTok{toString}\NormalTok{())}\OperatorTok{;}
+\CommentTok{// Prints \textquotesingle{}user=abc\&query=first\%2Csecond\textquotesingle{}}
+\end{Highlighting}
+\end{Shaded}
+
+\paragraph{\texorpdfstring{\texttt{new\ URLSearchParams(iterable)}}{new URLSearchParams(iterable)}}\label{new-urlsearchparamsiterable}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{iterable} \{Iterable\} An iterable object whose elements are
+  key-value pairs
+\end{itemize}
+
+Instantiate a new \texttt{URLSearchParams} object with an iterable map
+in a way that is similar to
+\href{https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Map}{\texttt{Map}}'s
+constructor. \texttt{iterable} can be an \texttt{Array} or any iterable
+object. That means \texttt{iterable} can be another
+\texttt{URLSearchParams}, in which case the constructor will simply
+create a clone of the provided \texttt{URLSearchParams}. Elements of
+\texttt{iterable} are key-value pairs, and can themselves be any
+iterable object.
+
+Duplicate keys are allowed.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{let}\NormalTok{ params}\OperatorTok{;}
+
+\CommentTok{// Using an array}
+\NormalTok{params }\OperatorTok{=} \KeywordTok{new} \FunctionTok{URLSearchParams}\NormalTok{([}
+\NormalTok{  [}\StringTok{\textquotesingle{}user\textquotesingle{}}\OperatorTok{,} \StringTok{\textquotesingle{}abc\textquotesingle{}}\NormalTok{]}\OperatorTok{,}
+\NormalTok{  [}\StringTok{\textquotesingle{}query\textquotesingle{}}\OperatorTok{,} \StringTok{\textquotesingle{}first\textquotesingle{}}\NormalTok{]}\OperatorTok{,}
+\NormalTok{  [}\StringTok{\textquotesingle{}query\textquotesingle{}}\OperatorTok{,} \StringTok{\textquotesingle{}second\textquotesingle{}}\NormalTok{]}\OperatorTok{,}
+\NormalTok{])}\OperatorTok{;}
+\BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(params}\OperatorTok{.}\FunctionTok{toString}\NormalTok{())}\OperatorTok{;}
+\CommentTok{// Prints \textquotesingle{}user=abc\&query=first\&query=second\textquotesingle{}}
+
+\CommentTok{// Using a Map object}
+\KeywordTok{const}\NormalTok{ map }\OperatorTok{=} \KeywordTok{new} \BuiltInTok{Map}\NormalTok{()}\OperatorTok{;}
+\NormalTok{map}\OperatorTok{.}\FunctionTok{set}\NormalTok{(}\StringTok{\textquotesingle{}user\textquotesingle{}}\OperatorTok{,} \StringTok{\textquotesingle{}abc\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{map}\OperatorTok{.}\FunctionTok{set}\NormalTok{(}\StringTok{\textquotesingle{}query\textquotesingle{}}\OperatorTok{,} \StringTok{\textquotesingle{}xyz\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{params }\OperatorTok{=} \KeywordTok{new} \FunctionTok{URLSearchParams}\NormalTok{(map)}\OperatorTok{;}
+\BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(params}\OperatorTok{.}\FunctionTok{toString}\NormalTok{())}\OperatorTok{;}
+\CommentTok{// Prints \textquotesingle{}user=abc\&query=xyz\textquotesingle{}}
+
+\CommentTok{// Using a generator function}
+\KeywordTok{function}\OperatorTok{*} \FunctionTok{getQueryPairs}\NormalTok{() \{}
+  \KeywordTok{yield}\NormalTok{ [}\StringTok{\textquotesingle{}user\textquotesingle{}}\OperatorTok{,} \StringTok{\textquotesingle{}abc\textquotesingle{}}\NormalTok{]}\OperatorTok{;}
+  \KeywordTok{yield}\NormalTok{ [}\StringTok{\textquotesingle{}query\textquotesingle{}}\OperatorTok{,} \StringTok{\textquotesingle{}first\textquotesingle{}}\NormalTok{]}\OperatorTok{;}
+  \KeywordTok{yield}\NormalTok{ [}\StringTok{\textquotesingle{}query\textquotesingle{}}\OperatorTok{,} \StringTok{\textquotesingle{}second\textquotesingle{}}\NormalTok{]}\OperatorTok{;}
+\NormalTok{\}}
+\NormalTok{params }\OperatorTok{=} \KeywordTok{new} \FunctionTok{URLSearchParams}\NormalTok{(}\FunctionTok{getQueryPairs}\NormalTok{())}\OperatorTok{;}
+\BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(params}\OperatorTok{.}\FunctionTok{toString}\NormalTok{())}\OperatorTok{;}
+\CommentTok{// Prints \textquotesingle{}user=abc\&query=first\&query=second\textquotesingle{}}
+
+\CommentTok{// Each key{-}value pair must have exactly two elements}
+\KeywordTok{new} \FunctionTok{URLSearchParams}\NormalTok{([}
+\NormalTok{  [}\StringTok{\textquotesingle{}user\textquotesingle{}}\OperatorTok{,} \StringTok{\textquotesingle{}abc\textquotesingle{}}\OperatorTok{,} \StringTok{\textquotesingle{}error\textquotesingle{}}\NormalTok{]}\OperatorTok{,}
+\NormalTok{])}\OperatorTok{;}
+\CommentTok{// Throws TypeError [ERR\_INVALID\_TUPLE]:}
+\CommentTok{//        Each query pair must be an iterable [name, value] tuple}
+\end{Highlighting}
+\end{Shaded}
+
+\paragraph{\texorpdfstring{\texttt{urlSearchParams.append(name,\ value)}}{urlSearchParams.append(name, value)}}\label{urlsearchparams.appendname-value}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{name} \{string\}
+\item
+  \texttt{value} \{string\}
+\end{itemize}
+
+Append a new name-value pair to the query string.
+
+\paragraph{\texorpdfstring{\texttt{urlSearchParams.delete(name{[},\ value{]})}}{urlSearchParams.delete(name{[}, value{]})}}\label{urlsearchparams.deletename-value}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{name} \{string\}
+\item
+  \texttt{value} \{string\}
+\end{itemize}
+
+If \texttt{value} is provided, removes all name-value pairs where name
+is \texttt{name} and value is \texttt{value}..
+
+If \texttt{value} is not provided, removes all name-value pairs whose
+name is \texttt{name}.
+
+\paragraph{\texorpdfstring{\texttt{urlSearchParams.entries()}}{urlSearchParams.entries()}}\label{urlsearchparams.entries}
+
+\begin{itemize}
+\tightlist
+\item
+  Returns: \{Iterator\}
+\end{itemize}
+
+Returns an ES6 \texttt{Iterator} over each of the name-value pairs in
+the query. Each item of the iterator is a JavaScript \texttt{Array}. The
+first item of the \texttt{Array} is the \texttt{name}, the second item
+of the \texttt{Array} is the \texttt{value}.
+
+Alias for
+\hyperref[urlsearchparamssymboliterator]{\texttt{urlSearchParams{[}@@iterator{]}()}}.
+
+\paragraph{\texorpdfstring{\texttt{urlSearchParams.forEach(fn{[},\ thisArg{]})}}{urlSearchParams.forEach(fn{[}, thisArg{]})}}\label{urlsearchparams.foreachfn-thisarg}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{fn} \{Function\} Invoked for each name-value pair in the query
+\item
+  \texttt{thisArg} \{Object\} To be used as \texttt{this} value for when
+  \texttt{fn} is called
+\end{itemize}
+
+Iterates over each name-value pair in the query and invokes the given
+function.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ myURL }\OperatorTok{=} \KeywordTok{new} \FunctionTok{URL}\NormalTok{(}\StringTok{\textquotesingle{}https://example.org/?a=b\&c=d\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{myURL}\OperatorTok{.}\AttributeTok{searchParams}\OperatorTok{.}\FunctionTok{forEach}\NormalTok{((value}\OperatorTok{,}\NormalTok{ name}\OperatorTok{,}\NormalTok{ searchParams) }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+  \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(name}\OperatorTok{,}\NormalTok{ value}\OperatorTok{,}\NormalTok{ myURL}\OperatorTok{.}\AttributeTok{searchParams} \OperatorTok{===}\NormalTok{ searchParams)}\OperatorTok{;}
+\NormalTok{\})}\OperatorTok{;}
+\CommentTok{// Prints:}
+\CommentTok{//   a b true}
+\CommentTok{//   c d true}
+\end{Highlighting}
+\end{Shaded}
+
+\paragraph{\texorpdfstring{\texttt{urlSearchParams.get(name)}}{urlSearchParams.get(name)}}\label{urlsearchparams.getname}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{name} \{string\}
+\item
+  Returns: \{string\} or \texttt{null} if there is no name-value pair
+  with the given \texttt{name}.
+\end{itemize}
+
+Returns the value of the first name-value pair whose name is
+\texttt{name}. If there are no such pairs, \texttt{null} is returned.
+
+\paragraph{\texorpdfstring{\texttt{urlSearchParams.getAll(name)}}{urlSearchParams.getAll(name)}}\label{urlsearchparams.getallname}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{name} \{string\}
+\item
+  Returns: \{string{[}{]}\}
+\end{itemize}
+
+Returns the values of all name-value pairs whose name is \texttt{name}.
+If there are no such pairs, an empty array is returned.
+
+\paragraph{\texorpdfstring{\texttt{urlSearchParams.has(name{[},\ value{]})}}{urlSearchParams.has(name{[}, value{]})}}\label{urlsearchparams.hasname-value}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{name} \{string\}
+\item
+  \texttt{value} \{string\}
+\item
+  Returns: \{boolean\}
+\end{itemize}
+
+Checks if the \texttt{URLSearchParams} object contains key-value pair(s)
+based on \texttt{name} and an optional \texttt{value} argument.
+
+If \texttt{value} is provided, returns \texttt{true} when name-value
+pair with same \texttt{name} and \texttt{value} exists.
+
+If \texttt{value} is not provided, returns \texttt{true} if there is at
+least one name-value pair whose name is \texttt{name}.
+
+\paragraph{\texorpdfstring{\texttt{urlSearchParams.keys()}}{urlSearchParams.keys()}}\label{urlsearchparams.keys}
+
+\begin{itemize}
+\tightlist
+\item
+  Returns: \{Iterator\}
+\end{itemize}
+
+Returns an ES6 \texttt{Iterator} over the names of each name-value pair.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ params }\OperatorTok{=} \KeywordTok{new} \FunctionTok{URLSearchParams}\NormalTok{(}\StringTok{\textquotesingle{}foo=bar\&foo=baz\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\ControlFlowTok{for}\NormalTok{ (}\KeywordTok{const}\NormalTok{ name }\KeywordTok{of}\NormalTok{ params}\OperatorTok{.}\FunctionTok{keys}\NormalTok{()) \{}
+  \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(name)}\OperatorTok{;}
+\NormalTok{\}}
+\CommentTok{// Prints:}
+\CommentTok{//   foo}
+\CommentTok{//   foo}
+\end{Highlighting}
+\end{Shaded}
+
+\paragraph{\texorpdfstring{\texttt{urlSearchParams.set(name,\ value)}}{urlSearchParams.set(name, value)}}\label{urlsearchparams.setname-value}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{name} \{string\}
+\item
+  \texttt{value} \{string\}
+\end{itemize}
+
+Sets the value in the \texttt{URLSearchParams} object associated with
+\texttt{name} to \texttt{value}. If there are any pre-existing
+name-value pairs whose names are \texttt{name}, set the first such
+pair's value to \texttt{value} and remove all others. If not, append the
+name-value pair to the query string.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ params }\OperatorTok{=} \KeywordTok{new} \FunctionTok{URLSearchParams}\NormalTok{()}\OperatorTok{;}
+\NormalTok{params}\OperatorTok{.}\FunctionTok{append}\NormalTok{(}\StringTok{\textquotesingle{}foo\textquotesingle{}}\OperatorTok{,} \StringTok{\textquotesingle{}bar\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{params}\OperatorTok{.}\FunctionTok{append}\NormalTok{(}\StringTok{\textquotesingle{}foo\textquotesingle{}}\OperatorTok{,} \StringTok{\textquotesingle{}baz\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{params}\OperatorTok{.}\FunctionTok{append}\NormalTok{(}\StringTok{\textquotesingle{}abc\textquotesingle{}}\OperatorTok{,} \StringTok{\textquotesingle{}def\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(params}\OperatorTok{.}\FunctionTok{toString}\NormalTok{())}\OperatorTok{;}
+\CommentTok{// Prints foo=bar\&foo=baz\&abc=def}
+
+\NormalTok{params}\OperatorTok{.}\FunctionTok{set}\NormalTok{(}\StringTok{\textquotesingle{}foo\textquotesingle{}}\OperatorTok{,} \StringTok{\textquotesingle{}def\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{params}\OperatorTok{.}\FunctionTok{set}\NormalTok{(}\StringTok{\textquotesingle{}xyz\textquotesingle{}}\OperatorTok{,} \StringTok{\textquotesingle{}opq\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(params}\OperatorTok{.}\FunctionTok{toString}\NormalTok{())}\OperatorTok{;}
+\CommentTok{// Prints foo=def\&abc=def\&xyz=opq}
+\end{Highlighting}
+\end{Shaded}
+
+\paragraph{\texorpdfstring{\texttt{urlSearchParams.size}}{urlSearchParams.size}}\label{urlsearchparams.size}
+
+The total number of parameter entries.
+
+\paragraph{\texorpdfstring{\texttt{urlSearchParams.sort()}}{urlSearchParams.sort()}}\label{urlsearchparams.sort}
+
+Sort all existing name-value pairs in-place by their names. Sorting is
+done with a
+\href{https://en.wikipedia.org/wiki/Sorting_algorithm\#Stability}{stable
+sorting algorithm}, so relative order between name-value pairs with the
+same name is preserved.
+
+This method can be used, in particular, to increase cache hits.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ params }\OperatorTok{=} \KeywordTok{new} \FunctionTok{URLSearchParams}\NormalTok{(}\StringTok{\textquotesingle{}query[]=abc\&type=search\&query[]=123\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{params}\OperatorTok{.}\FunctionTok{sort}\NormalTok{()}\OperatorTok{;}
+\BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(params}\OperatorTok{.}\FunctionTok{toString}\NormalTok{())}\OperatorTok{;}
+\CommentTok{// Prints query\%5B\%5D=abc\&query\%5B\%5D=123\&type=search}
+\end{Highlighting}
+\end{Shaded}
+
+\paragraph{\texorpdfstring{\texttt{urlSearchParams.toString()}}{urlSearchParams.toString()}}\label{urlsearchparams.tostring}
+
+\begin{itemize}
+\tightlist
+\item
+  Returns: \{string\}
+\end{itemize}
+
+Returns the search parameters serialized as a string, with characters
+percent-encoded where necessary.
+
+\paragraph{\texorpdfstring{\texttt{urlSearchParams.values()}}{urlSearchParams.values()}}\label{urlsearchparams.values}
+
+\begin{itemize}
+\tightlist
+\item
+  Returns: \{Iterator\}
+\end{itemize}
+
+Returns an ES6 \texttt{Iterator} over the values of each name-value
+pair.
+
+\paragraph{\texorpdfstring{\texttt{urlSearchParams{[}Symbol.iterator{]}()}}{urlSearchParams{[}Symbol.iterator{]}()}}\label{urlsearchparamssymbol.iterator}
+
+\begin{itemize}
+\tightlist
+\item
+  Returns: \{Iterator\}
+\end{itemize}
+
+Returns an ES6 \texttt{Iterator} over each of the name-value pairs in
+the query string. Each item of the iterator is a JavaScript
+\texttt{Array}. The first item of the \texttt{Array} is the
+\texttt{name}, the second item of the \texttt{Array} is the
+\texttt{value}.
+
+Alias for
+\hyperref[urlsearchparamsentries]{\texttt{urlSearchParams.entries()}}.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ params }\OperatorTok{=} \KeywordTok{new} \FunctionTok{URLSearchParams}\NormalTok{(}\StringTok{\textquotesingle{}foo=bar\&xyz=baz\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\ControlFlowTok{for}\NormalTok{ (}\KeywordTok{const}\NormalTok{ [name}\OperatorTok{,}\NormalTok{ value] }\KeywordTok{of}\NormalTok{ params) \{}
+  \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(name}\OperatorTok{,}\NormalTok{ value)}\OperatorTok{;}
+\NormalTok{\}}
+\CommentTok{// Prints:}
+\CommentTok{//   foo bar}
+\CommentTok{//   xyz baz}
+\end{Highlighting}
+\end{Shaded}
+
+\subsubsection{\texorpdfstring{\texttt{url.domainToASCII(domain)}}{url.domainToASCII(domain)}}\label{url.domaintoasciidomain}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{domain} \{string\}
+\item
+  Returns: \{string\}
+\end{itemize}
+
+Returns the
+\href{https://tools.ietf.org/html/rfc5891\#section-4.4}{Punycode} ASCII
+serialization of the \texttt{domain}. If \texttt{domain} is an invalid
+domain, the empty string is returned.
+
+It performs the inverse operation to
+\hyperref[urldomaintounicodedomain]{\texttt{url.domainToUnicode()}}.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\ImportTok{import}\NormalTok{ url }\ImportTok{from} \StringTok{\textquotesingle{}node:url\textquotesingle{}}\OperatorTok{;}
+
+\BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(url}\OperatorTok{.}\FunctionTok{domainToASCII}\NormalTok{(}\StringTok{\textquotesingle{}español.com\textquotesingle{}}\NormalTok{))}\OperatorTok{;}
+\CommentTok{// Prints xn{-}{-}espaol{-}zwa.com}
+\BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(url}\OperatorTok{.}\FunctionTok{domainToASCII}\NormalTok{(}\StringTok{\textquotesingle{}中文.com\textquotesingle{}}\NormalTok{))}\OperatorTok{;}
+\CommentTok{// Prints xn{-}{-}fiq228c.com}
+\BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(url}\OperatorTok{.}\FunctionTok{domainToASCII}\NormalTok{(}\StringTok{\textquotesingle{}xn{-}{-}iñvalid.com\textquotesingle{}}\NormalTok{))}\OperatorTok{;}
+\CommentTok{// Prints an empty string}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ url }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:url\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+
+\BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(url}\OperatorTok{.}\FunctionTok{domainToASCII}\NormalTok{(}\StringTok{\textquotesingle{}español.com\textquotesingle{}}\NormalTok{))}\OperatorTok{;}
+\CommentTok{// Prints xn{-}{-}espaol{-}zwa.com}
+\BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(url}\OperatorTok{.}\FunctionTok{domainToASCII}\NormalTok{(}\StringTok{\textquotesingle{}中文.com\textquotesingle{}}\NormalTok{))}\OperatorTok{;}
+\CommentTok{// Prints xn{-}{-}fiq228c.com}
+\BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(url}\OperatorTok{.}\FunctionTok{domainToASCII}\NormalTok{(}\StringTok{\textquotesingle{}xn{-}{-}iñvalid.com\textquotesingle{}}\NormalTok{))}\OperatorTok{;}
+\CommentTok{// Prints an empty string}
+\end{Highlighting}
+\end{Shaded}
+
+\subsubsection{\texorpdfstring{\texttt{url.domainToUnicode(domain)}}{url.domainToUnicode(domain)}}\label{url.domaintounicodedomain}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{domain} \{string\}
+\item
+  Returns: \{string\}
+\end{itemize}
+
+Returns the Unicode serialization of the \texttt{domain}. If
+\texttt{domain} is an invalid domain, the empty string is returned.
+
+It performs the inverse operation to
+\hyperref[urldomaintoasciidomain]{\texttt{url.domainToASCII()}}.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\ImportTok{import}\NormalTok{ url }\ImportTok{from} \StringTok{\textquotesingle{}node:url\textquotesingle{}}\OperatorTok{;}
+
+\BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(url}\OperatorTok{.}\FunctionTok{domainToUnicode}\NormalTok{(}\StringTok{\textquotesingle{}xn{-}{-}espaol{-}zwa.com\textquotesingle{}}\NormalTok{))}\OperatorTok{;}
+\CommentTok{// Prints español.com}
+\BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(url}\OperatorTok{.}\FunctionTok{domainToUnicode}\NormalTok{(}\StringTok{\textquotesingle{}xn{-}{-}fiq228c.com\textquotesingle{}}\NormalTok{))}\OperatorTok{;}
+\CommentTok{// Prints 中文.com}
+\BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(url}\OperatorTok{.}\FunctionTok{domainToUnicode}\NormalTok{(}\StringTok{\textquotesingle{}xn{-}{-}iñvalid.com\textquotesingle{}}\NormalTok{))}\OperatorTok{;}
+\CommentTok{// Prints an empty string}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ url }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:url\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+
+\BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(url}\OperatorTok{.}\FunctionTok{domainToUnicode}\NormalTok{(}\StringTok{\textquotesingle{}xn{-}{-}espaol{-}zwa.com\textquotesingle{}}\NormalTok{))}\OperatorTok{;}
+\CommentTok{// Prints español.com}
+\BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(url}\OperatorTok{.}\FunctionTok{domainToUnicode}\NormalTok{(}\StringTok{\textquotesingle{}xn{-}{-}fiq228c.com\textquotesingle{}}\NormalTok{))}\OperatorTok{;}
+\CommentTok{// Prints 中文.com}
+\BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(url}\OperatorTok{.}\FunctionTok{domainToUnicode}\NormalTok{(}\StringTok{\textquotesingle{}xn{-}{-}iñvalid.com\textquotesingle{}}\NormalTok{))}\OperatorTok{;}
+\CommentTok{// Prints an empty string}
+\end{Highlighting}
+\end{Shaded}
+
+\subsubsection{\texorpdfstring{\texttt{url.fileURLToPath(url)}}{url.fileURLToPath(url)}}\label{url.fileurltopathurl}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{url} \{URL \textbar{} string\} The file URL string or URL
+  object to convert to a path.
+\item
+  Returns: \{string\} The fully-resolved platform-specific Node.js file
+  path.
+\end{itemize}
+
+This function ensures the correct decodings of percent-encoded
+characters as well as ensuring a cross-platform valid absolute path
+string.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\ImportTok{import}\NormalTok{ \{ fileURLToPath \} }\ImportTok{from} \StringTok{\textquotesingle{}node:url\textquotesingle{}}\OperatorTok{;}
+
+\KeywordTok{const} \BuiltInTok{\_\_filename} \OperatorTok{=} \FunctionTok{fileURLToPath}\NormalTok{(}\ImportTok{import}\OperatorTok{.}\AttributeTok{meta}\OperatorTok{.}\AttributeTok{url}\NormalTok{)}\OperatorTok{;}
+
+\KeywordTok{new} \FunctionTok{URL}\NormalTok{(}\StringTok{\textquotesingle{}file:///C:/path/\textquotesingle{}}\NormalTok{)}\OperatorTok{.}\AttributeTok{pathname}\OperatorTok{;}      \CommentTok{// Incorrect: /C:/path/}
+\FunctionTok{fileURLToPath}\NormalTok{(}\StringTok{\textquotesingle{}file:///C:/path/\textquotesingle{}}\NormalTok{)}\OperatorTok{;}         \CommentTok{// Correct:   C:\textbackslash{}path\textbackslash{} (Windows)}
+
+\KeywordTok{new} \FunctionTok{URL}\NormalTok{(}\StringTok{\textquotesingle{}file://nas/foo.txt\textquotesingle{}}\NormalTok{)}\OperatorTok{.}\AttributeTok{pathname}\OperatorTok{;}    \CommentTok{// Incorrect: /foo.txt}
+\FunctionTok{fileURLToPath}\NormalTok{(}\StringTok{\textquotesingle{}file://nas/foo.txt\textquotesingle{}}\NormalTok{)}\OperatorTok{;}       \CommentTok{// Correct:   \textbackslash{}\textbackslash{}nas\textbackslash{}foo.txt (Windows)}
+
+\KeywordTok{new} \FunctionTok{URL}\NormalTok{(}\StringTok{\textquotesingle{}file:///你好.txt\textquotesingle{}}\NormalTok{)}\OperatorTok{.}\AttributeTok{pathname}\OperatorTok{;}      \CommentTok{// Incorrect: /\%E4\%BD\%A0\%E5\%A5\%BD.txt}
+\FunctionTok{fileURLToPath}\NormalTok{(}\StringTok{\textquotesingle{}file:///你好.txt\textquotesingle{}}\NormalTok{)}\OperatorTok{;}         \CommentTok{// Correct:   /你好.txt (POSIX)}
+
+\KeywordTok{new} \FunctionTok{URL}\NormalTok{(}\StringTok{\textquotesingle{}file:///hello world\textquotesingle{}}\NormalTok{)}\OperatorTok{.}\AttributeTok{pathname}\OperatorTok{;}   \CommentTok{// Incorrect: /hello\%20world}
+\FunctionTok{fileURLToPath}\NormalTok{(}\StringTok{\textquotesingle{}file:///hello world\textquotesingle{}}\NormalTok{)}\OperatorTok{;}      \CommentTok{// Correct:   /hello world (POSIX)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ \{ fileURLToPath \} }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:url\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\KeywordTok{new} \FunctionTok{URL}\NormalTok{(}\StringTok{\textquotesingle{}file:///C:/path/\textquotesingle{}}\NormalTok{)}\OperatorTok{.}\AttributeTok{pathname}\OperatorTok{;}      \CommentTok{// Incorrect: /C:/path/}
+\FunctionTok{fileURLToPath}\NormalTok{(}\StringTok{\textquotesingle{}file:///C:/path/\textquotesingle{}}\NormalTok{)}\OperatorTok{;}         \CommentTok{// Correct:   C:\textbackslash{}path\textbackslash{} (Windows)}
+
+\KeywordTok{new} \FunctionTok{URL}\NormalTok{(}\StringTok{\textquotesingle{}file://nas/foo.txt\textquotesingle{}}\NormalTok{)}\OperatorTok{.}\AttributeTok{pathname}\OperatorTok{;}    \CommentTok{// Incorrect: /foo.txt}
+\FunctionTok{fileURLToPath}\NormalTok{(}\StringTok{\textquotesingle{}file://nas/foo.txt\textquotesingle{}}\NormalTok{)}\OperatorTok{;}       \CommentTok{// Correct:   \textbackslash{}\textbackslash{}nas\textbackslash{}foo.txt (Windows)}
+
+\KeywordTok{new} \FunctionTok{URL}\NormalTok{(}\StringTok{\textquotesingle{}file:///你好.txt\textquotesingle{}}\NormalTok{)}\OperatorTok{.}\AttributeTok{pathname}\OperatorTok{;}      \CommentTok{// Incorrect: /\%E4\%BD\%A0\%E5\%A5\%BD.txt}
+\FunctionTok{fileURLToPath}\NormalTok{(}\StringTok{\textquotesingle{}file:///你好.txt\textquotesingle{}}\NormalTok{)}\OperatorTok{;}         \CommentTok{// Correct:   /你好.txt (POSIX)}
+
+\KeywordTok{new} \FunctionTok{URL}\NormalTok{(}\StringTok{\textquotesingle{}file:///hello world\textquotesingle{}}\NormalTok{)}\OperatorTok{.}\AttributeTok{pathname}\OperatorTok{;}   \CommentTok{// Incorrect: /hello\%20world}
+\FunctionTok{fileURLToPath}\NormalTok{(}\StringTok{\textquotesingle{}file:///hello world\textquotesingle{}}\NormalTok{)}\OperatorTok{;}      \CommentTok{// Correct:   /hello world (POSIX)}
+\end{Highlighting}
+\end{Shaded}
+
+\subsubsection{\texorpdfstring{\texttt{url.format(URL{[},\ options{]})}}{url.format(URL{[}, options{]})}}\label{url.formaturl-options}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{URL} \{URL\} A \hyperref[the-whatwg-url-api]{WHATWG URL}
+  object
+\item
+  \texttt{options} \{Object\}
+
+  \begin{itemize}
+  \tightlist
+  \item
+    \texttt{auth} \{boolean\} \texttt{true} if the serialized URL string
+    should include the username and password, \texttt{false} otherwise.
+    \textbf{Default:} \texttt{true}.
+  \item
+    \texttt{fragment} \{boolean\} \texttt{true} if the serialized URL
+    string should include the fragment, \texttt{false} otherwise.
+    \textbf{Default:} \texttt{true}.
+  \item
+    \texttt{search} \{boolean\} \texttt{true} if the serialized URL
+    string should include the search query, \texttt{false} otherwise.
+    \textbf{Default:} \texttt{true}.
+  \item
+    \texttt{unicode} \{boolean\} \texttt{true} if Unicode characters
+    appearing in the host component of the URL string should be encoded
+    directly as opposed to being Punycode encoded. \textbf{Default:}
+    \texttt{false}.
+  \end{itemize}
+\item
+  Returns: \{string\}
+\end{itemize}
+
+Returns a customizable serialization of a URL \texttt{String}
+representation of a \hyperref[the-whatwg-url-api]{WHATWG URL} object.
+
+The URL object has both a \texttt{toString()} method and \texttt{href}
+property that return string serializations of the URL. These are not,
+however, customizable in any way. The
+\texttt{url.format(URL{[},\ options{]})} method allows for basic
+customization of the output.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\ImportTok{import}\NormalTok{ url }\ImportTok{from} \StringTok{\textquotesingle{}node:url\textquotesingle{}}\OperatorTok{;}
+\KeywordTok{const}\NormalTok{ myURL }\OperatorTok{=} \KeywordTok{new} \FunctionTok{URL}\NormalTok{(}\StringTok{\textquotesingle{}https://a:b@測試?abc\#foo\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+
+\BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(myURL}\OperatorTok{.}\AttributeTok{href}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// Prints https://a:b@xn{-}{-}g6w251d/?abc\#foo}
+
+\BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(myURL}\OperatorTok{.}\FunctionTok{toString}\NormalTok{())}\OperatorTok{;}
+\CommentTok{// Prints https://a:b@xn{-}{-}g6w251d/?abc\#foo}
+
+\BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(url}\OperatorTok{.}\FunctionTok{format}\NormalTok{(myURL}\OperatorTok{,}\NormalTok{ \{ }\DataTypeTok{fragment}\OperatorTok{:} \KeywordTok{false}\OperatorTok{,} \DataTypeTok{unicode}\OperatorTok{:} \KeywordTok{true}\OperatorTok{,} \DataTypeTok{auth}\OperatorTok{:} \KeywordTok{false}\NormalTok{ \}))}\OperatorTok{;}
+\CommentTok{// Prints \textquotesingle{}https://測試/?abc\textquotesingle{}}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ url }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:url\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\KeywordTok{const}\NormalTok{ myURL }\OperatorTok{=} \KeywordTok{new} \FunctionTok{URL}\NormalTok{(}\StringTok{\textquotesingle{}https://a:b@測試?abc\#foo\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+
+\BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(myURL}\OperatorTok{.}\AttributeTok{href}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// Prints https://a:b@xn{-}{-}g6w251d/?abc\#foo}
+
+\BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(myURL}\OperatorTok{.}\FunctionTok{toString}\NormalTok{())}\OperatorTok{;}
+\CommentTok{// Prints https://a:b@xn{-}{-}g6w251d/?abc\#foo}
+
+\BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(url}\OperatorTok{.}\FunctionTok{format}\NormalTok{(myURL}\OperatorTok{,}\NormalTok{ \{ }\DataTypeTok{fragment}\OperatorTok{:} \KeywordTok{false}\OperatorTok{,} \DataTypeTok{unicode}\OperatorTok{:} \KeywordTok{true}\OperatorTok{,} \DataTypeTok{auth}\OperatorTok{:} \KeywordTok{false}\NormalTok{ \}))}\OperatorTok{;}
+\CommentTok{// Prints \textquotesingle{}https://測試/?abc\textquotesingle{}}
+\end{Highlighting}
+\end{Shaded}
+
+\subsubsection{\texorpdfstring{\texttt{url.pathToFileURL(path)}}{url.pathToFileURL(path)}}\label{url.pathtofileurlpath}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{path} \{string\} The path to convert to a File URL.
+\item
+  Returns: \{URL\} The file URL object.
+\end{itemize}
+
+This function ensures that \texttt{path} is resolved absolutely, and
+that the URL control characters are correctly encoded when converting
+into a File URL.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\ImportTok{import}\NormalTok{ \{ pathToFileURL \} }\ImportTok{from} \StringTok{\textquotesingle{}node:url\textquotesingle{}}\OperatorTok{;}
+
+\KeywordTok{new} \FunctionTok{URL}\NormalTok{(}\StringTok{\textquotesingle{}/foo\#1\textquotesingle{}}\OperatorTok{,} \StringTok{\textquotesingle{}file:\textquotesingle{}}\NormalTok{)}\OperatorTok{;}           \CommentTok{// Incorrect: file:///foo\#1}
+\FunctionTok{pathToFileURL}\NormalTok{(}\StringTok{\textquotesingle{}/foo\#1\textquotesingle{}}\NormalTok{)}\OperatorTok{;}              \CommentTok{// Correct:   file:///foo\%231 (POSIX)}
+
+\KeywordTok{new} \FunctionTok{URL}\NormalTok{(}\StringTok{\textquotesingle{}/some/path\%.c\textquotesingle{}}\OperatorTok{,} \StringTok{\textquotesingle{}file:\textquotesingle{}}\NormalTok{)}\OperatorTok{;}    \CommentTok{// Incorrect: file:///some/path\%.c}
+\FunctionTok{pathToFileURL}\NormalTok{(}\StringTok{\textquotesingle{}/some/path\%.c\textquotesingle{}}\NormalTok{)}\OperatorTok{;}       \CommentTok{// Correct:   file:///some/path\%25.c (POSIX)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ \{ pathToFileURL \} }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:url\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\KeywordTok{new} \FunctionTok{URL}\NormalTok{(}\BuiltInTok{\_\_filename}\NormalTok{)}\OperatorTok{;}                  \CommentTok{// Incorrect: throws (POSIX)}
+\KeywordTok{new} \FunctionTok{URL}\NormalTok{(}\BuiltInTok{\_\_filename}\NormalTok{)}\OperatorTok{;}                  \CommentTok{// Incorrect: C:\textbackslash{}... (Windows)}
+\FunctionTok{pathToFileURL}\NormalTok{(}\BuiltInTok{\_\_filename}\NormalTok{)}\OperatorTok{;}            \CommentTok{// Correct:   file:///... (POSIX)}
+\FunctionTok{pathToFileURL}\NormalTok{(}\BuiltInTok{\_\_filename}\NormalTok{)}\OperatorTok{;}            \CommentTok{// Correct:   file:///C:/... (Windows)}
+
+\KeywordTok{new} \FunctionTok{URL}\NormalTok{(}\StringTok{\textquotesingle{}/foo\#1\textquotesingle{}}\OperatorTok{,} \StringTok{\textquotesingle{}file:\textquotesingle{}}\NormalTok{)}\OperatorTok{;}           \CommentTok{// Incorrect: file:///foo\#1}
+\FunctionTok{pathToFileURL}\NormalTok{(}\StringTok{\textquotesingle{}/foo\#1\textquotesingle{}}\NormalTok{)}\OperatorTok{;}              \CommentTok{// Correct:   file:///foo\%231 (POSIX)}
+
+\KeywordTok{new} \FunctionTok{URL}\NormalTok{(}\StringTok{\textquotesingle{}/some/path\%.c\textquotesingle{}}\OperatorTok{,} \StringTok{\textquotesingle{}file:\textquotesingle{}}\NormalTok{)}\OperatorTok{;}    \CommentTok{// Incorrect: file:///some/path\%.c}
+\FunctionTok{pathToFileURL}\NormalTok{(}\StringTok{\textquotesingle{}/some/path\%.c\textquotesingle{}}\NormalTok{)}\OperatorTok{;}       \CommentTok{// Correct:   file:///some/path\%25.c (POSIX)}
+\end{Highlighting}
+\end{Shaded}
+
+\subsubsection{\texorpdfstring{\texttt{url.urlToHttpOptions(url)}}{url.urlToHttpOptions(url)}}\label{url.urltohttpoptionsurl}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{url} \{URL\} The \hyperref[the-whatwg-url-api]{WHATWG URL}
+  object to convert to an options object.
+\item
+  Returns: \{Object\} Options object
+
+  \begin{itemize}
+  \tightlist
+  \item
+    \texttt{protocol} \{string\} Protocol to use.
+  \item
+    \texttt{hostname} \{string\} A domain name or IP address of the
+    server to issue the request to.
+  \item
+    \texttt{hash} \{string\} The fragment portion of the URL.
+  \item
+    \texttt{search} \{string\} The serialized query portion of the URL.
+  \item
+    \texttt{pathname} \{string\} The path portion of the URL.
+  \item
+    \texttt{path} \{string\} Request path. Should include query string
+    if any. E.G.
+    \texttt{\textquotesingle{}/index.html?page=12\textquotesingle{}}. An
+    exception is thrown when the request path contains illegal
+    characters. Currently, only spaces are rejected but that may change
+    in the future.
+  \item
+    \texttt{href} \{string\} The serialized URL.
+  \item
+    \texttt{port} \{number\} Port of remote server.
+  \item
+    \texttt{auth} \{string\} Basic authentication
+    i.e.~\texttt{\textquotesingle{}user:password\textquotesingle{}} to
+    compute an Authorization header.
+  \end{itemize}
+\end{itemize}
+
+This utility function converts a URL object into an ordinary options
+object as expected by the
+\href{http.md\#httprequestoptions-callback}{\texttt{http.request()}} and
+\href{https.md\#httpsrequestoptions-callback}{\texttt{https.request()}}
+APIs.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\ImportTok{import}\NormalTok{ \{ urlToHttpOptions \} }\ImportTok{from} \StringTok{\textquotesingle{}node:url\textquotesingle{}}\OperatorTok{;}
+\KeywordTok{const}\NormalTok{ myURL }\OperatorTok{=} \KeywordTok{new} \FunctionTok{URL}\NormalTok{(}\StringTok{\textquotesingle{}https://a:b@測試?abc\#foo\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+
+\BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\FunctionTok{urlToHttpOptions}\NormalTok{(myURL))}\OperatorTok{;}
+\CommentTok{/*}
+\CommentTok{\{}
+\CommentTok{  protocol: \textquotesingle{}https:\textquotesingle{},}
+\CommentTok{  hostname: \textquotesingle{}xn{-}{-}g6w251d\textquotesingle{},}
+\CommentTok{  hash: \textquotesingle{}\#foo\textquotesingle{},}
+\CommentTok{  search: \textquotesingle{}?abc\textquotesingle{},}
+\CommentTok{  pathname: \textquotesingle{}/\textquotesingle{},}
+\CommentTok{  path: \textquotesingle{}/?abc\textquotesingle{},}
+\CommentTok{  href: \textquotesingle{}https://a:b@xn{-}{-}g6w251d/?abc\#foo\textquotesingle{},}
+\CommentTok{  auth: \textquotesingle{}a:b\textquotesingle{}}
+\CommentTok{\}}
+\CommentTok{*/}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ \{ urlToHttpOptions \} }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:url\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\KeywordTok{const}\NormalTok{ myURL }\OperatorTok{=} \KeywordTok{new} \FunctionTok{URL}\NormalTok{(}\StringTok{\textquotesingle{}https://a:b@測試?abc\#foo\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+
+\BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\FunctionTok{urlToHttpOptions}\NormalTok{(myURL))}\OperatorTok{;}
+\CommentTok{/*}
+\CommentTok{\{}
+\CommentTok{  protocol: \textquotesingle{}https:\textquotesingle{},}
+\CommentTok{  hostname: \textquotesingle{}xn{-}{-}g6w251d\textquotesingle{},}
+\CommentTok{  hash: \textquotesingle{}\#foo\textquotesingle{},}
+\CommentTok{  search: \textquotesingle{}?abc\textquotesingle{},}
+\CommentTok{  pathname: \textquotesingle{}/\textquotesingle{},}
+\CommentTok{  path: \textquotesingle{}/?abc\textquotesingle{},}
+\CommentTok{  href: \textquotesingle{}https://a:b@xn{-}{-}g6w251d/?abc\#foo\textquotesingle{},}
+\CommentTok{  auth: \textquotesingle{}a:b\textquotesingle{}}
+\CommentTok{\}}
+\CommentTok{*/}
+\end{Highlighting}
+\end{Shaded}
+
+\subsection{Legacy URL API}\label{legacy-url-api}
+
+\begin{quote}
+Stability: 3 - Legacy: Use the WHATWG URL API instead.
+\end{quote}
+
+\subsubsection{\texorpdfstring{Legacy
+\texttt{urlObject}}{Legacy urlObject}}\label{legacy-urlobject}
+
+\begin{quote}
+Stability: 3 - Legacy: Use the WHATWG URL API instead.
+\end{quote}
+
+The legacy \texttt{urlObject}
+(\texttt{require(\textquotesingle{}node:url\textquotesingle{}).Url} or
+\texttt{import\ \{\ Url\ \}\ from\ \textquotesingle{}node:url\textquotesingle{}})
+is created and returned by the \texttt{url.parse()} function.
+
+\paragraph{\texorpdfstring{\texttt{urlObject.auth}}{urlObject.auth}}\label{urlobject.auth}
+
+The \texttt{auth} property is the username and password portion of the
+URL, also referred to as \emph{userinfo}. This string subset follows the
+\texttt{protocol} and double slashes (if present) and precedes the
+\texttt{host} component, delimited by \texttt{@}. The string is either
+the username, or it is the username and password separated by
+\texttt{:}.
+
+For example: \texttt{\textquotesingle{}user:pass\textquotesingle{}}.
+
+\paragraph{\texorpdfstring{\texttt{urlObject.hash}}{urlObject.hash}}\label{urlobject.hash}
+
+The \texttt{hash} property is the fragment identifier portion of the URL
+including the leading \texttt{\#} character.
+
+For example: \texttt{\textquotesingle{}\#hash\textquotesingle{}}.
+
+\paragraph{\texorpdfstring{\texttt{urlObject.host}}{urlObject.host}}\label{urlobject.host}
+
+The \texttt{host} property is the full lower-cased host portion of the
+URL, including the \texttt{port} if specified.
+
+For example:
+\texttt{\textquotesingle{}sub.example.com:8080\textquotesingle{}}.
+
+\paragraph{\texorpdfstring{\texttt{urlObject.hostname}}{urlObject.hostname}}\label{urlobject.hostname}
+
+The \texttt{hostname} property is the lower-cased host name portion of
+the \texttt{host} component \emph{without} the \texttt{port} included.
+
+For example:
+\texttt{\textquotesingle{}sub.example.com\textquotesingle{}}.
+
+\paragraph{\texorpdfstring{\texttt{urlObject.href}}{urlObject.href}}\label{urlobject.href}
+
+The \texttt{href} property is the full URL string that was parsed with
+both the \texttt{protocol} and \texttt{host} components converted to
+lower-case.
+
+For example:
+\texttt{\textquotesingle{}http://user:pass@sub.example.com:8080/p/a/t/h?query=string\#hash\textquotesingle{}}.
+
+\paragraph{\texorpdfstring{\texttt{urlObject.path}}{urlObject.path}}\label{urlobject.path}
+
+The \texttt{path} property is a concatenation of the \texttt{pathname}
+and \texttt{search} components.
+
+For example:
+\texttt{\textquotesingle{}/p/a/t/h?query=string\textquotesingle{}}.
+
+No decoding of the \texttt{path} is performed.
+
+\paragraph{\texorpdfstring{\texttt{urlObject.pathname}}{urlObject.pathname}}\label{urlobject.pathname}
+
+The \texttt{pathname} property consists of the entire path section of
+the URL. This is everything following the \texttt{host} (including the
+\texttt{port}) and before the start of the \texttt{query} or
+\texttt{hash} components, delimited by either the ASCII question mark
+(\texttt{?}) or hash (\texttt{\#}) characters.
+
+For example: \texttt{\textquotesingle{}/p/a/t/h\textquotesingle{}}.
+
+No decoding of the path string is performed.
+
+\paragraph{\texorpdfstring{\texttt{urlObject.port}}{urlObject.port}}\label{urlobject.port}
+
+The \texttt{port} property is the numeric port portion of the
+\texttt{host} component.
+
+For example: \texttt{\textquotesingle{}8080\textquotesingle{}}.
+
+\paragraph{\texorpdfstring{\texttt{urlObject.protocol}}{urlObject.protocol}}\label{urlobject.protocol}
+
+The \texttt{protocol} property identifies the URL's lower-cased protocol
+scheme.
+
+For example: \texttt{\textquotesingle{}http:\textquotesingle{}}.
+
+\paragraph{\texorpdfstring{\texttt{urlObject.query}}{urlObject.query}}\label{urlobject.query}
+
+The \texttt{query} property is either the query string without the
+leading ASCII question mark (\texttt{?}), or an object returned by the
+\href{querystring.md}{\texttt{querystring}} module's \texttt{parse()}
+method. Whether the \texttt{query} property is a string or object is
+determined by the \texttt{parseQueryString} argument passed to
+\texttt{url.parse()}.
+
+For example: \texttt{\textquotesingle{}query=string\textquotesingle{}}
+or
+\texttt{\{\textquotesingle{}query\textquotesingle{}:\ \textquotesingle{}string\textquotesingle{}\}}.
+
+If returned as a string, no decoding of the query string is performed.
+If returned as an object, both keys and values are decoded.
+
+\paragraph{\texorpdfstring{\texttt{urlObject.search}}{urlObject.search}}\label{urlobject.search}
+
+The \texttt{search} property consists of the entire ``query string''
+portion of the URL, including the leading ASCII question mark
+(\texttt{?}) character.
+
+For example: \texttt{\textquotesingle{}?query=string\textquotesingle{}}.
+
+No decoding of the query string is performed.
+
+\paragraph{\texorpdfstring{\texttt{urlObject.slashes}}{urlObject.slashes}}\label{urlobject.slashes}
+
+The \texttt{slashes} property is a \texttt{boolean} with a value of
+\texttt{true} if two ASCII forward-slash characters (\texttt{/}) are
+required following the colon in the \texttt{protocol}.
+
+\subsubsection{\texorpdfstring{\texttt{url.format(urlObject)}}{url.format(urlObject)}}\label{url.formaturlobject}
+
+\begin{quote}
+Stability: 3 - Legacy: Use the WHATWG URL API instead.
+\end{quote}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{urlObject} \{Object\textbar string\} A URL object (as returned
+  by \texttt{url.parse()} or constructed otherwise). If a string, it is
+  converted to an object by passing it to \texttt{url.parse()}.
+\end{itemize}
+
+The \texttt{url.format()} method returns a formatted URL string derived
+from \texttt{urlObject}.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ url }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:url\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{url}\OperatorTok{.}\FunctionTok{format}\NormalTok{(\{}
+  \DataTypeTok{protocol}\OperatorTok{:} \StringTok{\textquotesingle{}https\textquotesingle{}}\OperatorTok{,}
+  \DataTypeTok{hostname}\OperatorTok{:} \StringTok{\textquotesingle{}example.com\textquotesingle{}}\OperatorTok{,}
+  \DataTypeTok{pathname}\OperatorTok{:} \StringTok{\textquotesingle{}/some/path\textquotesingle{}}\OperatorTok{,}
+  \DataTypeTok{query}\OperatorTok{:}\NormalTok{ \{}
+    \DataTypeTok{page}\OperatorTok{:} \DecValTok{1}\OperatorTok{,}
+    \DataTypeTok{format}\OperatorTok{:} \StringTok{\textquotesingle{}json\textquotesingle{}}\OperatorTok{,}
+\NormalTok{  \}}\OperatorTok{,}
+\NormalTok{\})}\OperatorTok{;}
+
+\CommentTok{// =\textgreater{} \textquotesingle{}https://example.com/some/path?page=1\&format=json\textquotesingle{}}
+\end{Highlighting}
+\end{Shaded}
+
+If \texttt{urlObject} is not an object or a string,
+\texttt{url.format()} will throw a
+\href{errors.md\#class-typeerror}{\texttt{TypeError}}.
+
+The formatting process operates as follows:
+
+\begin{itemize}
+\tightlist
+\item
+  A new empty string \texttt{result} is created.
+\item
+  If \texttt{urlObject.protocol} is a string, it is appended as-is to
+  \texttt{result}.
+\item
+  Otherwise, if \texttt{urlObject.protocol} is not \texttt{undefined}
+  and is not a string, an \href{errors.md\#class-error}{\texttt{Error}}
+  is thrown.
+\item
+  For all string values of \texttt{urlObject.protocol} that \emph{do not
+  end} with an ASCII colon (\texttt{:}) character, the literal string
+  \texttt{:} will be appended to \texttt{result}.
+\item
+  If either of the following conditions is true, then the literal string
+  \texttt{//} will be appended to \texttt{result}:
+
+  \begin{itemize}
+  \tightlist
+  \item
+    \texttt{urlObject.slashes} property is true;
+  \item
+    \texttt{urlObject.protocol} begins with \texttt{http},
+    \texttt{https}, \texttt{ftp}, \texttt{gopher}, or \texttt{file};
+  \end{itemize}
+\item
+  If the value of the \texttt{urlObject.auth} property is truthy, and
+  either \texttt{urlObject.host} or \texttt{urlObject.hostname} are not
+  \texttt{undefined}, the value of \texttt{urlObject.auth} will be
+  coerced into a string and appended to \texttt{result} followed by the
+  literal string \texttt{@}.
+\item
+  If the \texttt{urlObject.host} property is \texttt{undefined} then:
+
+  \begin{itemize}
+  \tightlist
+  \item
+    If the \texttt{urlObject.hostname} is a string, it is appended to
+    \texttt{result}.
+  \item
+    Otherwise, if \texttt{urlObject.hostname} is not \texttt{undefined}
+    and is not a string, an
+    \href{errors.md\#class-error}{\texttt{Error}} is thrown.
+  \item
+    If the \texttt{urlObject.port} property value is truthy, and
+    \texttt{urlObject.hostname} is not \texttt{undefined}:
+
+    \begin{itemize}
+    \tightlist
+    \item
+      The literal string \texttt{:} is appended to \texttt{result}, and
+    \item
+      The value of \texttt{urlObject.port} is coerced to a string and
+      appended to \texttt{result}.
+    \end{itemize}
+  \end{itemize}
+\item
+  Otherwise, if the \texttt{urlObject.host} property value is truthy,
+  the value of \texttt{urlObject.host} is coerced to a string and
+  appended to \texttt{result}.
+\item
+  If the \texttt{urlObject.pathname} property is a string that is not an
+  empty string:
+
+  \begin{itemize}
+  \tightlist
+  \item
+    If the \texttt{urlObject.pathname} \emph{does not start} with an
+    ASCII forward slash (\texttt{/}), then the literal string
+    \texttt{\textquotesingle{}/\textquotesingle{}} is appended to
+    \texttt{result}.
+  \item
+    The value of \texttt{urlObject.pathname} is appended to
+    \texttt{result}.
+  \end{itemize}
+\item
+  Otherwise, if \texttt{urlObject.pathname} is not \texttt{undefined}
+  and is not a string, an \href{errors.md\#class-error}{\texttt{Error}}
+  is thrown.
+\item
+  If the \texttt{urlObject.search} property is \texttt{undefined} and if
+  the \texttt{urlObject.query} property is an \texttt{Object}, the
+  literal string \texttt{?} is appended to \texttt{result} followed by
+  the output of calling the \href{querystring.md}{\texttt{querystring}}
+  module's \texttt{stringify()} method passing the value of
+  \texttt{urlObject.query}.
+\item
+  Otherwise, if \texttt{urlObject.search} is a string:
+
+  \begin{itemize}
+  \tightlist
+  \item
+    If the value of \texttt{urlObject.search} \emph{does not start} with
+    the ASCII question mark (\texttt{?}) character, the literal string
+    \texttt{?} is appended to \texttt{result}.
+  \item
+    The value of \texttt{urlObject.search} is appended to
+    \texttt{result}.
+  \end{itemize}
+\item
+  Otherwise, if \texttt{urlObject.search} is not \texttt{undefined} and
+  is not a string, an \href{errors.md\#class-error}{\texttt{Error}} is
+  thrown.
+\item
+  If the \texttt{urlObject.hash} property is a string:
+
+  \begin{itemize}
+  \tightlist
+  \item
+    If the value of \texttt{urlObject.hash} \emph{does not start} with
+    the ASCII hash (\texttt{\#}) character, the literal string
+    \texttt{\#} is appended to \texttt{result}.
+  \item
+    The value of \texttt{urlObject.hash} is appended to \texttt{result}.
+  \end{itemize}
+\item
+  Otherwise, if the \texttt{urlObject.hash} property is not
+  \texttt{undefined} and is not a string, an
+  \href{errors.md\#class-error}{\texttt{Error}} is thrown.
+\item
+  \texttt{result} is returned.
+\end{itemize}
+
+\subsubsection{\texorpdfstring{\texttt{url.parse(urlString{[},\ parseQueryString{[},\ slashesDenoteHost{]}{]})}}{url.parse(urlString{[}, parseQueryString{[}, slashesDenoteHost{]}{]})}}\label{url.parseurlstring-parsequerystring-slashesdenotehost}
+
+\begin{quote}
+Stability: 0 - Deprecated: Use the WHATWG URL API instead.
+\end{quote}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{urlString} \{string\} The URL string to parse.
+\item
+  \texttt{parseQueryString} \{boolean\} If \texttt{true}, the
+  \texttt{query} property will always be set to an object returned by
+  the \href{querystring.md}{\texttt{querystring}} module's
+  \texttt{parse()} method. If \texttt{false}, the \texttt{query}
+  property on the returned URL object will be an unparsed, undecoded
+  string. \textbf{Default:} \texttt{false}.
+\item
+  \texttt{slashesDenoteHost} \{boolean\} If \texttt{true}, the first
+  token after the literal string \texttt{//} and preceding the next
+  \texttt{/} will be interpreted as the \texttt{host}. For instance,
+  given \texttt{//foo/bar}, the result would be
+  \texttt{\{host:\ \textquotesingle{}foo\textquotesingle{},\ pathname:\ \textquotesingle{}/bar\textquotesingle{}\}}
+  rather than
+  \texttt{\{pathname:\ \textquotesingle{}//foo/bar\textquotesingle{}\}}.
+  \textbf{Default:} \texttt{false}.
+\end{itemize}
+
+The \texttt{url.parse()} method takes a URL string, parses it, and
+returns a URL object.
+
+A \texttt{TypeError} is thrown if \texttt{urlString} is not a string.
+
+A \texttt{URIError} is thrown if the \texttt{auth} property is present
+but cannot be decoded.
+
+\texttt{url.parse()} uses a lenient, non-standard algorithm for parsing
+URL strings. It is prone to security issues such as
+\href{https://hackerone.com/reports/678487}{host name spoofing} and
+incorrect handling of usernames and passwords. Do not use with untrusted
+input. CVEs are not issued for \texttt{url.parse()} vulnerabilities. Use
+the \hyperref[the-whatwg-url-api]{WHATWG URL} API instead.
+
+\subsubsection{\texorpdfstring{\texttt{url.resolve(from,\ to)}}{url.resolve(from, to)}}\label{url.resolvefrom-to}
+
+\begin{quote}
+Stability: 3 - Legacy: Use the WHATWG URL API instead.
+\end{quote}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{from} \{string\} The base URL to use if \texttt{to} is a
+  relative URL.
+\item
+  \texttt{to} \{string\} The target URL to resolve.
+\end{itemize}
+
+The \texttt{url.resolve()} method resolves a target URL relative to a
+base URL in a manner similar to that of a web browser resolving an
+anchor tag.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ url }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:url\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{url}\OperatorTok{.}\FunctionTok{resolve}\NormalTok{(}\StringTok{\textquotesingle{}/one/two/three\textquotesingle{}}\OperatorTok{,} \StringTok{\textquotesingle{}four\textquotesingle{}}\NormalTok{)}\OperatorTok{;}         \CommentTok{// \textquotesingle{}/one/two/four\textquotesingle{}}
+\NormalTok{url}\OperatorTok{.}\FunctionTok{resolve}\NormalTok{(}\StringTok{\textquotesingle{}http://example.com/\textquotesingle{}}\OperatorTok{,} \StringTok{\textquotesingle{}/one\textquotesingle{}}\NormalTok{)}\OperatorTok{;}    \CommentTok{// \textquotesingle{}http://example.com/one\textquotesingle{}}
+\NormalTok{url}\OperatorTok{.}\FunctionTok{resolve}\NormalTok{(}\StringTok{\textquotesingle{}http://example.com/one\textquotesingle{}}\OperatorTok{,} \StringTok{\textquotesingle{}/two\textquotesingle{}}\NormalTok{)}\OperatorTok{;} \CommentTok{// \textquotesingle{}http://example.com/two\textquotesingle{}}
+\end{Highlighting}
+\end{Shaded}
+
+To achieve the same result using the WHATWG URL API:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{function} \FunctionTok{resolve}\NormalTok{(}\ImportTok{from}\OperatorTok{,}\NormalTok{ to) \{}
+  \KeywordTok{const}\NormalTok{ resolvedUrl }\OperatorTok{=} \KeywordTok{new} \FunctionTok{URL}\NormalTok{(to}\OperatorTok{,} \KeywordTok{new} \FunctionTok{URL}\NormalTok{(}\ImportTok{from}\OperatorTok{,} \StringTok{\textquotesingle{}resolve://\textquotesingle{}}\NormalTok{))}\OperatorTok{;}
+  \ControlFlowTok{if}\NormalTok{ (resolvedUrl}\OperatorTok{.}\AttributeTok{protocol} \OperatorTok{===} \StringTok{\textquotesingle{}resolve:\textquotesingle{}}\NormalTok{) \{}
+    \CommentTok{// \textasciigrave{}from\textasciigrave{} is a relative URL.}
+    \KeywordTok{const}\NormalTok{ \{ pathname}\OperatorTok{,}\NormalTok{ search}\OperatorTok{,}\NormalTok{ hash \} }\OperatorTok{=}\NormalTok{ resolvedUrl}\OperatorTok{;}
+    \ControlFlowTok{return}\NormalTok{ pathname }\OperatorTok{+}\NormalTok{ search }\OperatorTok{+}\NormalTok{ hash}\OperatorTok{;}
+\NormalTok{  \}}
+  \ControlFlowTok{return}\NormalTok{ resolvedUrl}\OperatorTok{.}\FunctionTok{toString}\NormalTok{()}\OperatorTok{;}
+\NormalTok{\}}
+
+\FunctionTok{resolve}\NormalTok{(}\StringTok{\textquotesingle{}/one/two/three\textquotesingle{}}\OperatorTok{,} \StringTok{\textquotesingle{}four\textquotesingle{}}\NormalTok{)}\OperatorTok{;}         \CommentTok{// \textquotesingle{}/one/two/four\textquotesingle{}}
+\FunctionTok{resolve}\NormalTok{(}\StringTok{\textquotesingle{}http://example.com/\textquotesingle{}}\OperatorTok{,} \StringTok{\textquotesingle{}/one\textquotesingle{}}\NormalTok{)}\OperatorTok{;}    \CommentTok{// \textquotesingle{}http://example.com/one\textquotesingle{}}
+\FunctionTok{resolve}\NormalTok{(}\StringTok{\textquotesingle{}http://example.com/one\textquotesingle{}}\OperatorTok{,} \StringTok{\textquotesingle{}/two\textquotesingle{}}\NormalTok{)}\OperatorTok{;} \CommentTok{// \textquotesingle{}http://example.com/two\textquotesingle{}}
+\end{Highlighting}
+\end{Shaded}
+
+\subsection{Percent-encoding in URLs}\label{percent-encoding-in-urls}
+
+URLs are permitted to only contain a certain range of characters. Any
+character falling outside of that range must be encoded. How such
+characters are encoded, and which characters to encode depends entirely
+on where the character is located within the structure of the URL.
+
+\subsubsection{Legacy API}\label{legacy-api}
+
+Within the Legacy API, spaces
+(\texttt{\textquotesingle{}\ \textquotesingle{}}) and the following
+characters will be automatically escaped in the properties of URL
+objects:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{\textless{} \textgreater{} " \textasciigrave{} \textbackslash{}r \textbackslash{}n \textbackslash{}t \{ \} | \textbackslash{} \^{} \textquotesingle{}}
+\end{Highlighting}
+\end{Shaded}
+
+For example, the ASCII space character
+(\texttt{\textquotesingle{}\ \textquotesingle{}}) is encoded as
+\texttt{\%20}. The ASCII forward slash (\texttt{/}) character is encoded
+as \texttt{\%3C}.
+
+\subsubsection{WHATWG API}\label{whatwg-api}
+
+The \href{https://url.spec.whatwg.org/}{WHATWG URL Standard} uses a more
+selective and fine grained approach to selecting encoded characters than
+that used by the Legacy API.
+
+The WHATWG algorithm defines four ``percent-encode sets'' that describe
+ranges of characters that must be percent-encoded:
+
+\begin{itemize}
+\item
+  The \emph{C0 control percent-encode set} includes code points in range
+  U+0000 to U+001F (inclusive) and all code points greater than U+007E
+  (\textasciitilde).
+\item
+  The \emph{fragment percent-encode set} includes the \emph{C0 control
+  percent-encode set} and code points U+0020 SPACE, U+0022 (``), U+003C
+  (\textless), U+003E (\textgreater), and U+0060 (`).
+\item
+  The \emph{path percent-encode set} includes the \emph{C0 control
+  percent-encode set} and code points U+0020 SPACE, U+0022 (``), U+0023
+  (\#), U+003C (\textless), U+003E (\textgreater), U+003F (?), U+0060
+  (`), U+007B (\{), and U+007D (\}).
+\item
+  The \emph{userinfo encode set} includes the \emph{path percent-encode
+  set} and code points U+002F (/), U+003A (:), U+003B (;), U+003D (=),
+  U+0040 (@), U+005B ({[}) to U+005E(\^{}), and U+007C (\textbar).
+\end{itemize}
+
+The \emph{userinfo percent-encode set} is used exclusively for username
+and passwords encoded within the URL. The \emph{path percent-encode set}
+is used for the path of most URLs. The \emph{fragment percent-encode
+set} is used for URL fragments. The \emph{C0 control percent-encode set}
+is used for host and path under certain specific conditions, in addition
+to all other cases.
+
+When non-ASCII characters appear within a host name, the host name is
+encoded using the
+\href{https://tools.ietf.org/html/rfc5891\#section-4.4}{Punycode}
+algorithm. Note, however, that a host name \emph{may} contain
+\emph{both} Punycode encoded and percent-encoded characters:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ myURL }\OperatorTok{=} \KeywordTok{new} \FunctionTok{URL}\NormalTok{(}\StringTok{\textquotesingle{}https://\%CF\%80.example.com/foo\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(myURL}\OperatorTok{.}\AttributeTok{href}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// Prints https://xn{-}{-}1xa.example.com/foo}
+\BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(myURL}\OperatorTok{.}\AttributeTok{origin}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// Prints https://xn{-}{-}1xa.example.com}
+\end{Highlighting}
+\end{Shaded}

@@ -1,0 +1,1388 @@
+\section{OS}\label{os}
+
+\begin{quote}
+Stability: 2 - Stable
+\end{quote}
+
+The \texttt{node:os} module provides operating system-related utility
+methods and properties. It can be accessed using:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ os }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:os\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+\subsection{\texorpdfstring{\texttt{os.EOL}}{os.EOL}}\label{os.eol}
+
+\begin{itemize}
+\tightlist
+\item
+  \{string\}
+\end{itemize}
+
+The operating system-specific end-of-line marker.
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{\textbackslash{}n} on POSIX
+\item
+  \texttt{\textbackslash{}r\textbackslash{}n} on Windows
+\end{itemize}
+
+\subsection{\texorpdfstring{\texttt{os.availableParallelism()}}{os.availableParallelism()}}\label{os.availableparallelism}
+
+\begin{itemize}
+\tightlist
+\item
+  Returns: \{integer\}
+\end{itemize}
+
+Returns an estimate of the default amount of parallelism a program
+should use. Always returns a value greater than zero.
+
+This function is a small wrapper about libuv's
+\href{https://docs.libuv.org/en/v1.x/misc.html\#c.uv_available_parallelism}{\texttt{uv\_available\_parallelism()}}.
+
+\subsection{\texorpdfstring{\texttt{os.arch()}}{os.arch()}}\label{os.arch}
+
+\begin{itemize}
+\tightlist
+\item
+  Returns: \{string\}
+\end{itemize}
+
+Returns the operating system CPU architecture for which the Node.js
+binary was compiled. Possible values are
+\texttt{\textquotesingle{}arm\textquotesingle{}},
+\texttt{\textquotesingle{}arm64\textquotesingle{}},
+\texttt{\textquotesingle{}ia32\textquotesingle{}},
+\texttt{\textquotesingle{}loong64\textquotesingle{}},
+\texttt{\textquotesingle{}mips\textquotesingle{}},
+\texttt{\textquotesingle{}mipsel\textquotesingle{}},
+\texttt{\textquotesingle{}ppc\textquotesingle{}},
+\texttt{\textquotesingle{}ppc64\textquotesingle{}},
+\texttt{\textquotesingle{}riscv64\textquotesingle{}},
+\texttt{\textquotesingle{}s390\textquotesingle{}},
+\texttt{\textquotesingle{}s390x\textquotesingle{}}, and
+\texttt{\textquotesingle{}x64\textquotesingle{}}.
+
+The return value is equivalent to
+\href{process.md\#processarch}{\texttt{process.arch}}.
+
+\subsection{\texorpdfstring{\texttt{os.constants}}{os.constants}}\label{os.constants}
+
+\begin{itemize}
+\tightlist
+\item
+  \{Object\}
+\end{itemize}
+
+Contains commonly used operating system-specific constants for error
+codes, process signals, and so on. The specific constants defined are
+described in \hyperref[os-constants]{OS constants}.
+
+\subsection{\texorpdfstring{\texttt{os.cpus()}}{os.cpus()}}\label{os.cpus}
+
+\begin{itemize}
+\tightlist
+\item
+  Returns: \{Object{[}{]}\}
+\end{itemize}
+
+Returns an array of objects containing information about each logical
+CPU core. The array will be empty if no CPU information is available,
+such as if the \texttt{/proc} file system is unavailable.
+
+The properties included on each object include:
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{model} \{string\}
+\item
+  \texttt{speed} \{number\} (in MHz)
+\item
+  \texttt{times} \{Object\}
+
+  \begin{itemize}
+  \tightlist
+  \item
+    \texttt{user} \{number\} The number of milliseconds the CPU has
+    spent in user mode.
+  \item
+    \texttt{nice} \{number\} The number of milliseconds the CPU has
+    spent in nice mode.
+  \item
+    \texttt{sys} \{number\} The number of milliseconds the CPU has spent
+    in sys mode.
+  \item
+    \texttt{idle} \{number\} The number of milliseconds the CPU has
+    spent in idle mode.
+  \item
+    \texttt{irq} \{number\} The number of milliseconds the CPU has spent
+    in irq mode.
+  \end{itemize}
+\end{itemize}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{[}
+\NormalTok{  \{}
+    \DataTypeTok{model}\OperatorTok{:} \StringTok{\textquotesingle{}Intel(R) Core(TM) i7 CPU         860  @ 2.80GHz\textquotesingle{}}\OperatorTok{,}
+    \DataTypeTok{speed}\OperatorTok{:} \DecValTok{2926}\OperatorTok{,}
+    \DataTypeTok{times}\OperatorTok{:}\NormalTok{ \{}
+      \DataTypeTok{user}\OperatorTok{:} \DecValTok{252020}\OperatorTok{,}
+      \DataTypeTok{nice}\OperatorTok{:} \DecValTok{0}\OperatorTok{,}
+      \DataTypeTok{sys}\OperatorTok{:} \DecValTok{30340}\OperatorTok{,}
+      \DataTypeTok{idle}\OperatorTok{:} \DecValTok{1070356870}\OperatorTok{,}
+      \DataTypeTok{irq}\OperatorTok{:} \DecValTok{0}\OperatorTok{,}
+\NormalTok{    \}}\OperatorTok{,}
+\NormalTok{  \}}\OperatorTok{,}
+\NormalTok{  \{}
+    \DataTypeTok{model}\OperatorTok{:} \StringTok{\textquotesingle{}Intel(R) Core(TM) i7 CPU         860  @ 2.80GHz\textquotesingle{}}\OperatorTok{,}
+    \DataTypeTok{speed}\OperatorTok{:} \DecValTok{2926}\OperatorTok{,}
+    \DataTypeTok{times}\OperatorTok{:}\NormalTok{ \{}
+      \DataTypeTok{user}\OperatorTok{:} \DecValTok{306960}\OperatorTok{,}
+      \DataTypeTok{nice}\OperatorTok{:} \DecValTok{0}\OperatorTok{,}
+      \DataTypeTok{sys}\OperatorTok{:} \DecValTok{26980}\OperatorTok{,}
+      \DataTypeTok{idle}\OperatorTok{:} \DecValTok{1071569080}\OperatorTok{,}
+      \DataTypeTok{irq}\OperatorTok{:} \DecValTok{0}\OperatorTok{,}
+\NormalTok{    \}}\OperatorTok{,}
+\NormalTok{  \}}\OperatorTok{,}
+\NormalTok{  \{}
+    \DataTypeTok{model}\OperatorTok{:} \StringTok{\textquotesingle{}Intel(R) Core(TM) i7 CPU         860  @ 2.80GHz\textquotesingle{}}\OperatorTok{,}
+    \DataTypeTok{speed}\OperatorTok{:} \DecValTok{2926}\OperatorTok{,}
+    \DataTypeTok{times}\OperatorTok{:}\NormalTok{ \{}
+      \DataTypeTok{user}\OperatorTok{:} \DecValTok{248450}\OperatorTok{,}
+      \DataTypeTok{nice}\OperatorTok{:} \DecValTok{0}\OperatorTok{,}
+      \DataTypeTok{sys}\OperatorTok{:} \DecValTok{21750}\OperatorTok{,}
+      \DataTypeTok{idle}\OperatorTok{:} \DecValTok{1070919370}\OperatorTok{,}
+      \DataTypeTok{irq}\OperatorTok{:} \DecValTok{0}\OperatorTok{,}
+\NormalTok{    \}}\OperatorTok{,}
+\NormalTok{  \}}\OperatorTok{,}
+\NormalTok{  \{}
+    \DataTypeTok{model}\OperatorTok{:} \StringTok{\textquotesingle{}Intel(R) Core(TM) i7 CPU         860  @ 2.80GHz\textquotesingle{}}\OperatorTok{,}
+    \DataTypeTok{speed}\OperatorTok{:} \DecValTok{2926}\OperatorTok{,}
+    \DataTypeTok{times}\OperatorTok{:}\NormalTok{ \{}
+      \DataTypeTok{user}\OperatorTok{:} \DecValTok{256880}\OperatorTok{,}
+      \DataTypeTok{nice}\OperatorTok{:} \DecValTok{0}\OperatorTok{,}
+      \DataTypeTok{sys}\OperatorTok{:} \DecValTok{19430}\OperatorTok{,}
+      \DataTypeTok{idle}\OperatorTok{:} \DecValTok{1070905480}\OperatorTok{,}
+      \DataTypeTok{irq}\OperatorTok{:} \DecValTok{20}\OperatorTok{,}
+\NormalTok{    \}}\OperatorTok{,}
+\NormalTok{  \}}\OperatorTok{,}
+\NormalTok{]}
+\end{Highlighting}
+\end{Shaded}
+
+\texttt{nice} values are POSIX-only. On Windows, the \texttt{nice}
+values of all processors are always 0.
+
+\texttt{os.cpus().length} should not be used to calculate the amount of
+parallelism available to an application. Use
+\hyperref[osavailableparallelism]{\texttt{os.availableParallelism()}}
+for this purpose.
+
+\subsection{\texorpdfstring{\texttt{os.devNull}}{os.devNull}}\label{os.devnull}
+
+\begin{itemize}
+\tightlist
+\item
+  \{string\}
+\end{itemize}
+
+The platform-specific file path of the null device.
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{\textbackslash{}\textbackslash{}.\textbackslash{}nul} on
+  Windows
+\item
+  \texttt{/dev/null} on POSIX
+\end{itemize}
+
+\subsection{\texorpdfstring{\texttt{os.endianness()}}{os.endianness()}}\label{os.endianness}
+
+\begin{itemize}
+\tightlist
+\item
+  Returns: \{string\}
+\end{itemize}
+
+Returns a string identifying the endianness of the CPU for which the
+Node.js binary was compiled.
+
+Possible values are \texttt{\textquotesingle{}BE\textquotesingle{}} for
+big endian and \texttt{\textquotesingle{}LE\textquotesingle{}} for
+little endian.
+
+\subsection{\texorpdfstring{\texttt{os.freemem()}}{os.freemem()}}\label{os.freemem}
+
+\begin{itemize}
+\tightlist
+\item
+  Returns: \{integer\}
+\end{itemize}
+
+Returns the amount of free system memory in bytes as an integer.
+
+\subsection{\texorpdfstring{\texttt{os.getPriority({[}pid{]})}}{os.getPriority({[}pid{]})}}\label{os.getprioritypid}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{pid} \{integer\} The process ID to retrieve scheduling
+  priority for. \textbf{Default:} \texttt{0}.
+\item
+  Returns: \{integer\}
+\end{itemize}
+
+Returns the scheduling priority for the process specified by
+\texttt{pid}. If \texttt{pid} is not provided or is \texttt{0}, the
+priority of the current process is returned.
+
+\subsection{\texorpdfstring{\texttt{os.homedir()}}{os.homedir()}}\label{os.homedir}
+
+\begin{itemize}
+\tightlist
+\item
+  Returns: \{string\}
+\end{itemize}
+
+Returns the string path of the current user's home directory.
+
+On POSIX, it uses the \texttt{\$HOME} environment variable if defined.
+Otherwise it uses the
+\href{https://en.wikipedia.org/wiki/User_identifier\#Effective_user_ID}{effective
+UID} to look up the user's home directory.
+
+On Windows, it uses the \texttt{USERPROFILE} environment variable if
+defined. Otherwise it uses the path to the profile directory of the
+current user.
+
+\subsection{\texorpdfstring{\texttt{os.hostname()}}{os.hostname()}}\label{os.hostname}
+
+\begin{itemize}
+\tightlist
+\item
+  Returns: \{string\}
+\end{itemize}
+
+Returns the host name of the operating system as a string.
+
+\subsection{\texorpdfstring{\texttt{os.loadavg()}}{os.loadavg()}}\label{os.loadavg}
+
+\begin{itemize}
+\tightlist
+\item
+  Returns: \{number{[}{]}\}
+\end{itemize}
+
+Returns an array containing the 1, 5, and 15 minute load averages.
+
+The load average is a measure of system activity calculated by the
+operating system and expressed as a fractional number.
+
+The load average is a Unix-specific concept. On Windows, the return
+value is always \texttt{{[}0,\ 0,\ 0{]}}.
+
+\subsection{\texorpdfstring{\texttt{os.machine()}}{os.machine()}}\label{os.machine}
+
+\begin{itemize}
+\tightlist
+\item
+  Returns \{string\}
+\end{itemize}
+
+Returns the machine type as a string, such as \texttt{arm},
+\texttt{arm64}, \texttt{aarch64}, \texttt{mips}, \texttt{mips64},
+\texttt{ppc64}, \texttt{ppc64le}, \texttt{s390}, \texttt{s390x},
+\texttt{i386}, \texttt{i686}, \texttt{x86\_64}.
+
+On POSIX systems, the machine type is determined by calling
+\href{https://linux.die.net/man/3/uname}{\texttt{uname(3)}}. On Windows,
+\texttt{RtlGetVersion()} is used, and if it is not available,
+\texttt{GetVersionExW()} will be used. See
+\url{https://en.wikipedia.org/wiki/Uname\#Examples} for more
+information.
+
+\subsection{\texorpdfstring{\texttt{os.networkInterfaces()}}{os.networkInterfaces()}}\label{os.networkinterfaces}
+
+\begin{itemize}
+\tightlist
+\item
+  Returns: \{Object\}
+\end{itemize}
+
+Returns an object containing network interfaces that have been assigned
+a network address.
+
+Each key on the returned object identifies a network interface. The
+associated value is an array of objects that each describe an assigned
+network address.
+
+The properties available on the assigned network address object include:
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{address} \{string\} The assigned IPv4 or IPv6 address
+\item
+  \texttt{netmask} \{string\} The IPv4 or IPv6 network mask
+\item
+  \texttt{family} \{string\} Either \texttt{IPv4} or \texttt{IPv6}
+\item
+  \texttt{mac} \{string\} The MAC address of the network interface
+\item
+  \texttt{internal} \{boolean\} \texttt{true} if the network interface
+  is a loopback or similar interface that is not remotely accessible;
+  otherwise \texttt{false}
+\item
+  \texttt{scopeid} \{number\} The numeric IPv6 scope ID (only specified
+  when \texttt{family} is \texttt{IPv6})
+\item
+  \texttt{cidr} \{string\} The assigned IPv4 or IPv6 address with the
+  routing prefix in CIDR notation. If the \texttt{netmask} is invalid,
+  this property is set to \texttt{null}.
+\end{itemize}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{\{}
+  \DataTypeTok{lo}\OperatorTok{:}\NormalTok{ [}
+\NormalTok{    \{}
+      \DataTypeTok{address}\OperatorTok{:} \StringTok{\textquotesingle{}127.0.0.1\textquotesingle{}}\OperatorTok{,}
+      \DataTypeTok{netmask}\OperatorTok{:} \StringTok{\textquotesingle{}255.0.0.0\textquotesingle{}}\OperatorTok{,}
+      \DataTypeTok{family}\OperatorTok{:} \StringTok{\textquotesingle{}IPv4\textquotesingle{}}\OperatorTok{,}
+      \DataTypeTok{mac}\OperatorTok{:} \StringTok{\textquotesingle{}00:00:00:00:00:00\textquotesingle{}}\OperatorTok{,}
+      \DataTypeTok{internal}\OperatorTok{:} \KeywordTok{true}\OperatorTok{,}
+      \DataTypeTok{cidr}\OperatorTok{:} \StringTok{\textquotesingle{}127.0.0.1/8\textquotesingle{}}
+\NormalTok{    \}}\OperatorTok{,}
+\NormalTok{    \{}
+      \DataTypeTok{address}\OperatorTok{:} \StringTok{\textquotesingle{}::1\textquotesingle{}}\OperatorTok{,}
+      \DataTypeTok{netmask}\OperatorTok{:} \StringTok{\textquotesingle{}ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff\textquotesingle{}}\OperatorTok{,}
+      \DataTypeTok{family}\OperatorTok{:} \StringTok{\textquotesingle{}IPv6\textquotesingle{}}\OperatorTok{,}
+      \DataTypeTok{mac}\OperatorTok{:} \StringTok{\textquotesingle{}00:00:00:00:00:00\textquotesingle{}}\OperatorTok{,}
+      \DataTypeTok{scopeid}\OperatorTok{:} \DecValTok{0}\OperatorTok{,}
+      \DataTypeTok{internal}\OperatorTok{:} \KeywordTok{true}\OperatorTok{,}
+      \DataTypeTok{cidr}\OperatorTok{:} \StringTok{\textquotesingle{}::1/128\textquotesingle{}}
+\NormalTok{    \}}
+\NormalTok{  ]}\OperatorTok{,}
+  \DataTypeTok{eth0}\OperatorTok{:}\NormalTok{ [}
+\NormalTok{    \{}
+      \DataTypeTok{address}\OperatorTok{:} \StringTok{\textquotesingle{}192.168.1.108\textquotesingle{}}\OperatorTok{,}
+      \DataTypeTok{netmask}\OperatorTok{:} \StringTok{\textquotesingle{}255.255.255.0\textquotesingle{}}\OperatorTok{,}
+      \DataTypeTok{family}\OperatorTok{:} \StringTok{\textquotesingle{}IPv4\textquotesingle{}}\OperatorTok{,}
+      \DataTypeTok{mac}\OperatorTok{:} \StringTok{\textquotesingle{}01:02:03:0a:0b:0c\textquotesingle{}}\OperatorTok{,}
+      \DataTypeTok{internal}\OperatorTok{:} \KeywordTok{false}\OperatorTok{,}
+      \DataTypeTok{cidr}\OperatorTok{:} \StringTok{\textquotesingle{}192.168.1.108/24\textquotesingle{}}
+\NormalTok{    \}}\OperatorTok{,}
+\NormalTok{    \{}
+      \DataTypeTok{address}\OperatorTok{:} \StringTok{\textquotesingle{}fe80::a00:27ff:fe4e:66a1\textquotesingle{}}\OperatorTok{,}
+      \DataTypeTok{netmask}\OperatorTok{:} \StringTok{\textquotesingle{}ffff:ffff:ffff:ffff::\textquotesingle{}}\OperatorTok{,}
+      \DataTypeTok{family}\OperatorTok{:} \StringTok{\textquotesingle{}IPv6\textquotesingle{}}\OperatorTok{,}
+      \DataTypeTok{mac}\OperatorTok{:} \StringTok{\textquotesingle{}01:02:03:0a:0b:0c\textquotesingle{}}\OperatorTok{,}
+      \DataTypeTok{scopeid}\OperatorTok{:} \DecValTok{1}\OperatorTok{,}
+      \DataTypeTok{internal}\OperatorTok{:} \KeywordTok{false}\OperatorTok{,}
+      \DataTypeTok{cidr}\OperatorTok{:} \StringTok{\textquotesingle{}fe80::a00:27ff:fe4e:66a1/64\textquotesingle{}}
+\NormalTok{    \}}
+\NormalTok{  ]}
+\NormalTok{\}}
+\end{Highlighting}
+\end{Shaded}
+
+\subsection{\texorpdfstring{\texttt{os.platform()}}{os.platform()}}\label{os.platform}
+
+\begin{itemize}
+\tightlist
+\item
+  Returns: \{string\}
+\end{itemize}
+
+Returns a string identifying the operating system platform for which the
+Node.js binary was compiled. The value is set at compile time. Possible
+values are \texttt{\textquotesingle{}aix\textquotesingle{}},
+\texttt{\textquotesingle{}darwin\textquotesingle{}},
+\texttt{\textquotesingle{}freebsd\textquotesingle{}},\texttt{\textquotesingle{}linux\textquotesingle{}},
+\texttt{\textquotesingle{}openbsd\textquotesingle{}},
+\texttt{\textquotesingle{}sunos\textquotesingle{}}, and
+\texttt{\textquotesingle{}win32\textquotesingle{}}.
+
+The return value is equivalent to
+\href{process.md\#processplatform}{\texttt{process.platform}}.
+
+The value \texttt{\textquotesingle{}android\textquotesingle{}} may also
+be returned if Node.js is built on the Android operating system.
+\href{https://github.com/nodejs/node/blob/HEAD/BUILDING.md\#androidandroid-based-devices-eg-firefox-os}{Android
+support is experimental}.
+
+\subsection{\texorpdfstring{\texttt{os.release()}}{os.release()}}\label{os.release}
+
+\begin{itemize}
+\tightlist
+\item
+  Returns: \{string\}
+\end{itemize}
+
+Returns the operating system as a string.
+
+On POSIX systems, the operating system release is determined by calling
+\href{https://linux.die.net/man/3/uname}{\texttt{uname(3)}}. On Windows,
+\texttt{GetVersionExW()} is used. See
+\url{https://en.wikipedia.org/wiki/Uname\#Examples} for more
+information.
+
+\subsection{\texorpdfstring{\texttt{os.setPriority({[}pid,\ {]}priority)}}{os.setPriority({[}pid, {]}priority)}}\label{os.setprioritypid-priority}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{pid} \{integer\} The process ID to set scheduling priority
+  for. \textbf{Default:} \texttt{0}.
+\item
+  \texttt{priority} \{integer\} The scheduling priority to assign to the
+  process.
+\end{itemize}
+
+Attempts to set the scheduling priority for the process specified by
+\texttt{pid}. If \texttt{pid} is not provided or is \texttt{0}, the
+process ID of the current process is used.
+
+The \texttt{priority} input must be an integer between \texttt{-20}
+(high priority) and \texttt{19} (low priority). Due to differences
+between Unix priority levels and Windows priority classes,
+\texttt{priority} is mapped to one of six priority constants in
+\texttt{os.constants.priority}. When retrieving a process priority
+level, this range mapping may cause the return value to be slightly
+different on Windows. To avoid confusion, set \texttt{priority} to one
+of the priority constants.
+
+On Windows, setting priority to \texttt{PRIORITY\_HIGHEST} requires
+elevated user privileges. Otherwise the set priority will be silently
+reduced to \texttt{PRIORITY\_HIGH}.
+
+\subsection{\texorpdfstring{\texttt{os.tmpdir()}}{os.tmpdir()}}\label{os.tmpdir}
+
+\begin{itemize}
+\tightlist
+\item
+  Returns: \{string\}
+\end{itemize}
+
+Returns the operating system's default directory for temporary files as
+a string.
+
+\subsection{\texorpdfstring{\texttt{os.totalmem()}}{os.totalmem()}}\label{os.totalmem}
+
+\begin{itemize}
+\tightlist
+\item
+  Returns: \{integer\}
+\end{itemize}
+
+Returns the total amount of system memory in bytes as an integer.
+
+\subsection{\texorpdfstring{\texttt{os.type()}}{os.type()}}\label{os.type}
+
+\begin{itemize}
+\tightlist
+\item
+  Returns: \{string\}
+\end{itemize}
+
+Returns the operating system name as returned by
+\href{https://linux.die.net/man/3/uname}{\texttt{uname(3)}}. For
+example, it returns \texttt{\textquotesingle{}Linux\textquotesingle{}}
+on Linux, \texttt{\textquotesingle{}Darwin\textquotesingle{}} on macOS,
+and \texttt{\textquotesingle{}Windows\_NT\textquotesingle{}} on Windows.
+
+See \url{https://en.wikipedia.org/wiki/Uname\#Examples} for additional
+information about the output of running
+\href{https://linux.die.net/man/3/uname}{\texttt{uname(3)}} on various
+operating systems.
+
+\subsection{\texorpdfstring{\texttt{os.uptime()}}{os.uptime()}}\label{os.uptime}
+
+\begin{itemize}
+\tightlist
+\item
+  Returns: \{integer\}
+\end{itemize}
+
+Returns the system uptime in number of seconds.
+
+\subsection{\texorpdfstring{\texttt{os.userInfo({[}options{]})}}{os.userInfo({[}options{]})}}\label{os.userinfooptions}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{options} \{Object\}
+
+  \begin{itemize}
+  \tightlist
+  \item
+    \texttt{encoding} \{string\} Character encoding used to interpret
+    resulting strings. If \texttt{encoding} is set to
+    \texttt{\textquotesingle{}buffer\textquotesingle{}}, the
+    \texttt{username}, \texttt{shell}, and \texttt{homedir} values will
+    be \texttt{Buffer} instances. \textbf{Default:}
+    \texttt{\textquotesingle{}utf8\textquotesingle{}}.
+  \end{itemize}
+\item
+  Returns: \{Object\}
+\end{itemize}
+
+Returns information about the currently effective user. On POSIX
+platforms, this is typically a subset of the password file. The returned
+object includes the \texttt{username}, \texttt{uid}, \texttt{gid},
+\texttt{shell}, and \texttt{homedir}. On Windows, the \texttt{uid} and
+\texttt{gid} fields are \texttt{-1}, and \texttt{shell} is
+\texttt{null}.
+
+The value of \texttt{homedir} returned by \texttt{os.userInfo()} is
+provided by the operating system. This differs from the result of
+\texttt{os.homedir()}, which queries environment variables for the home
+directory before falling back to the operating system response.
+
+Throws a \href{errors.md\#class-systemerror}{\texttt{SystemError}} if a
+user has no \texttt{username} or \texttt{homedir}.
+
+\subsection{\texorpdfstring{\texttt{os.version()}}{os.version()}}\label{os.version}
+
+\begin{itemize}
+\tightlist
+\item
+  Returns \{string\}
+\end{itemize}
+
+Returns a string identifying the kernel version.
+
+On POSIX systems, the operating system release is determined by calling
+\href{https://linux.die.net/man/3/uname}{\texttt{uname(3)}}. On Windows,
+\texttt{RtlGetVersion()} is used, and if it is not available,
+\texttt{GetVersionExW()} will be used. See
+\url{https://en.wikipedia.org/wiki/Uname\#Examples} for more
+information.
+
+\subsection{OS constants}\label{os-constants}
+
+The following constants are exported by \texttt{os.constants}.
+
+Not all constants will be available on every operating system.
+
+\subsubsection{Signal constants}\label{signal-constants}
+
+The following signal constants are exported by
+\texttt{os.constants.signals}.
+
+Constant
+
+Description
+
+SIGHUP
+
+Sent to indicate when a controlling terminal is closed or a parent
+process exits.
+
+SIGINT
+
+Sent to indicate when a user wishes to interrupt a process (Ctrl+C).
+
+SIGQUIT
+
+Sent to indicate when a user wishes to terminate a process and perform a
+core dump.
+
+SIGILL
+
+Sent to a process to notify that it has attempted to perform an illegal,
+malformed, unknown, or privileged instruction.
+
+SIGTRAP
+
+Sent to a process when an exception has occurred.
+
+SIGABRT
+
+Sent to a process to request that it abort.
+
+SIGIOT
+
+Synonym for SIGABRT
+
+SIGBUS
+
+Sent to a process to notify that it has caused a bus error.
+
+SIGFPE
+
+Sent to a process to notify that it has performed an illegal arithmetic
+operation.
+
+SIGKILL
+
+Sent to a process to terminate it immediately.
+
+SIGUSR1 SIGUSR2
+
+Sent to a process to identify user-defined conditions.
+
+SIGSEGV
+
+Sent to a process to notify of a segmentation fault.
+
+SIGPIPE
+
+Sent to a process when it has attempted to write to a disconnected pipe.
+
+SIGALRM
+
+Sent to a process when a system timer elapses.
+
+SIGTERM
+
+Sent to a process to request termination.
+
+SIGCHLD
+
+Sent to a process when a child process terminates.
+
+SIGSTKFLT
+
+Sent to a process to indicate a stack fault on a coprocessor.
+
+SIGCONT
+
+Sent to instruct the operating system to continue a paused process.
+
+SIGSTOP
+
+Sent to instruct the operating system to halt a process.
+
+SIGTSTP
+
+Sent to a process to request it to stop.
+
+SIGBREAK
+
+Sent to indicate when a user wishes to interrupt a process.
+
+SIGTTIN
+
+Sent to a process when it reads from the TTY while in the background.
+
+SIGTTOU
+
+Sent to a process when it writes to the TTY while in the background.
+
+SIGURG
+
+Sent to a process when a socket has urgent data to read.
+
+SIGXCPU
+
+Sent to a process when it has exceeded its limit on CPU usage.
+
+SIGXFSZ
+
+Sent to a process when it grows a file larger than the maximum allowed.
+
+SIGVTALRM
+
+Sent to a process when a virtual timer has elapsed.
+
+SIGPROF
+
+Sent to a process when a system timer has elapsed.
+
+SIGWINCH
+
+Sent to a process when the controlling terminal has changed its size.
+
+SIGIO
+
+Sent to a process when I/O is available.
+
+SIGPOLL
+
+Synonym for SIGIO
+
+SIGLOST
+
+Sent to a process when a file lock has been lost.
+
+SIGPWR
+
+Sent to a process to notify of a power failure.
+
+SIGINFO
+
+Synonym for SIGPWR
+
+SIGSYS
+
+Sent to a process to notify of a bad argument.
+
+SIGUNUSED
+
+Synonym for SIGSYS
+
+\subsubsection{Error constants}\label{error-constants}
+
+The following error constants are exported by
+\texttt{os.constants.errno}.
+
+\paragraph{POSIX error constants}\label{posix-error-constants}
+
+Constant
+
+Description
+
+E2BIG
+
+Indicates that the list of arguments is longer than expected.
+
+EACCES
+
+Indicates that the operation did not have sufficient permissions.
+
+EADDRINUSE
+
+Indicates that the network address is already in use.
+
+EADDRNOTAVAIL
+
+Indicates that the network address is currently unavailable for use.
+
+EAFNOSUPPORT
+
+Indicates that the network address family is not supported.
+
+EAGAIN
+
+Indicates that there is no data available and to try the operation again
+later.
+
+EALREADY
+
+Indicates that the socket already has a pending connection in progress.
+
+EBADF
+
+Indicates that a file descriptor is not valid.
+
+EBADMSG
+
+Indicates an invalid data message.
+
+EBUSY
+
+Indicates that a device or resource is busy.
+
+ECANCELED
+
+Indicates that an operation was canceled.
+
+ECHILD
+
+Indicates that there are no child processes.
+
+ECONNABORTED
+
+Indicates that the network connection has been aborted.
+
+ECONNREFUSED
+
+Indicates that the network connection has been refused.
+
+ECONNRESET
+
+Indicates that the network connection has been reset.
+
+EDEADLK
+
+Indicates that a resource deadlock has been avoided.
+
+EDESTADDRREQ
+
+Indicates that a destination address is required.
+
+EDOM
+
+Indicates that an argument is out of the domain of the function.
+
+EDQUOT
+
+Indicates that the disk quota has been exceeded.
+
+EEXIST
+
+Indicates that the file already exists.
+
+EFAULT
+
+Indicates an invalid pointer address.
+
+EFBIG
+
+Indicates that the file is too large.
+
+EHOSTUNREACH
+
+Indicates that the host is unreachable.
+
+EIDRM
+
+Indicates that the identifier has been removed.
+
+EILSEQ
+
+Indicates an illegal byte sequence.
+
+EINPROGRESS
+
+Indicates that an operation is already in progress.
+
+EINTR
+
+Indicates that a function call was interrupted.
+
+EINVAL
+
+Indicates that an invalid argument was provided.
+
+EIO
+
+Indicates an otherwise unspecified I/O error.
+
+EISCONN
+
+Indicates that the socket is connected.
+
+EISDIR
+
+Indicates that the path is a directory.
+
+ELOOP
+
+Indicates too many levels of symbolic links in a path.
+
+EMFILE
+
+Indicates that there are too many open files.
+
+EMLINK
+
+Indicates that there are too many hard links to a file.
+
+EMSGSIZE
+
+Indicates that the provided message is too long.
+
+EMULTIHOP
+
+Indicates that a multihop was attempted.
+
+ENAMETOOLONG
+
+Indicates that the filename is too long.
+
+ENETDOWN
+
+Indicates that the network is down.
+
+ENETRESET
+
+Indicates that the connection has been aborted by the network.
+
+ENETUNREACH
+
+Indicates that the network is unreachable.
+
+ENFILE
+
+Indicates too many open files in the system.
+
+ENOBUFS
+
+Indicates that no buffer space is available.
+
+ENODATA
+
+Indicates that no message is available on the stream head read queue.
+
+ENODEV
+
+Indicates that there is no such device.
+
+ENOENT
+
+Indicates that there is no such file or directory.
+
+ENOEXEC
+
+Indicates an exec format error.
+
+ENOLCK
+
+Indicates that there are no locks available.
+
+ENOLINK
+
+Indications that a link has been severed.
+
+ENOMEM
+
+Indicates that there is not enough space.
+
+ENOMSG
+
+Indicates that there is no message of the desired type.
+
+ENOPROTOOPT
+
+Indicates that a given protocol is not available.
+
+ENOSPC
+
+Indicates that there is no space available on the device.
+
+ENOSR
+
+Indicates that there are no stream resources available.
+
+ENOSTR
+
+Indicates that a given resource is not a stream.
+
+ENOSYS
+
+Indicates that a function has not been implemented.
+
+ENOTCONN
+
+Indicates that the socket is not connected.
+
+ENOTDIR
+
+Indicates that the path is not a directory.
+
+ENOTEMPTY
+
+Indicates that the directory is not empty.
+
+ENOTSOCK
+
+Indicates that the given item is not a socket.
+
+ENOTSUP
+
+Indicates that a given operation is not supported.
+
+ENOTTY
+
+Indicates an inappropriate I/O control operation.
+
+ENXIO
+
+Indicates no such device or address.
+
+EOPNOTSUPP
+
+Indicates that an operation is not supported on the socket. Although
+ENOTSUP and EOPNOTSUPP have the same value on Linux, according to
+POSIX.1 these error values should be distinct.)
+
+EOVERFLOW
+
+Indicates that a value is too large to be stored in a given data type.
+
+EPERM
+
+Indicates that the operation is not permitted.
+
+EPIPE
+
+Indicates a broken pipe.
+
+EPROTO
+
+Indicates a protocol error.
+
+EPROTONOSUPPORT
+
+Indicates that a protocol is not supported.
+
+EPROTOTYPE
+
+Indicates the wrong type of protocol for a socket.
+
+ERANGE
+
+Indicates that the results are too large.
+
+EROFS
+
+Indicates that the file system is read only.
+
+ESPIPE
+
+Indicates an invalid seek operation.
+
+ESRCH
+
+Indicates that there is no such process.
+
+ESTALE
+
+Indicates that the file handle is stale.
+
+ETIME
+
+Indicates an expired timer.
+
+ETIMEDOUT
+
+Indicates that the connection timed out.
+
+ETXTBSY
+
+Indicates that a text file is busy.
+
+EWOULDBLOCK
+
+Indicates that the operation would block.
+
+EXDEV
+
+Indicates an improper link.
+
+\paragraph{Windows-specific error
+constants}\label{windows-specific-error-constants}
+
+The following error codes are specific to the Windows operating system.
+
+Constant
+
+Description
+
+WSAEINTR
+
+Indicates an interrupted function call.
+
+WSAEBADF
+
+Indicates an invalid file handle.
+
+WSAEACCES
+
+Indicates insufficient permissions to complete the operation.
+
+WSAEFAULT
+
+Indicates an invalid pointer address.
+
+WSAEINVAL
+
+Indicates that an invalid argument was passed.
+
+WSAEMFILE
+
+Indicates that there are too many open files.
+
+WSAEWOULDBLOCK
+
+Indicates that a resource is temporarily unavailable.
+
+WSAEINPROGRESS
+
+Indicates that an operation is currently in progress.
+
+WSAEALREADY
+
+Indicates that an operation is already in progress.
+
+WSAENOTSOCK
+
+Indicates that the resource is not a socket.
+
+WSAEDESTADDRREQ
+
+Indicates that a destination address is required.
+
+WSAEMSGSIZE
+
+Indicates that the message size is too long.
+
+WSAEPROTOTYPE
+
+Indicates the wrong protocol type for the socket.
+
+WSAENOPROTOOPT
+
+Indicates a bad protocol option.
+
+WSAEPROTONOSUPPORT
+
+Indicates that the protocol is not supported.
+
+WSAESOCKTNOSUPPORT
+
+Indicates that the socket type is not supported.
+
+WSAEOPNOTSUPP
+
+Indicates that the operation is not supported.
+
+WSAEPFNOSUPPORT
+
+Indicates that the protocol family is not supported.
+
+WSAEAFNOSUPPORT
+
+Indicates that the address family is not supported.
+
+WSAEADDRINUSE
+
+Indicates that the network address is already in use.
+
+WSAEADDRNOTAVAIL
+
+Indicates that the network address is not available.
+
+WSAENETDOWN
+
+Indicates that the network is down.
+
+WSAENETUNREACH
+
+Indicates that the network is unreachable.
+
+WSAENETRESET
+
+Indicates that the network connection has been reset.
+
+WSAECONNABORTED
+
+Indicates that the connection has been aborted.
+
+WSAECONNRESET
+
+Indicates that the connection has been reset by the peer.
+
+WSAENOBUFS
+
+Indicates that there is no buffer space available.
+
+WSAEISCONN
+
+Indicates that the socket is already connected.
+
+WSAENOTCONN
+
+Indicates that the socket is not connected.
+
+WSAESHUTDOWN
+
+Indicates that data cannot be sent after the socket has been shutdown.
+
+WSAETOOMANYREFS
+
+Indicates that there are too many references.
+
+WSAETIMEDOUT
+
+Indicates that the connection has timed out.
+
+WSAECONNREFUSED
+
+Indicates that the connection has been refused.
+
+WSAELOOP
+
+Indicates that a name cannot be translated.
+
+WSAENAMETOOLONG
+
+Indicates that a name was too long.
+
+WSAEHOSTDOWN
+
+Indicates that a network host is down.
+
+WSAEHOSTUNREACH
+
+Indicates that there is no route to a network host.
+
+WSAENOTEMPTY
+
+Indicates that the directory is not empty.
+
+WSAEPROCLIM
+
+Indicates that there are too many processes.
+
+WSAEUSERS
+
+Indicates that the user quota has been exceeded.
+
+WSAEDQUOT
+
+Indicates that the disk quota has been exceeded.
+
+WSAESTALE
+
+Indicates a stale file handle reference.
+
+WSAEREMOTE
+
+Indicates that the item is remote.
+
+WSASYSNOTREADY
+
+Indicates that the network subsystem is not ready.
+
+WSAVERNOTSUPPORTED
+
+Indicates that the winsock.dll version is out of range.
+
+WSANOTINITIALISED
+
+Indicates that successful WSAStartup has not yet been performed.
+
+WSAEDISCON
+
+Indicates that a graceful shutdown is in progress.
+
+WSAENOMORE
+
+Indicates that there are no more results.
+
+WSAECANCELLED
+
+Indicates that an operation has been canceled.
+
+WSAEINVALIDPROCTABLE
+
+Indicates that the procedure call table is invalid.
+
+WSAEINVALIDPROVIDER
+
+Indicates an invalid service provider.
+
+WSAEPROVIDERFAILEDINIT
+
+Indicates that the service provider failed to initialized.
+
+WSASYSCALLFAILURE
+
+Indicates a system call failure.
+
+WSASERVICE\_NOT\_FOUND
+
+Indicates that a service was not found.
+
+WSATYPE\_NOT\_FOUND
+
+Indicates that a class type was not found.
+
+WSA\_E\_NO\_MORE
+
+Indicates that there are no more results.
+
+WSA\_E\_CANCELLED
+
+Indicates that the call was canceled.
+
+WSAEREFUSED
+
+Indicates that a database query was refused.
+
+\subsubsection{dlopen constants}\label{dlopen-constants}
+
+If available on the operating system, the following constants are
+exported in \texttt{os.constants.dlopen}. See dlopen(3) for detailed
+information.
+
+Constant
+
+Description
+
+RTLD\_LAZY
+
+Perform lazy binding. Node.js sets this flag by default.
+
+RTLD\_NOW
+
+Resolve all undefined symbols in the library before dlopen(3) returns.
+
+RTLD\_GLOBAL
+
+Symbols defined by the library will be made available for symbol
+resolution of subsequently loaded libraries.
+
+RTLD\_LOCAL
+
+The converse of RTLD\_GLOBAL. This is the default behavior if neither
+flag is specified.
+
+RTLD\_DEEPBIND
+
+Make a self-contained library use its own symbols in preference to
+symbols from previously loaded libraries.
+
+\subsubsection{Priority constants}\label{priority-constants}
+
+The following process scheduling constants are exported by
+\texttt{os.constants.priority}.
+
+Constant
+
+Description
+
+PRIORITY\_LOW
+
+The lowest process scheduling priority. This corresponds to
+IDLE\_PRIORITY\_CLASS on Windows, and a nice value of 19 on all other
+platforms.
+
+PRIORITY\_BELOW\_NORMAL
+
+The process scheduling priority above PRIORITY\_LOW and below
+PRIORITY\_NORMAL. This corresponds to BELOW\_NORMAL\_PRIORITY\_CLASS on
+Windows, and a nice value of 10 on all other platforms.
+
+PRIORITY\_NORMAL
+
+The default process scheduling priority. This corresponds to
+NORMAL\_PRIORITY\_CLASS on Windows, and a nice value of 0 on all other
+platforms.
+
+PRIORITY\_ABOVE\_NORMAL
+
+The process scheduling priority above PRIORITY\_NORMAL and below
+PRIORITY\_HIGH. This corresponds to ABOVE\_NORMAL\_PRIORITY\_CLASS on
+Windows, and a nice value of -7 on all other platforms.
+
+PRIORITY\_HIGH
+
+The process scheduling priority above PRIORITY\_ABOVE\_NORMAL and below
+PRIORITY\_HIGHEST. This corresponds to HIGH\_PRIORITY\_CLASS on Windows,
+and a nice value of -14 on all other platforms.
+
+PRIORITY\_HIGHEST
+
+The highest process scheduling priority. This corresponds to
+REALTIME\_PRIORITY\_CLASS on Windows, and a nice value of -20 on all
+other platforms.
+
+\subsubsection{libuv constants}\label{libuv-constants}
+
+Constant
+
+Description
+
+UV\_UDP\_REUSEADDR

@@ -1,0 +1,585 @@
+\section{HTTPS}\label{https}
+
+\begin{quote}
+Stability: 2 - Stable
+\end{quote}
+
+HTTPS is the HTTP protocol over TLS/SSL. In Node.js this is implemented
+as a separate module.
+
+\subsection{Determining if crypto support is
+unavailable}\label{determining-if-crypto-support-is-unavailable}
+
+It is possible for Node.js to be built without including support for the
+\texttt{node:crypto} module. In such cases, attempting to
+\texttt{import} from \texttt{https} or calling
+\texttt{require(\textquotesingle{}node:https\textquotesingle{})} will
+result in an error being thrown.
+
+When using CommonJS, the error thrown can be caught using try/catch:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{let}\NormalTok{ https}\OperatorTok{;}
+\ControlFlowTok{try}\NormalTok{ \{}
+\NormalTok{  https }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:https\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{\} }\ControlFlowTok{catch}\NormalTok{ (err) \{}
+  \BuiltInTok{console}\OperatorTok{.}\FunctionTok{error}\NormalTok{(}\StringTok{\textquotesingle{}https support is disabled!\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{\}}
+\end{Highlighting}
+\end{Shaded}
+
+When using the lexical ESM \texttt{import} keyword, the error can only
+be caught if a handler for
+\texttt{process.on(\textquotesingle{}uncaughtException\textquotesingle{})}
+is registered \emph{before} any attempt to load the module is made
+(using, for instance, a preload module).
+
+When using ESM, if there is a chance that the code may be run on a build
+of Node.js where crypto support is not enabled, consider using the
+\href{https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/import}{\texttt{import()}}
+function instead of the lexical \texttt{import} keyword:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{let}\NormalTok{ https}\OperatorTok{;}
+\ControlFlowTok{try}\NormalTok{ \{}
+\NormalTok{  https }\OperatorTok{=} \ControlFlowTok{await} \ImportTok{import}\NormalTok{(}\StringTok{\textquotesingle{}node:https\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{\} }\ControlFlowTok{catch}\NormalTok{ (err) \{}
+  \BuiltInTok{console}\OperatorTok{.}\FunctionTok{error}\NormalTok{(}\StringTok{\textquotesingle{}https support is disabled!\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{\}}
+\end{Highlighting}
+\end{Shaded}
+
+\subsection{\texorpdfstring{Class:
+\texttt{https.Agent}}{Class: https.Agent}}\label{class-https.agent}
+
+An \hyperref[class-httpsagent]{\texttt{Agent}} object for HTTPS similar
+to \href{http.md\#class-httpagent}{\texttt{http.Agent}}. See
+\hyperref[httpsrequestoptions-callback]{\texttt{https.request()}} for
+more information.
+
+\subsubsection{\texorpdfstring{\texttt{new\ Agent({[}options{]})}}{new Agent({[}options{]})}}\label{new-agentoptions}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{options} \{Object\} Set of configurable options to set on the
+  agent. Can have the same fields as for
+  \href{http.md\#new-agentoptions}{\texttt{http.Agent(options)}}, and
+
+  \begin{itemize}
+  \item
+    \texttt{maxCachedSessions} \{number\} maximum number of TLS cached
+    sessions. Use \texttt{0} to disable TLS session caching.
+    \textbf{Default:} \texttt{100}.
+  \item
+    \texttt{servername} \{string\} the value of
+    \href{https://en.wikipedia.org/wiki/Server_Name_Indication}{Server
+    Name Indication extension} to be sent to the server. Use empty
+    string \texttt{\textquotesingle{}\textquotesingle{}} to disable
+    sending the extension. \textbf{Default:} host name of the target
+    server, unless the target server is specified using an IP address,
+    in which case the default is
+    \texttt{\textquotesingle{}\textquotesingle{}} (no extension).
+
+    See \href{tls.md\#session-resumption}{\texttt{Session\ Resumption}}
+    for information about TLS session reuse.
+  \end{itemize}
+\end{itemize}
+
+\paragraph{\texorpdfstring{Event:
+\texttt{\textquotesingle{}keylog\textquotesingle{}}}{Event: \textquotesingle keylog\textquotesingle{}}}\label{event-keylog}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{line} \{Buffer\} Line of ASCII text, in NSS
+  \texttt{SSLKEYLOGFILE} format.
+\item
+  \texttt{tlsSocket} \{tls.TLSSocket\} The \texttt{tls.TLSSocket}
+  instance on which it was generated.
+\end{itemize}
+
+The \texttt{keylog} event is emitted when key material is generated or
+received by a connection managed by this agent (typically before
+handshake has completed, but not necessarily). This keying material can
+be stored for debugging, as it allows captured TLS traffic to be
+decrypted. It may be emitted multiple times for each socket.
+
+A typical use case is to append received lines to a common text file,
+which is later used by software (such as Wireshark) to decrypt the
+traffic:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{// ...}
+\NormalTok{https}\OperatorTok{.}\AttributeTok{globalAgent}\OperatorTok{.}\FunctionTok{on}\NormalTok{(}\StringTok{\textquotesingle{}keylog\textquotesingle{}}\OperatorTok{,}\NormalTok{ (line}\OperatorTok{,}\NormalTok{ tlsSocket) }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+\NormalTok{  fs}\OperatorTok{.}\FunctionTok{appendFileSync}\NormalTok{(}\StringTok{\textquotesingle{}/tmp/ssl{-}keys.log\textquotesingle{}}\OperatorTok{,}\NormalTok{ line}\OperatorTok{,}\NormalTok{ \{ }\DataTypeTok{mode}\OperatorTok{:} \BaseNTok{0o600}\NormalTok{ \})}\OperatorTok{;}
+\NormalTok{\})}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+\subsection{\texorpdfstring{Class:
+\texttt{https.Server}}{Class: https.Server}}\label{class-https.server}
+
+\begin{itemize}
+\tightlist
+\item
+  Extends: \{tls.Server\}
+\end{itemize}
+
+See \href{http.md\#class-httpserver}{\texttt{http.Server}} for more
+information.
+
+\subsubsection{\texorpdfstring{\texttt{server.close({[}callback{]})}}{server.close({[}callback{]})}}\label{server.closecallback}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{callback} \{Function\}
+\item
+  Returns: \{https.Server\}
+\end{itemize}
+
+See \href{http.md\#serverclosecallback}{\texttt{server.close()}} in the
+\texttt{node:http} module.
+
+\subsubsection{\texorpdfstring{\texttt{server{[}Symbol.asyncDispose{]}()}}{server{[}Symbol.asyncDispose{]}()}}\label{serversymbol.asyncdispose}
+
+\begin{quote}
+Stability: 1 - Experimental
+\end{quote}
+
+Calls \hyperref[serverclosecallback]{\texttt{server.close()}} and
+returns a promise that fulfills when the server has closed.
+
+\subsubsection{\texorpdfstring{\texttt{server.closeAllConnections()}}{server.closeAllConnections()}}\label{server.closeallconnections}
+
+See
+\href{http.md\#servercloseallconnections}{\texttt{server.closeAllConnections()}}
+in the \texttt{node:http} module.
+
+\subsubsection{\texorpdfstring{\texttt{server.closeIdleConnections()}}{server.closeIdleConnections()}}\label{server.closeidleconnections}
+
+See
+\href{http.md\#servercloseidleconnections}{\texttt{server.closeIdleConnections()}}
+in the \texttt{node:http} module.
+
+\subsubsection{\texorpdfstring{\texttt{server.headersTimeout}}{server.headersTimeout}}\label{server.headerstimeout}
+
+\begin{itemize}
+\tightlist
+\item
+  \{number\} \textbf{Default:} \texttt{60000}
+\end{itemize}
+
+See \href{http.md\#serverheaderstimeout}{\texttt{server.headersTimeout}}
+in the \texttt{node:http} module.
+
+\subsubsection{\texorpdfstring{\texttt{server.listen()}}{server.listen()}}\label{server.listen}
+
+Starts the HTTPS server listening for encrypted connections. This method
+is identical to \href{net.md\#serverlisten}{\texttt{server.listen()}}
+from \href{net.md\#class-netserver}{\texttt{net.Server}}.
+
+\subsubsection{\texorpdfstring{\texttt{server.maxHeadersCount}}{server.maxHeadersCount}}\label{server.maxheaderscount}
+
+\begin{itemize}
+\tightlist
+\item
+  \{number\} \textbf{Default:} \texttt{2000}
+\end{itemize}
+
+See
+\href{http.md\#servermaxheaderscount}{\texttt{server.maxHeadersCount}}
+in the \texttt{node:http} module.
+
+\subsubsection{\texorpdfstring{\texttt{server.requestTimeout}}{server.requestTimeout}}\label{server.requesttimeout}
+
+\begin{itemize}
+\tightlist
+\item
+  \{number\} \textbf{Default:} \texttt{300000}
+\end{itemize}
+
+See \href{http.md\#serverrequesttimeout}{\texttt{server.requestTimeout}}
+in the \texttt{node:http} module.
+
+\subsubsection{\texorpdfstring{\texttt{server.setTimeout({[}msecs{]}{[},\ callback{]})}}{server.setTimeout({[}msecs{]}{[}, callback{]})}}\label{server.settimeoutmsecs-callback}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{msecs} \{number\} \textbf{Default:} \texttt{120000} (2
+  minutes)
+\item
+  \texttt{callback} \{Function\}
+\item
+  Returns: \{https.Server\}
+\end{itemize}
+
+See
+\href{http.md\#serversettimeoutmsecs-callback}{\texttt{server.setTimeout()}}
+in the \texttt{node:http} module.
+
+\subsubsection{\texorpdfstring{\texttt{server.timeout}}{server.timeout}}\label{server.timeout}
+
+\begin{itemize}
+\tightlist
+\item
+  \{number\} \textbf{Default:} 0 (no timeout)
+\end{itemize}
+
+See \href{http.md\#servertimeout}{\texttt{server.timeout}} in the
+\texttt{node:http} module.
+
+\subsubsection{\texorpdfstring{\texttt{server.keepAliveTimeout}}{server.keepAliveTimeout}}\label{server.keepalivetimeout}
+
+\begin{itemize}
+\tightlist
+\item
+  \{number\} \textbf{Default:} \texttt{5000} (5 seconds)
+\end{itemize}
+
+See
+\href{http.md\#serverkeepalivetimeout}{\texttt{server.keepAliveTimeout}}
+in the \texttt{node:http} module.
+
+\subsection{\texorpdfstring{\texttt{https.createServer({[}options{]}{[},\ requestListener{]})}}{https.createServer({[}options{]}{[}, requestListener{]})}}\label{https.createserveroptions-requestlistener}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{options} \{Object\} Accepts \texttt{options} from
+  \href{tls.md\#tlscreateserveroptions-secureconnectionlistener}{\texttt{tls.createServer()}},
+  \href{tls.md\#tlscreatesecurecontextoptions}{\texttt{tls.createSecureContext()}}
+  and
+  \href{http.md\#httpcreateserveroptions-requestlistener}{\texttt{http.createServer()}}.
+\item
+  \texttt{requestListener} \{Function\} A listener to be added to the
+  \texttt{\textquotesingle{}request\textquotesingle{}} event.
+\item
+  Returns: \{https.Server\}
+\end{itemize}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{// curl {-}k https://localhost:8000/}
+\KeywordTok{const}\NormalTok{ https }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:https\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\KeywordTok{const}\NormalTok{ fs }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:fs\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+
+\KeywordTok{const}\NormalTok{ options }\OperatorTok{=}\NormalTok{ \{}
+  \DataTypeTok{key}\OperatorTok{:}\NormalTok{ fs}\OperatorTok{.}\FunctionTok{readFileSync}\NormalTok{(}\StringTok{\textquotesingle{}test/fixtures/keys/agent2{-}key.pem\textquotesingle{}}\NormalTok{)}\OperatorTok{,}
+  \DataTypeTok{cert}\OperatorTok{:}\NormalTok{ fs}\OperatorTok{.}\FunctionTok{readFileSync}\NormalTok{(}\StringTok{\textquotesingle{}test/fixtures/keys/agent2{-}cert.pem\textquotesingle{}}\NormalTok{)}\OperatorTok{,}
+\NormalTok{\}}\OperatorTok{;}
+
+\NormalTok{https}\OperatorTok{.}\FunctionTok{createServer}\NormalTok{(options}\OperatorTok{,}\NormalTok{ (req}\OperatorTok{,}\NormalTok{ res) }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+\NormalTok{  res}\OperatorTok{.}\FunctionTok{writeHead}\NormalTok{(}\DecValTok{200}\NormalTok{)}\OperatorTok{;}
+\NormalTok{  res}\OperatorTok{.}\FunctionTok{end}\NormalTok{(}\StringTok{\textquotesingle{}hello world}\SpecialCharTok{\textbackslash{}n}\StringTok{\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{\})}\OperatorTok{.}\FunctionTok{listen}\NormalTok{(}\DecValTok{8000}\NormalTok{)}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+Or
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ https }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:https\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\KeywordTok{const}\NormalTok{ fs }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:fs\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+
+\KeywordTok{const}\NormalTok{ options }\OperatorTok{=}\NormalTok{ \{}
+  \DataTypeTok{pfx}\OperatorTok{:}\NormalTok{ fs}\OperatorTok{.}\FunctionTok{readFileSync}\NormalTok{(}\StringTok{\textquotesingle{}test/fixtures/test\_cert.pfx\textquotesingle{}}\NormalTok{)}\OperatorTok{,}
+  \DataTypeTok{passphrase}\OperatorTok{:} \StringTok{\textquotesingle{}sample\textquotesingle{}}\OperatorTok{,}
+\NormalTok{\}}\OperatorTok{;}
+
+\NormalTok{https}\OperatorTok{.}\FunctionTok{createServer}\NormalTok{(options}\OperatorTok{,}\NormalTok{ (req}\OperatorTok{,}\NormalTok{ res) }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+\NormalTok{  res}\OperatorTok{.}\FunctionTok{writeHead}\NormalTok{(}\DecValTok{200}\NormalTok{)}\OperatorTok{;}
+\NormalTok{  res}\OperatorTok{.}\FunctionTok{end}\NormalTok{(}\StringTok{\textquotesingle{}hello world}\SpecialCharTok{\textbackslash{}n}\StringTok{\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{\})}\OperatorTok{.}\FunctionTok{listen}\NormalTok{(}\DecValTok{8000}\NormalTok{)}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+\subsection{\texorpdfstring{\texttt{https.get(options{[},\ callback{]})}}{https.get(options{[}, callback{]})}}\label{https.getoptions-callback}
+
+\subsection{\texorpdfstring{\texttt{https.get(url{[},\ options{]}{[},\ callback{]})}}{https.get(url{[}, options{]}{[}, callback{]})}}\label{https.geturl-options-callback}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{url} \{string \textbar{} URL\}
+\item
+  \texttt{options} \{Object \textbar{} string \textbar{} URL\} Accepts
+  the same \texttt{options} as
+  \hyperref[httpsrequestoptions-callback]{\texttt{https.request()}},
+  with the method set to GET by default.
+\item
+  \texttt{callback} \{Function\}
+\end{itemize}
+
+Like \href{http.md\#httpgetoptions-callback}{\texttt{http.get()}} but
+for HTTPS.
+
+\texttt{options} can be an object, a string, or a
+\href{url.md\#the-whatwg-url-api}{\texttt{URL}} object. If
+\texttt{options} is a string, it is automatically parsed with
+\href{url.md\#new-urlinput-base}{\texttt{new\ URL()}}. If it is a
+\href{url.md\#the-whatwg-url-api}{\texttt{URL}} object, it will be
+automatically converted to an ordinary \texttt{options} object.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ https }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:https\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+
+\NormalTok{https}\OperatorTok{.}\FunctionTok{get}\NormalTok{(}\StringTok{\textquotesingle{}https://encrypted.google.com/\textquotesingle{}}\OperatorTok{,}\NormalTok{ (res) }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+  \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\StringTok{\textquotesingle{}statusCode:\textquotesingle{}}\OperatorTok{,}\NormalTok{ res}\OperatorTok{.}\AttributeTok{statusCode}\NormalTok{)}\OperatorTok{;}
+  \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\StringTok{\textquotesingle{}headers:\textquotesingle{}}\OperatorTok{,}\NormalTok{ res}\OperatorTok{.}\AttributeTok{headers}\NormalTok{)}\OperatorTok{;}
+
+\NormalTok{  res}\OperatorTok{.}\FunctionTok{on}\NormalTok{(}\StringTok{\textquotesingle{}data\textquotesingle{}}\OperatorTok{,}\NormalTok{ (d) }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+    \BuiltInTok{process}\OperatorTok{.}\AttributeTok{stdout}\OperatorTok{.}\FunctionTok{write}\NormalTok{(d)}\OperatorTok{;}
+\NormalTok{  \})}\OperatorTok{;}
+
+\NormalTok{\})}\OperatorTok{.}\FunctionTok{on}\NormalTok{(}\StringTok{\textquotesingle{}error\textquotesingle{}}\OperatorTok{,}\NormalTok{ (e) }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+  \BuiltInTok{console}\OperatorTok{.}\FunctionTok{error}\NormalTok{(e)}\OperatorTok{;}
+\NormalTok{\})}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+\subsection{\texorpdfstring{\texttt{https.globalAgent}}{https.globalAgent}}\label{https.globalagent}
+
+Global instance of \hyperref[class-httpsagent]{\texttt{https.Agent}} for
+all HTTPS client requests.
+
+\subsection{\texorpdfstring{\texttt{https.request(options{[},\ callback{]})}}{https.request(options{[}, callback{]})}}\label{https.requestoptions-callback}
+
+\subsection{\texorpdfstring{\texttt{https.request(url{[},\ options{]}{[},\ callback{]})}}{https.request(url{[}, options{]}{[}, callback{]})}}\label{https.requesturl-options-callback}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{url} \{string \textbar{} URL\}
+\item
+  \texttt{options} \{Object \textbar{} string \textbar{} URL\} Accepts
+  all \texttt{options} from
+  \href{http.md\#httprequestoptions-callback}{\texttt{http.request()}},
+  with some differences in default values:
+
+  \begin{itemize}
+  \tightlist
+  \item
+    \texttt{protocol} \textbf{Default:}
+    \texttt{\textquotesingle{}https:\textquotesingle{}}
+  \item
+    \texttt{port} \textbf{Default:} \texttt{443}
+  \item
+    \texttt{agent} \textbf{Default:} \texttt{https.globalAgent}
+  \end{itemize}
+\item
+  \texttt{callback} \{Function\}
+\item
+  Returns: \{http.ClientRequest\}
+\end{itemize}
+
+Makes a request to a secure web server.
+
+The following additional \texttt{options} from
+\href{tls.md\#tlsconnectoptions-callback}{\texttt{tls.connect()}} are
+also accepted: \texttt{ca}, \texttt{cert}, \texttt{ciphers},
+\texttt{clientCertEngine}, \texttt{crl}, \texttt{dhparam},
+\texttt{ecdhCurve}, \texttt{honorCipherOrder}, \texttt{key},
+\texttt{passphrase}, \texttt{pfx}, \texttt{rejectUnauthorized},
+\texttt{secureOptions}, \texttt{secureProtocol}, \texttt{servername},
+\texttt{sessionIdContext}, \texttt{highWaterMark}.
+
+\texttt{options} can be an object, a string, or a
+\href{url.md\#the-whatwg-url-api}{\texttt{URL}} object. If
+\texttt{options} is a string, it is automatically parsed with
+\href{url.md\#new-urlinput-base}{\texttt{new\ URL()}}. If it is a
+\href{url.md\#the-whatwg-url-api}{\texttt{URL}} object, it will be
+automatically converted to an ordinary \texttt{options} object.
+
+\texttt{https.request()} returns an instance of the
+\href{http.md\#class-httpclientrequest}{\texttt{http.ClientRequest}}
+class. The \texttt{ClientRequest} instance is a writable stream. If one
+needs to upload a file with a POST request, then write to the
+\texttt{ClientRequest} object.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ https }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:https\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+
+\KeywordTok{const}\NormalTok{ options }\OperatorTok{=}\NormalTok{ \{}
+  \DataTypeTok{hostname}\OperatorTok{:} \StringTok{\textquotesingle{}encrypted.google.com\textquotesingle{}}\OperatorTok{,}
+  \DataTypeTok{port}\OperatorTok{:} \DecValTok{443}\OperatorTok{,}
+  \DataTypeTok{path}\OperatorTok{:} \StringTok{\textquotesingle{}/\textquotesingle{}}\OperatorTok{,}
+  \DataTypeTok{method}\OperatorTok{:} \StringTok{\textquotesingle{}GET\textquotesingle{}}\OperatorTok{,}
+\NormalTok{\}}\OperatorTok{;}
+
+\KeywordTok{const}\NormalTok{ req }\OperatorTok{=}\NormalTok{ https}\OperatorTok{.}\FunctionTok{request}\NormalTok{(options}\OperatorTok{,}\NormalTok{ (res) }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+  \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\StringTok{\textquotesingle{}statusCode:\textquotesingle{}}\OperatorTok{,}\NormalTok{ res}\OperatorTok{.}\AttributeTok{statusCode}\NormalTok{)}\OperatorTok{;}
+  \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\StringTok{\textquotesingle{}headers:\textquotesingle{}}\OperatorTok{,}\NormalTok{ res}\OperatorTok{.}\AttributeTok{headers}\NormalTok{)}\OperatorTok{;}
+
+\NormalTok{  res}\OperatorTok{.}\FunctionTok{on}\NormalTok{(}\StringTok{\textquotesingle{}data\textquotesingle{}}\OperatorTok{,}\NormalTok{ (d) }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+    \BuiltInTok{process}\OperatorTok{.}\AttributeTok{stdout}\OperatorTok{.}\FunctionTok{write}\NormalTok{(d)}\OperatorTok{;}
+\NormalTok{  \})}\OperatorTok{;}
+\NormalTok{\})}\OperatorTok{;}
+
+\NormalTok{req}\OperatorTok{.}\FunctionTok{on}\NormalTok{(}\StringTok{\textquotesingle{}error\textquotesingle{}}\OperatorTok{,}\NormalTok{ (e) }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+  \BuiltInTok{console}\OperatorTok{.}\FunctionTok{error}\NormalTok{(e)}\OperatorTok{;}
+\NormalTok{\})}\OperatorTok{;}
+\NormalTok{req}\OperatorTok{.}\FunctionTok{end}\NormalTok{()}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+Example using options from
+\href{tls.md\#tlsconnectoptions-callback}{\texttt{tls.connect()}}:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ options }\OperatorTok{=}\NormalTok{ \{}
+  \DataTypeTok{hostname}\OperatorTok{:} \StringTok{\textquotesingle{}encrypted.google.com\textquotesingle{}}\OperatorTok{,}
+  \DataTypeTok{port}\OperatorTok{:} \DecValTok{443}\OperatorTok{,}
+  \DataTypeTok{path}\OperatorTok{:} \StringTok{\textquotesingle{}/\textquotesingle{}}\OperatorTok{,}
+  \DataTypeTok{method}\OperatorTok{:} \StringTok{\textquotesingle{}GET\textquotesingle{}}\OperatorTok{,}
+  \DataTypeTok{key}\OperatorTok{:}\NormalTok{ fs}\OperatorTok{.}\FunctionTok{readFileSync}\NormalTok{(}\StringTok{\textquotesingle{}test/fixtures/keys/agent2{-}key.pem\textquotesingle{}}\NormalTok{)}\OperatorTok{,}
+  \DataTypeTok{cert}\OperatorTok{:}\NormalTok{ fs}\OperatorTok{.}\FunctionTok{readFileSync}\NormalTok{(}\StringTok{\textquotesingle{}test/fixtures/keys/agent2{-}cert.pem\textquotesingle{}}\NormalTok{)}\OperatorTok{,}
+\NormalTok{\}}\OperatorTok{;}
+\NormalTok{options}\OperatorTok{.}\AttributeTok{agent} \OperatorTok{=} \KeywordTok{new}\NormalTok{ https}\OperatorTok{.}\FunctionTok{Agent}\NormalTok{(options)}\OperatorTok{;}
+
+\KeywordTok{const}\NormalTok{ req }\OperatorTok{=}\NormalTok{ https}\OperatorTok{.}\FunctionTok{request}\NormalTok{(options}\OperatorTok{,}\NormalTok{ (res) }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+  \CommentTok{// ...}
+\NormalTok{\})}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+Alternatively, opt out of connection pooling by not using an
+\hyperref[class-httpsagent]{\texttt{Agent}}.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ options }\OperatorTok{=}\NormalTok{ \{}
+  \DataTypeTok{hostname}\OperatorTok{:} \StringTok{\textquotesingle{}encrypted.google.com\textquotesingle{}}\OperatorTok{,}
+  \DataTypeTok{port}\OperatorTok{:} \DecValTok{443}\OperatorTok{,}
+  \DataTypeTok{path}\OperatorTok{:} \StringTok{\textquotesingle{}/\textquotesingle{}}\OperatorTok{,}
+  \DataTypeTok{method}\OperatorTok{:} \StringTok{\textquotesingle{}GET\textquotesingle{}}\OperatorTok{,}
+  \DataTypeTok{key}\OperatorTok{:}\NormalTok{ fs}\OperatorTok{.}\FunctionTok{readFileSync}\NormalTok{(}\StringTok{\textquotesingle{}test/fixtures/keys/agent2{-}key.pem\textquotesingle{}}\NormalTok{)}\OperatorTok{,}
+  \DataTypeTok{cert}\OperatorTok{:}\NormalTok{ fs}\OperatorTok{.}\FunctionTok{readFileSync}\NormalTok{(}\StringTok{\textquotesingle{}test/fixtures/keys/agent2{-}cert.pem\textquotesingle{}}\NormalTok{)}\OperatorTok{,}
+  \DataTypeTok{agent}\OperatorTok{:} \KeywordTok{false}\OperatorTok{,}
+\NormalTok{\}}\OperatorTok{;}
+
+\KeywordTok{const}\NormalTok{ req }\OperatorTok{=}\NormalTok{ https}\OperatorTok{.}\FunctionTok{request}\NormalTok{(options}\OperatorTok{,}\NormalTok{ (res) }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+  \CommentTok{// ...}
+\NormalTok{\})}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+Example using a \href{url.md\#the-whatwg-url-api}{\texttt{URL}} as
+\texttt{options}:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ options }\OperatorTok{=} \KeywordTok{new} \FunctionTok{URL}\NormalTok{(}\StringTok{\textquotesingle{}https://abc:xyz@example.com\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+
+\KeywordTok{const}\NormalTok{ req }\OperatorTok{=}\NormalTok{ https}\OperatorTok{.}\FunctionTok{request}\NormalTok{(options}\OperatorTok{,}\NormalTok{ (res) }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+  \CommentTok{// ...}
+\NormalTok{\})}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+Example pinning on certificate fingerprint, or the public key (similar
+to \texttt{pin-sha256}):
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ tls }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:tls\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\KeywordTok{const}\NormalTok{ https }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:https\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\KeywordTok{const}\NormalTok{ crypto }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:crypto\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+
+\KeywordTok{function} \FunctionTok{sha256}\NormalTok{(s) \{}
+  \ControlFlowTok{return}\NormalTok{ crypto}\OperatorTok{.}\FunctionTok{createHash}\NormalTok{(}\StringTok{\textquotesingle{}sha256\textquotesingle{}}\NormalTok{)}\OperatorTok{.}\FunctionTok{update}\NormalTok{(s)}\OperatorTok{.}\FunctionTok{digest}\NormalTok{(}\StringTok{\textquotesingle{}base64\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{\}}
+\KeywordTok{const}\NormalTok{ options }\OperatorTok{=}\NormalTok{ \{}
+  \DataTypeTok{hostname}\OperatorTok{:} \StringTok{\textquotesingle{}github.com\textquotesingle{}}\OperatorTok{,}
+  \DataTypeTok{port}\OperatorTok{:} \DecValTok{443}\OperatorTok{,}
+  \DataTypeTok{path}\OperatorTok{:} \StringTok{\textquotesingle{}/\textquotesingle{}}\OperatorTok{,}
+  \DataTypeTok{method}\OperatorTok{:} \StringTok{\textquotesingle{}GET\textquotesingle{}}\OperatorTok{,}
+  \DataTypeTok{checkServerIdentity}\OperatorTok{:} \KeywordTok{function}\NormalTok{(host}\OperatorTok{,}\NormalTok{ cert) \{}
+    \CommentTok{// Make sure the certificate is issued to the host we are connected to}
+    \KeywordTok{const}\NormalTok{ err }\OperatorTok{=}\NormalTok{ tls}\OperatorTok{.}\FunctionTok{checkServerIdentity}\NormalTok{(host}\OperatorTok{,}\NormalTok{ cert)}\OperatorTok{;}
+    \ControlFlowTok{if}\NormalTok{ (err) \{}
+      \ControlFlowTok{return}\NormalTok{ err}\OperatorTok{;}
+\NormalTok{    \}}
+
+    \CommentTok{// Pin the public key, similar to HPKP pin{-}sha256 pinning}
+    \KeywordTok{const}\NormalTok{ pubkey256 }\OperatorTok{=} \StringTok{\textquotesingle{}pL1+qb9HTMRZJmuC/bB/ZI9d302BYrrqiVuRyW+DGrU=\textquotesingle{}}\OperatorTok{;}
+    \ControlFlowTok{if}\NormalTok{ (}\FunctionTok{sha256}\NormalTok{(cert}\OperatorTok{.}\AttributeTok{pubkey}\NormalTok{) }\OperatorTok{!==}\NormalTok{ pubkey256) \{}
+      \KeywordTok{const}\NormalTok{ msg }\OperatorTok{=} \StringTok{\textquotesingle{}Certificate verification error: \textquotesingle{}} \OperatorTok{+}
+        \VerbatimStringTok{\textasciigrave{}The public key of \textquotesingle{}}\SpecialCharTok{$\{}\NormalTok{cert}\OperatorTok{.}\AttributeTok{subject}\OperatorTok{.}\AttributeTok{CN}\SpecialCharTok{\}}\VerbatimStringTok{\textquotesingle{} \textasciigrave{}} \OperatorTok{+}
+        \StringTok{\textquotesingle{}does not match our pinned fingerprint\textquotesingle{}}\OperatorTok{;}
+      \ControlFlowTok{return} \KeywordTok{new} \BuiltInTok{Error}\NormalTok{(msg)}\OperatorTok{;}
+\NormalTok{    \}}
+
+    \CommentTok{// Pin the exact certificate, rather than the pub key}
+    \KeywordTok{const}\NormalTok{ cert256 }\OperatorTok{=} \StringTok{\textquotesingle{}25:FE:39:32:D9:63:8C:8A:FC:A1:9A:29:87:\textquotesingle{}} \OperatorTok{+}
+      \StringTok{\textquotesingle{}D8:3E:4C:1D:98:DB:71:E4:1A:48:03:98:EA:22:6A:BD:8B:93:16\textquotesingle{}}\OperatorTok{;}
+    \ControlFlowTok{if}\NormalTok{ (cert}\OperatorTok{.}\AttributeTok{fingerprint256} \OperatorTok{!==}\NormalTok{ cert256) \{}
+      \KeywordTok{const}\NormalTok{ msg }\OperatorTok{=} \StringTok{\textquotesingle{}Certificate verification error: \textquotesingle{}} \OperatorTok{+}
+        \VerbatimStringTok{\textasciigrave{}The certificate of \textquotesingle{}}\SpecialCharTok{$\{}\NormalTok{cert}\OperatorTok{.}\AttributeTok{subject}\OperatorTok{.}\AttributeTok{CN}\SpecialCharTok{\}}\VerbatimStringTok{\textquotesingle{} \textasciigrave{}} \OperatorTok{+}
+        \StringTok{\textquotesingle{}does not match our pinned fingerprint\textquotesingle{}}\OperatorTok{;}
+      \ControlFlowTok{return} \KeywordTok{new} \BuiltInTok{Error}\NormalTok{(msg)}\OperatorTok{;}
+\NormalTok{    \}}
+
+    \CommentTok{// This loop is informational only.}
+    \CommentTok{// Print the certificate and public key fingerprints of all certs in the}
+    \CommentTok{// chain. Its common to pin the public key of the issuer on the public}
+    \CommentTok{// internet, while pinning the public key of the service in sensitive}
+    \CommentTok{// environments.}
+    \ControlFlowTok{do}\NormalTok{ \{}
+      \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\StringTok{\textquotesingle{}Subject Common Name:\textquotesingle{}}\OperatorTok{,}\NormalTok{ cert}\OperatorTok{.}\AttributeTok{subject}\OperatorTok{.}\AttributeTok{CN}\NormalTok{)}\OperatorTok{;}
+      \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\StringTok{\textquotesingle{}  Certificate SHA256 fingerprint:\textquotesingle{}}\OperatorTok{,}\NormalTok{ cert}\OperatorTok{.}\AttributeTok{fingerprint256}\NormalTok{)}\OperatorTok{;}
+
+\NormalTok{      hash }\OperatorTok{=}\NormalTok{ crypto}\OperatorTok{.}\FunctionTok{createHash}\NormalTok{(}\StringTok{\textquotesingle{}sha256\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+      \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\StringTok{\textquotesingle{}  Public key ping{-}sha256:\textquotesingle{}}\OperatorTok{,} \FunctionTok{sha256}\NormalTok{(cert}\OperatorTok{.}\AttributeTok{pubkey}\NormalTok{))}\OperatorTok{;}
+
+\NormalTok{      lastprint256 }\OperatorTok{=}\NormalTok{ cert}\OperatorTok{.}\AttributeTok{fingerprint256}\OperatorTok{;}
+\NormalTok{      cert }\OperatorTok{=}\NormalTok{ cert}\OperatorTok{.}\AttributeTok{issuerCertificate}\OperatorTok{;}
+\NormalTok{    \} }\ControlFlowTok{while}\NormalTok{ (cert}\OperatorTok{.}\AttributeTok{fingerprint256} \OperatorTok{!==}\NormalTok{ lastprint256)}\OperatorTok{;}
+
+\NormalTok{  \}}\OperatorTok{,}
+\NormalTok{\}}\OperatorTok{;}
+
+\NormalTok{options}\OperatorTok{.}\AttributeTok{agent} \OperatorTok{=} \KeywordTok{new}\NormalTok{ https}\OperatorTok{.}\FunctionTok{Agent}\NormalTok{(options)}\OperatorTok{;}
+\KeywordTok{const}\NormalTok{ req }\OperatorTok{=}\NormalTok{ https}\OperatorTok{.}\FunctionTok{request}\NormalTok{(options}\OperatorTok{,}\NormalTok{ (res) }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+  \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\StringTok{\textquotesingle{}All OK. Server matched our pinned cert or public key\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+  \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\StringTok{\textquotesingle{}statusCode:\textquotesingle{}}\OperatorTok{,}\NormalTok{ res}\OperatorTok{.}\AttributeTok{statusCode}\NormalTok{)}\OperatorTok{;}
+  \CommentTok{// Print the HPKP values}
+  \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\StringTok{\textquotesingle{}headers:\textquotesingle{}}\OperatorTok{,}\NormalTok{ res}\OperatorTok{.}\AttributeTok{headers}\NormalTok{[}\StringTok{\textquotesingle{}public{-}key{-}pins\textquotesingle{}}\NormalTok{])}\OperatorTok{;}
+
+\NormalTok{  res}\OperatorTok{.}\FunctionTok{on}\NormalTok{(}\StringTok{\textquotesingle{}data\textquotesingle{}}\OperatorTok{,}\NormalTok{ (d) }\KeywordTok{=\textgreater{}}\NormalTok{ \{\})}\OperatorTok{;}
+\NormalTok{\})}\OperatorTok{;}
+
+\NormalTok{req}\OperatorTok{.}\FunctionTok{on}\NormalTok{(}\StringTok{\textquotesingle{}error\textquotesingle{}}\OperatorTok{,}\NormalTok{ (e) }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+  \BuiltInTok{console}\OperatorTok{.}\FunctionTok{error}\NormalTok{(e}\OperatorTok{.}\AttributeTok{message}\NormalTok{)}\OperatorTok{;}
+\NormalTok{\})}\OperatorTok{;}
+\NormalTok{req}\OperatorTok{.}\FunctionTok{end}\NormalTok{()}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+Outputs for example:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{Subject Common Name: github.com}
+\NormalTok{  Certificate SHA256 fingerprint: 25:FE:39:32:D9:63:8C:8A:FC:A1:9A:29:87:D8:3E:4C:1D:98:DB:71:E4:1A:48:03:98:EA:22:6A:BD:8B:93:16}
+\NormalTok{  Public key ping{-}sha256: pL1+qb9HTMRZJmuC/bB/ZI9d302BYrrqiVuRyW+DGrU=}
+\NormalTok{Subject Common Name: DigiCert SHA2 Extended Validation Server CA}
+\NormalTok{  Certificate SHA256 fingerprint: 40:3E:06:2A:26:53:05:91:13:28:5B:AF:80:A0:D4:AE:42:2C:84:8C:9F:78:FA:D0:1F:C9:4B:C5:B8:7F:EF:1A}
+\NormalTok{  Public key ping{-}sha256: RRM1dGqnDFsCJXBTHky16vi1obOlCgFFn/yOhI/y+ho=}
+\NormalTok{Subject Common Name: DigiCert High Assurance EV Root CA}
+\NormalTok{  Certificate SHA256 fingerprint: 74:31:E5:F4:C3:C1:CE:46:90:77:4F:0B:61:E0:54:40:88:3B:A9:A0:1E:D0:0B:A6:AB:D7:80:6E:D3:B1:18:CF}
+\NormalTok{  Public key ping{-}sha256: WoiWRyIOVNa9ihaBciRSC7XHjliYS9VwUGOIud4PB18=}
+\NormalTok{All OK. Server matched our pinned cert or public key}
+\NormalTok{statusCode: 200}
+\NormalTok{headers: max{-}age=0; pin{-}sha256="WoiWRyIOVNa9ihaBciRSC7XHjliYS9VwUGOIud4PB18="; pin{-}sha256="RRM1dGqnDFsCJXBTHky16vi1obOlCgFFn/yOhI/y+ho="; pin{-}sha256="k2v657xBsOVe1PQRwOsHsw3bsGT2VzIqz5K+59sNQws="; pin{-}sha256="K87oWBWM9UZfyddvDfoxL+8lpNyoUB2ptGtn0fv6G2Q="; pin{-}sha256="IQBnNBEiFuhj+8x6X8XLgh01V9Ic5/V3IRQLNFFc7v4="; pin{-}sha256="iie1VXtL7HzAMF+/PVPR9xzT80kQxdZeJ+zduCB3uj0="; pin{-}sha256="LvRiGEjRqfzurezaWuj8Wie2gyHMrW5Q06LspMnox7A="; includeSubDomains}
+\end{Highlighting}
+\end{Shaded}

@@ -1,0 +1,1516 @@
+\section{Readline}\label{readline}
+
+\begin{quote}
+Stability: 2 - Stable
+\end{quote}
+
+The \texttt{node:readline} module provides an interface for reading data
+from a \href{stream.md\#readable-streams}{Readable} stream (such as
+\href{process.md\#processstdin}{\texttt{process.stdin}}) one line at a
+time.
+
+To use the promise-based APIs:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\ImportTok{import} \OperatorTok{*} \ImportTok{as}\NormalTok{ readline }\ImportTok{from} \StringTok{\textquotesingle{}node:readline/promises\textquotesingle{}}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ readline }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:readline/promises\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+To use the callback and sync APIs:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\ImportTok{import} \OperatorTok{*} \ImportTok{as}\NormalTok{ readline }\ImportTok{from} \StringTok{\textquotesingle{}node:readline\textquotesingle{}}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ readline }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:readline\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+The following simple example illustrates the basic use of the
+\texttt{node:readline} module.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\ImportTok{import} \OperatorTok{*} \ImportTok{as}\NormalTok{ readline }\ImportTok{from} \StringTok{\textquotesingle{}node:readline/promises\textquotesingle{}}\OperatorTok{;}
+\ImportTok{import}\NormalTok{ \{ stdin }\ImportTok{as}\NormalTok{ input}\OperatorTok{,}\NormalTok{ stdout }\ImportTok{as}\NormalTok{ output \} }\ImportTok{from} \StringTok{\textquotesingle{}node:process\textquotesingle{}}\OperatorTok{;}
+
+\KeywordTok{const}\NormalTok{ rl }\OperatorTok{=}\NormalTok{ readline}\OperatorTok{.}\FunctionTok{createInterface}\NormalTok{(\{ input}\OperatorTok{,}\NormalTok{ output \})}\OperatorTok{;}
+
+\KeywordTok{const}\NormalTok{ answer }\OperatorTok{=} \ControlFlowTok{await}\NormalTok{ rl}\OperatorTok{.}\FunctionTok{question}\NormalTok{(}\StringTok{\textquotesingle{}What do you think of Node.js? \textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+
+\BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\VerbatimStringTok{\textasciigrave{}Thank you for your valuable feedback: }\SpecialCharTok{$\{}\NormalTok{answer}\SpecialCharTok{\}}\VerbatimStringTok{\textasciigrave{}}\NormalTok{)}\OperatorTok{;}
+
+\NormalTok{rl}\OperatorTok{.}\FunctionTok{close}\NormalTok{()}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ readline }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:readline\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\KeywordTok{const}\NormalTok{ \{ }\DataTypeTok{stdin}\OperatorTok{:}\NormalTok{ input}\OperatorTok{,} \DataTypeTok{stdout}\OperatorTok{:}\NormalTok{ output \} }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:process\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+
+\KeywordTok{const}\NormalTok{ rl }\OperatorTok{=}\NormalTok{ readline}\OperatorTok{.}\FunctionTok{createInterface}\NormalTok{(\{ input}\OperatorTok{,}\NormalTok{ output \})}\OperatorTok{;}
+
+\NormalTok{rl}\OperatorTok{.}\FunctionTok{question}\NormalTok{(}\StringTok{\textquotesingle{}What do you think of Node.js? \textquotesingle{}}\OperatorTok{,}\NormalTok{ (answer) }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+  \CommentTok{// }\AlertTok{TODO}\CommentTok{: Log the answer in a database}
+  \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\VerbatimStringTok{\textasciigrave{}Thank you for your valuable feedback: }\SpecialCharTok{$\{}\NormalTok{answer}\SpecialCharTok{\}}\VerbatimStringTok{\textasciigrave{}}\NormalTok{)}\OperatorTok{;}
+
+\NormalTok{  rl}\OperatorTok{.}\FunctionTok{close}\NormalTok{()}\OperatorTok{;}
+\NormalTok{\})}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+Once this code is invoked, the Node.js application will not terminate
+until the \texttt{readline.Interface} is closed because the interface
+waits for data to be received on the \texttt{input} stream.
+
+\subsection{\texorpdfstring{Class:
+\texttt{InterfaceConstructor}}{Class: InterfaceConstructor}}\label{class-interfaceconstructor}
+
+\begin{itemize}
+\tightlist
+\item
+  Extends: \{EventEmitter\}
+\end{itemize}
+
+Instances of the \texttt{InterfaceConstructor} class are constructed
+using the \texttt{readlinePromises.createInterface()} or
+\texttt{readline.createInterface()} method. Every instance is associated
+with a single \texttt{input}
+\href{stream.md\#readable-streams}{Readable} stream and a single
+\texttt{output} \href{stream.md\#writable-streams}{Writable} stream. The
+\texttt{output} stream is used to print prompts for user input that
+arrives on, and is read from, the \texttt{input} stream.
+
+\subsubsection{\texorpdfstring{Event:
+\texttt{\textquotesingle{}close\textquotesingle{}}}{Event: \textquotesingle close\textquotesingle{}}}\label{event-close}
+
+The \texttt{\textquotesingle{}close\textquotesingle{}} event is emitted
+when one of the following occur:
+
+\begin{itemize}
+\tightlist
+\item
+  The \texttt{rl.close()} method is called and the
+  \texttt{InterfaceConstructor} instance has relinquished control over
+  the \texttt{input} and \texttt{output} streams;
+\item
+  The \texttt{input} stream receives its
+  \texttt{\textquotesingle{}end\textquotesingle{}} event;
+\item
+  The \texttt{input} stream receives Ctrl+D to signal
+  end-of-transmission (EOT);
+\item
+  The \texttt{input} stream receives Ctrl+C to signal \texttt{SIGINT}
+  and there is no \texttt{\textquotesingle{}SIGINT\textquotesingle{}}
+  event listener registered on the \texttt{InterfaceConstructor}
+  instance.
+\end{itemize}
+
+The listener function is called without passing any arguments.
+
+The \texttt{InterfaceConstructor} instance is finished once the
+\texttt{\textquotesingle{}close\textquotesingle{}} event is emitted.
+
+\subsubsection{\texorpdfstring{Event:
+\texttt{\textquotesingle{}line\textquotesingle{}}}{Event: \textquotesingle line\textquotesingle{}}}\label{event-line}
+
+The \texttt{\textquotesingle{}line\textquotesingle{}} event is emitted
+whenever the \texttt{input} stream receives an end-of-line input
+(\texttt{\textbackslash{}n}, \texttt{\textbackslash{}r}, or
+\texttt{\textbackslash{}r\textbackslash{}n}). This usually occurs when
+the user presses Enter or Return.
+
+The \texttt{\textquotesingle{}line\textquotesingle{}} event is also
+emitted if new data has been read from a stream and that stream ends
+without a final end-of-line marker.
+
+The listener function is called with a string containing the single line
+of received input.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{rl}\OperatorTok{.}\FunctionTok{on}\NormalTok{(}\StringTok{\textquotesingle{}line\textquotesingle{}}\OperatorTok{,}\NormalTok{ (input) }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+  \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\VerbatimStringTok{\textasciigrave{}Received: }\SpecialCharTok{$\{}\NormalTok{input}\SpecialCharTok{\}}\VerbatimStringTok{\textasciigrave{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{\})}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+\subsubsection{\texorpdfstring{Event:
+\texttt{\textquotesingle{}history\textquotesingle{}}}{Event: \textquotesingle history\textquotesingle{}}}\label{event-history}
+
+The \texttt{\textquotesingle{}history\textquotesingle{}} event is
+emitted whenever the history array has changed.
+
+The listener function is called with an array containing the history
+array. It will reflect all changes, added lines and removed lines due to
+\texttt{historySize} and \texttt{removeHistoryDuplicates}.
+
+The primary purpose is to allow a listener to persist the history. It is
+also possible for the listener to change the history object. This could
+be useful to prevent certain lines to be added to the history, like a
+password.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{rl}\OperatorTok{.}\FunctionTok{on}\NormalTok{(}\StringTok{\textquotesingle{}history\textquotesingle{}}\OperatorTok{,}\NormalTok{ (history) }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+  \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\VerbatimStringTok{\textasciigrave{}Received: }\SpecialCharTok{$\{}\NormalTok{history}\SpecialCharTok{\}}\VerbatimStringTok{\textasciigrave{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{\})}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+\subsubsection{\texorpdfstring{Event:
+\texttt{\textquotesingle{}pause\textquotesingle{}}}{Event: \textquotesingle pause\textquotesingle{}}}\label{event-pause}
+
+The \texttt{\textquotesingle{}pause\textquotesingle{}} event is emitted
+when one of the following occur:
+
+\begin{itemize}
+\tightlist
+\item
+  The \texttt{input} stream is paused.
+\item
+  The \texttt{input} stream is not paused and receives the
+  \texttt{\textquotesingle{}SIGCONT\textquotesingle{}} event. (See
+  events
+  \hyperref[event-sigtstp]{\texttt{\textquotesingle{}SIGTSTP\textquotesingle{}}}
+  and
+  \hyperref[event-sigcont]{\texttt{\textquotesingle{}SIGCONT\textquotesingle{}}}.)
+\end{itemize}
+
+The listener function is called without passing any arguments.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{rl}\OperatorTok{.}\FunctionTok{on}\NormalTok{(}\StringTok{\textquotesingle{}pause\textquotesingle{}}\OperatorTok{,}\NormalTok{ () }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+  \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\StringTok{\textquotesingle{}Readline paused.\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{\})}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+\subsubsection{\texorpdfstring{Event:
+\texttt{\textquotesingle{}resume\textquotesingle{}}}{Event: \textquotesingle resume\textquotesingle{}}}\label{event-resume}
+
+The \texttt{\textquotesingle{}resume\textquotesingle{}} event is emitted
+whenever the \texttt{input} stream is resumed.
+
+The listener function is called without passing any arguments.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{rl}\OperatorTok{.}\FunctionTok{on}\NormalTok{(}\StringTok{\textquotesingle{}resume\textquotesingle{}}\OperatorTok{,}\NormalTok{ () }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+  \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\StringTok{\textquotesingle{}Readline resumed.\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{\})}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+\subsubsection{\texorpdfstring{Event:
+\texttt{\textquotesingle{}SIGCONT\textquotesingle{}}}{Event: \textquotesingle SIGCONT\textquotesingle{}}}\label{event-sigcont}
+
+The \texttt{\textquotesingle{}SIGCONT\textquotesingle{}} event is
+emitted when a Node.js process previously moved into the background
+using Ctrl+Z (i.e.~\texttt{SIGTSTP}) is then brought back to the
+foreground using fg(1p).
+
+If the \texttt{input} stream was paused \emph{before} the
+\texttt{SIGTSTP} request, this event will not be emitted.
+
+The listener function is invoked without passing any arguments.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{rl}\OperatorTok{.}\FunctionTok{on}\NormalTok{(}\StringTok{\textquotesingle{}SIGCONT\textquotesingle{}}\OperatorTok{,}\NormalTok{ () }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+  \CommentTok{// \textasciigrave{}prompt\textasciigrave{} will automatically resume the stream}
+\NormalTok{  rl}\OperatorTok{.}\FunctionTok{prompt}\NormalTok{()}\OperatorTok{;}
+\NormalTok{\})}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+The \texttt{\textquotesingle{}SIGCONT\textquotesingle{}} event is
+\emph{not} supported on Windows.
+
+\subsubsection{\texorpdfstring{Event:
+\texttt{\textquotesingle{}SIGINT\textquotesingle{}}}{Event: \textquotesingle SIGINT\textquotesingle{}}}\label{event-sigint}
+
+The \texttt{\textquotesingle{}SIGINT\textquotesingle{}} event is emitted
+whenever the \texttt{input} stream receives a Ctrl+C input, known
+typically as \texttt{SIGINT}. If there are no
+\texttt{\textquotesingle{}SIGINT\textquotesingle{}} event listeners
+registered when the \texttt{input} stream receives a \texttt{SIGINT},
+the \texttt{\textquotesingle{}pause\textquotesingle{}} event will be
+emitted.
+
+The listener function is invoked without passing any arguments.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{rl}\OperatorTok{.}\FunctionTok{on}\NormalTok{(}\StringTok{\textquotesingle{}SIGINT\textquotesingle{}}\OperatorTok{,}\NormalTok{ () }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+\NormalTok{  rl}\OperatorTok{.}\FunctionTok{question}\NormalTok{(}\StringTok{\textquotesingle{}Are you sure you want to exit? \textquotesingle{}}\OperatorTok{,}\NormalTok{ (answer) }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+    \ControlFlowTok{if}\NormalTok{ (answer}\OperatorTok{.}\FunctionTok{match}\NormalTok{(}\SpecialStringTok{/}\SpecialCharTok{\^{}}\SpecialStringTok{y}\SpecialCharTok{(}\SpecialStringTok{es}\SpecialCharTok{)?$}\SpecialStringTok{/i}\NormalTok{)) rl}\OperatorTok{.}\FunctionTok{pause}\NormalTok{()}\OperatorTok{;}
+\NormalTok{  \})}\OperatorTok{;}
+\NormalTok{\})}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+\subsubsection{\texorpdfstring{Event:
+\texttt{\textquotesingle{}SIGTSTP\textquotesingle{}}}{Event: \textquotesingle SIGTSTP\textquotesingle{}}}\label{event-sigtstp}
+
+The \texttt{\textquotesingle{}SIGTSTP\textquotesingle{}} event is
+emitted when the \texttt{input} stream receives a Ctrl+Z input,
+typically known as \texttt{SIGTSTP}. If there are no
+\texttt{\textquotesingle{}SIGTSTP\textquotesingle{}} event listeners
+registered when the \texttt{input} stream receives a \texttt{SIGTSTP},
+the Node.js process will be sent to the background.
+
+When the program is resumed using fg(1p), the
+\texttt{\textquotesingle{}pause\textquotesingle{}} and
+\texttt{\textquotesingle{}SIGCONT\textquotesingle{}} events will be
+emitted. These can be used to resume the \texttt{input} stream.
+
+The \texttt{\textquotesingle{}pause\textquotesingle{}} and
+\texttt{\textquotesingle{}SIGCONT\textquotesingle{}} events will not be
+emitted if the \texttt{input} was paused before the process was sent to
+the background.
+
+The listener function is invoked without passing any arguments.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{rl}\OperatorTok{.}\FunctionTok{on}\NormalTok{(}\StringTok{\textquotesingle{}SIGTSTP\textquotesingle{}}\OperatorTok{,}\NormalTok{ () }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+  \CommentTok{// This will override SIGTSTP and prevent the program from going to the}
+  \CommentTok{// background.}
+  \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\StringTok{\textquotesingle{}Caught SIGTSTP.\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{\})}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+The \texttt{\textquotesingle{}SIGTSTP\textquotesingle{}} event is
+\emph{not} supported on Windows.
+
+\subsubsection{\texorpdfstring{\texttt{rl.close()}}{rl.close()}}\label{rl.close}
+
+The \texttt{rl.close()} method closes the \texttt{InterfaceConstructor}
+instance and relinquishes control over the \texttt{input} and
+\texttt{output} streams. When called, the
+\texttt{\textquotesingle{}close\textquotesingle{}} event will be
+emitted.
+
+Calling \texttt{rl.close()} does not immediately stop other events
+(including \texttt{\textquotesingle{}line\textquotesingle{}}) from being
+emitted by the \texttt{InterfaceConstructor} instance.
+
+\subsubsection{\texorpdfstring{\texttt{rl.pause()}}{rl.pause()}}\label{rl.pause}
+
+The \texttt{rl.pause()} method pauses the \texttt{input} stream,
+allowing it to be resumed later if necessary.
+
+Calling \texttt{rl.pause()} does not immediately pause other events
+(including \texttt{\textquotesingle{}line\textquotesingle{}}) from being
+emitted by the \texttt{InterfaceConstructor} instance.
+
+\subsubsection{\texorpdfstring{\texttt{rl.prompt({[}preserveCursor{]})}}{rl.prompt({[}preserveCursor{]})}}\label{rl.promptpreservecursor}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{preserveCursor} \{boolean\} If \texttt{true}, prevents the
+  cursor placement from being reset to \texttt{0}.
+\end{itemize}
+
+The \texttt{rl.prompt()} method writes the \texttt{InterfaceConstructor}
+instances configured \texttt{prompt} to a new line in \texttt{output} in
+order to provide a user with a new location at which to provide input.
+
+When called, \texttt{rl.prompt()} will resume the \texttt{input} stream
+if it has been paused.
+
+If the \texttt{InterfaceConstructor} was created with \texttt{output}
+set to \texttt{null} or \texttt{undefined} the prompt is not written.
+
+\subsubsection{\texorpdfstring{\texttt{rl.resume()}}{rl.resume()}}\label{rl.resume}
+
+The \texttt{rl.resume()} method resumes the \texttt{input} stream if it
+has been paused.
+
+\subsubsection{\texorpdfstring{\texttt{rl.setPrompt(prompt)}}{rl.setPrompt(prompt)}}\label{rl.setpromptprompt}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{prompt} \{string\}
+\end{itemize}
+
+The \texttt{rl.setPrompt()} method sets the prompt that will be written
+to \texttt{output} whenever \texttt{rl.prompt()} is called.
+
+\subsubsection{\texorpdfstring{\texttt{rl.getPrompt()}}{rl.getPrompt()}}\label{rl.getprompt}
+
+\begin{itemize}
+\tightlist
+\item
+  Returns: \{string\} the current prompt string
+\end{itemize}
+
+The \texttt{rl.getPrompt()} method returns the current prompt used by
+\texttt{rl.prompt()}.
+
+\subsubsection{\texorpdfstring{\texttt{rl.write(data{[},\ key{]})}}{rl.write(data{[}, key{]})}}\label{rl.writedata-key}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{data} \{string\}
+\item
+  \texttt{key} \{Object\}
+
+  \begin{itemize}
+  \tightlist
+  \item
+    \texttt{ctrl} \{boolean\} \texttt{true} to indicate the Ctrl key.
+  \item
+    \texttt{meta} \{boolean\} \texttt{true} to indicate the Meta key.
+  \item
+    \texttt{shift} \{boolean\} \texttt{true} to indicate the Shift key.
+  \item
+    \texttt{name} \{string\} The name of the a key.
+  \end{itemize}
+\end{itemize}
+
+The \texttt{rl.write()} method will write either \texttt{data} or a key
+sequence identified by \texttt{key} to the \texttt{output}. The
+\texttt{key} argument is supported only if \texttt{output} is a
+\href{tty.md}{TTY} text terminal. See \hyperref[tty-keybindings]{TTY
+keybindings} for a list of key combinations.
+
+If \texttt{key} is specified, \texttt{data} is ignored.
+
+When called, \texttt{rl.write()} will resume the \texttt{input} stream
+if it has been paused.
+
+If the \texttt{InterfaceConstructor} was created with \texttt{output}
+set to \texttt{null} or \texttt{undefined} the \texttt{data} and
+\texttt{key} are not written.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{rl}\OperatorTok{.}\FunctionTok{write}\NormalTok{(}\StringTok{\textquotesingle{}Delete this!\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// Simulate Ctrl+U to delete the line written previously}
+\NormalTok{rl}\OperatorTok{.}\FunctionTok{write}\NormalTok{(}\KeywordTok{null}\OperatorTok{,}\NormalTok{ \{ }\DataTypeTok{ctrl}\OperatorTok{:} \KeywordTok{true}\OperatorTok{,} \DataTypeTok{name}\OperatorTok{:} \StringTok{\textquotesingle{}u\textquotesingle{}}\NormalTok{ \})}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+The \texttt{rl.write()} method will write the data to the
+\texttt{readline} \texttt{Interface}'s \texttt{input} \emph{as if it
+were provided by the user}.
+
+\subsubsection{\texorpdfstring{\texttt{rl{[}Symbol.asyncIterator{]}()}}{rl{[}Symbol.asyncIterator{]}()}}\label{rlsymbol.asynciterator}
+
+\begin{itemize}
+\tightlist
+\item
+  Returns: \{AsyncIterator\}
+\end{itemize}
+
+Create an \texttt{AsyncIterator} object that iterates through each line
+in the input stream as a string. This method allows asynchronous
+iteration of \texttt{InterfaceConstructor} objects through
+\texttt{for\ await...of} loops.
+
+Errors in the input stream are not forwarded.
+
+If the loop is terminated with \texttt{break}, \texttt{throw}, or
+\texttt{return}, \hyperref[rlclose]{\texttt{rl.close()}} will be called.
+In other words, iterating over a \texttt{InterfaceConstructor} will
+always consume the input stream fully.
+
+Performance is not on par with the traditional
+\texttt{\textquotesingle{}line\textquotesingle{}} event API. Use
+\texttt{\textquotesingle{}line\textquotesingle{}} instead for
+performance-sensitive applications.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{async} \KeywordTok{function} \FunctionTok{processLineByLine}\NormalTok{() \{}
+  \KeywordTok{const}\NormalTok{ rl }\OperatorTok{=}\NormalTok{ readline}\OperatorTok{.}\FunctionTok{createInterface}\NormalTok{(\{}
+    \CommentTok{// ...}
+\NormalTok{  \})}\OperatorTok{;}
+
+  \ControlFlowTok{for} \ControlFlowTok{await}\NormalTok{ (}\KeywordTok{const}\NormalTok{ line }\KeywordTok{of}\NormalTok{ rl) \{}
+    \CommentTok{// Each line in the readline input will be successively available here as}
+    \CommentTok{// \textasciigrave{}line\textasciigrave{}.}
+\NormalTok{  \}}
+\NormalTok{\}}
+\end{Highlighting}
+\end{Shaded}
+
+\texttt{readline.createInterface()} will start to consume the input
+stream once invoked. Having asynchronous operations between interface
+creation and asynchronous iteration may result in missed lines.
+
+\subsubsection{\texorpdfstring{\texttt{rl.line}}{rl.line}}\label{rl.line}
+
+\begin{itemize}
+\tightlist
+\item
+  \{string\}
+\end{itemize}
+
+The current input data being processed by node.
+
+This can be used when collecting input from a TTY stream to retrieve the
+current value that has been processed thus far, prior to the
+\texttt{line} event being emitted. Once the \texttt{line} event has been
+emitted, this property will be an empty string.
+
+Be aware that modifying the value during the instance runtime may have
+unintended consequences if \texttt{rl.cursor} is not also controlled.
+
+\textbf{If not using a TTY stream for input, use the
+\hyperref[event-line]{\texttt{\textquotesingle{}line\textquotesingle{}}}
+event.}
+
+One possible use case would be as follows:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ values }\OperatorTok{=}\NormalTok{ [}\StringTok{\textquotesingle{}lorem ipsum\textquotesingle{}}\OperatorTok{,} \StringTok{\textquotesingle{}dolor sit amet\textquotesingle{}}\NormalTok{]}\OperatorTok{;}
+\KeywordTok{const}\NormalTok{ rl }\OperatorTok{=}\NormalTok{ readline}\OperatorTok{.}\FunctionTok{createInterface}\NormalTok{(}\BuiltInTok{process}\OperatorTok{.}\AttributeTok{stdin}\NormalTok{)}\OperatorTok{;}
+\KeywordTok{const}\NormalTok{ showResults }\OperatorTok{=} \FunctionTok{debounce}\NormalTok{(() }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+  \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}
+    \StringTok{\textquotesingle{}}\SpecialCharTok{\textbackslash{}n}\StringTok{\textquotesingle{}}\OperatorTok{,}
+\NormalTok{    values}\OperatorTok{.}\FunctionTok{filter}\NormalTok{((val) }\KeywordTok{=\textgreater{}}\NormalTok{ val}\OperatorTok{.}\FunctionTok{startsWith}\NormalTok{(rl}\OperatorTok{.}\AttributeTok{line}\NormalTok{))}\OperatorTok{.}\FunctionTok{join}\NormalTok{(}\StringTok{\textquotesingle{} \textquotesingle{}}\NormalTok{)}\OperatorTok{,}
+\NormalTok{  )}\OperatorTok{;}
+\NormalTok{\}}\OperatorTok{,} \DecValTok{300}\NormalTok{)}\OperatorTok{;}
+\BuiltInTok{process}\OperatorTok{.}\AttributeTok{stdin}\OperatorTok{.}\FunctionTok{on}\NormalTok{(}\StringTok{\textquotesingle{}keypress\textquotesingle{}}\OperatorTok{,}\NormalTok{ (c}\OperatorTok{,}\NormalTok{ k) }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+  \FunctionTok{showResults}\NormalTok{()}\OperatorTok{;}
+\NormalTok{\})}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+\subsubsection{\texorpdfstring{\texttt{rl.cursor}}{rl.cursor}}\label{rl.cursor}
+
+\begin{itemize}
+\tightlist
+\item
+  \{number\textbar undefined\}
+\end{itemize}
+
+The cursor position relative to \texttt{rl.line}.
+
+This will track where the current cursor lands in the input string, when
+reading input from a TTY stream. The position of cursor determines the
+portion of the input string that will be modified as input is processed,
+as well as the column where the terminal caret will be rendered.
+
+\subsubsection{\texorpdfstring{\texttt{rl.getCursorPos()}}{rl.getCursorPos()}}\label{rl.getcursorpos}
+
+\begin{itemize}
+\tightlist
+\item
+  Returns: \{Object\}
+
+  \begin{itemize}
+  \tightlist
+  \item
+    \texttt{rows} \{number\} the row of the prompt the cursor currently
+    lands on
+  \item
+    \texttt{cols} \{number\} the screen column the cursor currently
+    lands on
+  \end{itemize}
+\end{itemize}
+
+Returns the real position of the cursor in relation to the input prompt
++ string. Long input (wrapping) strings, as well as multiple line
+prompts are included in the calculations.
+
+\subsection{Promises API}\label{promises-api}
+
+\begin{quote}
+Stability: 1 - Experimental
+\end{quote}
+
+\subsubsection{\texorpdfstring{Class:
+\texttt{readlinePromises.Interface}}{Class: readlinePromises.Interface}}\label{class-readlinepromises.interface}
+
+\begin{itemize}
+\tightlist
+\item
+  Extends: \{readline.InterfaceConstructor\}
+\end{itemize}
+
+Instances of the \texttt{readlinePromises.Interface} class are
+constructed using the \texttt{readlinePromises.createInterface()}
+method. Every instance is associated with a single \texttt{input}
+\href{stream.md\#readable-streams}{Readable} stream and a single
+\texttt{output} \href{stream.md\#writable-streams}{Writable} stream. The
+\texttt{output} stream is used to print prompts for user input that
+arrives on, and is read from, the \texttt{input} stream.
+
+\paragraph{\texorpdfstring{\texttt{rl.question(query{[},\ options{]})}}{rl.question(query{[}, options{]})}}\label{rl.questionquery-options}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{query} \{string\} A statement or query to write to
+  \texttt{output}, prepended to the prompt.
+\item
+  \texttt{options} \{Object\}
+
+  \begin{itemize}
+  \tightlist
+  \item
+    \texttt{signal} \{AbortSignal\} Optionally allows the
+    \texttt{question()} to be canceled using an \texttt{AbortSignal}.
+  \end{itemize}
+\item
+  Returns: \{Promise\} A promise that is fulfilled with the user's input
+  in response to the \texttt{query}.
+\end{itemize}
+
+The \texttt{rl.question()} method displays the \texttt{query} by writing
+it to the \texttt{output}, waits for user input to be provided on
+\texttt{input}, then invokes the \texttt{callback} function passing the
+provided input as the first argument.
+
+When called, \texttt{rl.question()} will resume the \texttt{input}
+stream if it has been paused.
+
+If the \texttt{readlinePromises.Interface} was created with
+\texttt{output} set to \texttt{null} or \texttt{undefined} the
+\texttt{query} is not written.
+
+If the question is called after \texttt{rl.close()}, it returns a
+rejected promise.
+
+Example usage:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ answer }\OperatorTok{=} \ControlFlowTok{await}\NormalTok{ rl}\OperatorTok{.}\FunctionTok{question}\NormalTok{(}\StringTok{\textquotesingle{}What is your favorite food? \textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\VerbatimStringTok{\textasciigrave{}Oh, so your favorite food is }\SpecialCharTok{$\{}\NormalTok{answer}\SpecialCharTok{\}}\VerbatimStringTok{\textasciigrave{}}\NormalTok{)}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+Using an \texttt{AbortSignal} to cancel a question.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ signal }\OperatorTok{=}\NormalTok{ AbortSignal}\OperatorTok{.}\FunctionTok{timeout}\NormalTok{(}\DecValTok{10\_000}\NormalTok{)}\OperatorTok{;}
+
+\NormalTok{signal}\OperatorTok{.}\FunctionTok{addEventListener}\NormalTok{(}\StringTok{\textquotesingle{}abort\textquotesingle{}}\OperatorTok{,}\NormalTok{ () }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+  \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\StringTok{\textquotesingle{}The food question timed out\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{\}}\OperatorTok{,}\NormalTok{ \{ }\DataTypeTok{once}\OperatorTok{:} \KeywordTok{true}\NormalTok{ \})}\OperatorTok{;}
+
+\KeywordTok{const}\NormalTok{ answer }\OperatorTok{=} \ControlFlowTok{await}\NormalTok{ rl}\OperatorTok{.}\FunctionTok{question}\NormalTok{(}\StringTok{\textquotesingle{}What is your favorite food? \textquotesingle{}}\OperatorTok{,}\NormalTok{ \{ signal \})}\OperatorTok{;}
+\BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\VerbatimStringTok{\textasciigrave{}Oh, so your favorite food is }\SpecialCharTok{$\{}\NormalTok{answer}\SpecialCharTok{\}}\VerbatimStringTok{\textasciigrave{}}\NormalTok{)}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+\subsubsection{\texorpdfstring{Class:
+\texttt{readlinePromises.Readline}}{Class: readlinePromises.Readline}}\label{class-readlinepromises.readline}
+
+\paragraph{\texorpdfstring{\texttt{new\ readlinePromises.Readline(stream{[},\ options{]})}}{new readlinePromises.Readline(stream{[}, options{]})}}\label{new-readlinepromises.readlinestream-options}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{stream} \{stream.Writable\} A \href{tty.md}{TTY} stream.
+\item
+  \texttt{options} \{Object\}
+
+  \begin{itemize}
+  \tightlist
+  \item
+    \texttt{autoCommit} \{boolean\} If \texttt{true}, no need to call
+    \texttt{rl.commit()}.
+  \end{itemize}
+\end{itemize}
+
+\paragraph{\texorpdfstring{\texttt{rl.clearLine(dir)}}{rl.clearLine(dir)}}\label{rl.clearlinedir}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{dir} \{integer\}
+
+  \begin{itemize}
+  \tightlist
+  \item
+    \texttt{-1}: to the left from cursor
+  \item
+    \texttt{1}: to the right from cursor
+  \item
+    \texttt{0}: the entire line
+  \end{itemize}
+\item
+  Returns: this
+\end{itemize}
+
+The \texttt{rl.clearLine()} method adds to the internal list of pending
+action an action that clears current line of the associated
+\texttt{stream} in a specified direction identified by \texttt{dir}.
+Call \texttt{rl.commit()} to see the effect of this method, unless
+\texttt{autoCommit:\ true} was passed to the constructor.
+
+\paragraph{\texorpdfstring{\texttt{rl.clearScreenDown()}}{rl.clearScreenDown()}}\label{rl.clearscreendown}
+
+\begin{itemize}
+\tightlist
+\item
+  Returns: this
+\end{itemize}
+
+The \texttt{rl.clearScreenDown()} method adds to the internal list of
+pending action an action that clears the associated stream from the
+current position of the cursor down. Call \texttt{rl.commit()} to see
+the effect of this method, unless \texttt{autoCommit:\ true} was passed
+to the constructor.
+
+\paragraph{\texorpdfstring{\texttt{rl.commit()}}{rl.commit()}}\label{rl.commit}
+
+\begin{itemize}
+\tightlist
+\item
+  Returns: \{Promise\}
+\end{itemize}
+
+The \texttt{rl.commit()} method sends all the pending actions to the
+associated \texttt{stream} and clears the internal list of pending
+actions.
+
+\paragraph{\texorpdfstring{\texttt{rl.cursorTo(x{[},\ y{]})}}{rl.cursorTo(x{[}, y{]})}}\label{rl.cursortox-y}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{x} \{integer\}
+\item
+  \texttt{y} \{integer\}
+\item
+  Returns: this
+\end{itemize}
+
+The \texttt{rl.cursorTo()} method adds to the internal list of pending
+action an action that moves cursor to the specified position in the
+associated \texttt{stream}. Call \texttt{rl.commit()} to see the effect
+of this method, unless \texttt{autoCommit:\ true} was passed to the
+constructor.
+
+\paragraph{\texorpdfstring{\texttt{rl.moveCursor(dx,\ dy)}}{rl.moveCursor(dx, dy)}}\label{rl.movecursordx-dy}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{dx} \{integer\}
+\item
+  \texttt{dy} \{integer\}
+\item
+  Returns: this
+\end{itemize}
+
+The \texttt{rl.moveCursor()} method adds to the internal list of pending
+action an action that moves the cursor \emph{relative} to its current
+position in the associated \texttt{stream}. Call \texttt{rl.commit()} to
+see the effect of this method, unless \texttt{autoCommit:\ true} was
+passed to the constructor.
+
+\paragraph{\texorpdfstring{\texttt{rl.rollback()}}{rl.rollback()}}\label{rl.rollback}
+
+\begin{itemize}
+\tightlist
+\item
+  Returns: this
+\end{itemize}
+
+The \texttt{rl.rollback} methods clears the internal list of pending
+actions without sending it to the associated \texttt{stream}.
+
+\subsubsection{\texorpdfstring{\texttt{readlinePromises.createInterface(options)}}{readlinePromises.createInterface(options)}}\label{readlinepromises.createinterfaceoptions}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{options} \{Object\}
+
+  \begin{itemize}
+  \tightlist
+  \item
+    \texttt{input} \{stream.Readable\} The
+    \href{stream.md\#readable-streams}{Readable} stream to listen to.
+    This option is \emph{required}.
+  \item
+    \texttt{output} \{stream.Writable\} The
+    \href{stream.md\#writable-streams}{Writable} stream to write
+    readline data to.
+  \item
+    \texttt{completer} \{Function\} An optional function used for Tab
+    autocompletion.
+  \item
+    \texttt{terminal} \{boolean\} \texttt{true} if the \texttt{input}
+    and \texttt{output} streams should be treated like a TTY, and have
+    ANSI/VT100 escape codes written to it. \textbf{Default:} checking
+    \texttt{isTTY} on the \texttt{output} stream upon instantiation.
+  \item
+    \texttt{history} \{string{[}{]}\} Initial list of history lines.
+    This option makes sense only if \texttt{terminal} is set to
+    \texttt{true} by the user or by an internal \texttt{output} check,
+    otherwise the history caching mechanism is not initialized at all.
+    \textbf{Default:} \texttt{{[}{]}}.
+  \item
+    \texttt{historySize} \{number\} Maximum number of history lines
+    retained. To disable the history set this value to \texttt{0}. This
+    option makes sense only if \texttt{terminal} is set to \texttt{true}
+    by the user or by an internal \texttt{output} check, otherwise the
+    history caching mechanism is not initialized at all.
+    \textbf{Default:} \texttt{30}.
+  \item
+    \texttt{removeHistoryDuplicates} \{boolean\} If \texttt{true}, when
+    a new input line added to the history list duplicates an older one,
+    this removes the older line from the list. \textbf{Default:}
+    \texttt{false}.
+  \item
+    \texttt{prompt} \{string\} The prompt string to use.
+    \textbf{Default:}
+    \texttt{\textquotesingle{}\textgreater{}\ \textquotesingle{}}.
+  \item
+    \texttt{crlfDelay} \{number\} If the delay between
+    \texttt{\textbackslash{}r} and \texttt{\textbackslash{}n} exceeds
+    \texttt{crlfDelay} milliseconds, both \texttt{\textbackslash{}r} and
+    \texttt{\textbackslash{}n} will be treated as separate end-of-line
+    input. \texttt{crlfDelay} will be coerced to a number no less than
+    \texttt{100}. It can be set to \texttt{Infinity}, in which case
+    \texttt{\textbackslash{}r} followed by \texttt{\textbackslash{}n}
+    will always be considered a single newline (which may be reasonable
+    for \hyperref[example-read-file-stream-line-by-line]{reading files}
+    with \texttt{\textbackslash{}r\textbackslash{}n} line delimiter).
+    \textbf{Default:} \texttt{100}.
+  \item
+    \texttt{escapeCodeTimeout} \{number\} The duration
+    \texttt{readlinePromises} will wait for a character (when reading an
+    ambiguous key sequence in milliseconds one that can both form a
+    complete key sequence using the input read so far and can take
+    additional input to complete a longer key sequence).
+    \textbf{Default:} \texttt{500}.
+  \item
+    \texttt{tabSize} \{integer\} The number of spaces a tab is equal to
+    (minimum 1). \textbf{Default:} \texttt{8}.
+  \end{itemize}
+\item
+  Returns: \{readlinePromises.Interface\}
+\end{itemize}
+
+The \texttt{readlinePromises.createInterface()} method creates a new
+\texttt{readlinePromises.Interface} instance.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ readlinePromises }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:readline/promises\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\KeywordTok{const}\NormalTok{ rl }\OperatorTok{=}\NormalTok{ readlinePromises}\OperatorTok{.}\FunctionTok{createInterface}\NormalTok{(\{}
+  \DataTypeTok{input}\OperatorTok{:} \BuiltInTok{process}\OperatorTok{.}\AttributeTok{stdin}\OperatorTok{,}
+  \DataTypeTok{output}\OperatorTok{:} \BuiltInTok{process}\OperatorTok{.}\AttributeTok{stdout}\OperatorTok{,}
+\NormalTok{\})}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+Once the \texttt{readlinePromises.Interface} instance is created, the
+most common case is to listen for the
+\texttt{\textquotesingle{}line\textquotesingle{}} event:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{rl}\OperatorTok{.}\FunctionTok{on}\NormalTok{(}\StringTok{\textquotesingle{}line\textquotesingle{}}\OperatorTok{,}\NormalTok{ (line) }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+  \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\VerbatimStringTok{\textasciigrave{}Received: }\SpecialCharTok{$\{}\NormalTok{line}\SpecialCharTok{\}}\VerbatimStringTok{\textasciigrave{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{\})}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+If \texttt{terminal} is \texttt{true} for this instance then the
+\texttt{output} stream will get the best compatibility if it defines an
+\texttt{output.columns} property and emits a
+\texttt{\textquotesingle{}resize\textquotesingle{}} event on the
+\texttt{output} if or when the columns ever change
+(\href{process.md\#processstdout}{\texttt{process.stdout}} does this
+automatically when it is a TTY).
+
+\paragraph{\texorpdfstring{Use of the \texttt{completer}
+function}{Use of the completer function}}\label{use-of-the-completer-function}
+
+The \texttt{completer} function takes the current line entered by the
+user as an argument, and returns an \texttt{Array} with 2 entries:
+
+\begin{itemize}
+\tightlist
+\item
+  An \texttt{Array} with matching entries for the completion.
+\item
+  The substring that was used for the matching.
+\end{itemize}
+
+For instance:
+\texttt{{[}{[}substr1,\ substr2,\ ...{]},\ originalsubstring{]}}.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{function} \FunctionTok{completer}\NormalTok{(line) \{}
+  \KeywordTok{const}\NormalTok{ completions }\OperatorTok{=} \StringTok{\textquotesingle{}.help .error .exit .quit .q\textquotesingle{}}\OperatorTok{.}\FunctionTok{split}\NormalTok{(}\StringTok{\textquotesingle{} \textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+  \KeywordTok{const}\NormalTok{ hits }\OperatorTok{=}\NormalTok{ completions}\OperatorTok{.}\FunctionTok{filter}\NormalTok{((c) }\KeywordTok{=\textgreater{}}\NormalTok{ c}\OperatorTok{.}\FunctionTok{startsWith}\NormalTok{(line))}\OperatorTok{;}
+  \CommentTok{// Show all completions if none found}
+  \ControlFlowTok{return}\NormalTok{ [hits}\OperatorTok{.}\AttributeTok{length} \OperatorTok{?}\NormalTok{ hits }\OperatorTok{:}\NormalTok{ completions}\OperatorTok{,}\NormalTok{ line]}\OperatorTok{;}
+\NormalTok{\}}
+\end{Highlighting}
+\end{Shaded}
+
+The \texttt{completer} function can also return a \{Promise\}, or be
+asynchronous:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{async} \KeywordTok{function} \FunctionTok{completer}\NormalTok{(linePartial) \{}
+  \ControlFlowTok{await} \FunctionTok{someAsyncWork}\NormalTok{()}\OperatorTok{;}
+  \ControlFlowTok{return}\NormalTok{ [[}\StringTok{\textquotesingle{}123\textquotesingle{}}\NormalTok{]}\OperatorTok{,}\NormalTok{ linePartial]}\OperatorTok{;}
+\NormalTok{\}}
+\end{Highlighting}
+\end{Shaded}
+
+\subsection{Callback API}\label{callback-api}
+
+\subsubsection{\texorpdfstring{Class:
+\texttt{readline.Interface}}{Class: readline.Interface}}\label{class-readline.interface}
+
+\begin{itemize}
+\tightlist
+\item
+  Extends: \{readline.InterfaceConstructor\}
+\end{itemize}
+
+Instances of the \texttt{readline.Interface} class are constructed using
+the \texttt{readline.createInterface()} method. Every instance is
+associated with a single \texttt{input}
+\href{stream.md\#readable-streams}{Readable} stream and a single
+\texttt{output} \href{stream.md\#writable-streams}{Writable} stream. The
+\texttt{output} stream is used to print prompts for user input that
+arrives on, and is read from, the \texttt{input} stream.
+
+\paragraph{\texorpdfstring{\texttt{rl.question(query{[},\ options{]},\ callback)}}{rl.question(query{[}, options{]}, callback)}}\label{rl.questionquery-options-callback}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{query} \{string\} A statement or query to write to
+  \texttt{output}, prepended to the prompt.
+\item
+  \texttt{options} \{Object\}
+
+  \begin{itemize}
+  \tightlist
+  \item
+    \texttt{signal} \{AbortSignal\} Optionally allows the
+    \texttt{question()} to be canceled using an
+    \texttt{AbortController}.
+  \end{itemize}
+\item
+  \texttt{callback} \{Function\} A callback function that is invoked
+  with the user's input in response to the \texttt{query}.
+\end{itemize}
+
+The \texttt{rl.question()} method displays the \texttt{query} by writing
+it to the \texttt{output}, waits for user input to be provided on
+\texttt{input}, then invokes the \texttt{callback} function passing the
+provided input as the first argument.
+
+When called, \texttt{rl.question()} will resume the \texttt{input}
+stream if it has been paused.
+
+If the \texttt{readline.Interface} was created with \texttt{output} set
+to \texttt{null} or \texttt{undefined} the \texttt{query} is not
+written.
+
+The \texttt{callback} function passed to \texttt{rl.question()} does not
+follow the typical pattern of accepting an \texttt{Error} object or
+\texttt{null} as the first argument. The \texttt{callback} is called
+with the provided answer as the only argument.
+
+An error will be thrown if calling \texttt{rl.question()} after
+\texttt{rl.close()}.
+
+Example usage:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{rl}\OperatorTok{.}\FunctionTok{question}\NormalTok{(}\StringTok{\textquotesingle{}What is your favorite food? \textquotesingle{}}\OperatorTok{,}\NormalTok{ (answer) }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+  \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\VerbatimStringTok{\textasciigrave{}Oh, so your favorite food is }\SpecialCharTok{$\{}\NormalTok{answer}\SpecialCharTok{\}}\VerbatimStringTok{\textasciigrave{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{\})}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+Using an \texttt{AbortController} to cancel a question.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ ac }\OperatorTok{=} \KeywordTok{new} \FunctionTok{AbortController}\NormalTok{()}\OperatorTok{;}
+\KeywordTok{const}\NormalTok{ signal }\OperatorTok{=}\NormalTok{ ac}\OperatorTok{.}\AttributeTok{signal}\OperatorTok{;}
+
+\NormalTok{rl}\OperatorTok{.}\FunctionTok{question}\NormalTok{(}\StringTok{\textquotesingle{}What is your favorite food? \textquotesingle{}}\OperatorTok{,}\NormalTok{ \{ signal \}}\OperatorTok{,}\NormalTok{ (answer) }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+  \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\VerbatimStringTok{\textasciigrave{}Oh, so your favorite food is }\SpecialCharTok{$\{}\NormalTok{answer}\SpecialCharTok{\}}\VerbatimStringTok{\textasciigrave{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{\})}\OperatorTok{;}
+
+\NormalTok{signal}\OperatorTok{.}\FunctionTok{addEventListener}\NormalTok{(}\StringTok{\textquotesingle{}abort\textquotesingle{}}\OperatorTok{,}\NormalTok{ () }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+  \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\StringTok{\textquotesingle{}The food question timed out\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{\}}\OperatorTok{,}\NormalTok{ \{ }\DataTypeTok{once}\OperatorTok{:} \KeywordTok{true}\NormalTok{ \})}\OperatorTok{;}
+
+\PreprocessorTok{setTimeout}\NormalTok{(() }\KeywordTok{=\textgreater{}}\NormalTok{ ac}\OperatorTok{.}\FunctionTok{abort}\NormalTok{()}\OperatorTok{,} \DecValTok{10000}\NormalTok{)}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+\subsubsection{\texorpdfstring{\texttt{readline.clearLine(stream,\ dir{[},\ callback{]})}}{readline.clearLine(stream, dir{[}, callback{]})}}\label{readline.clearlinestream-dir-callback}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{stream} \{stream.Writable\}
+\item
+  \texttt{dir} \{number\}
+
+  \begin{itemize}
+  \tightlist
+  \item
+    \texttt{-1}: to the left from cursor
+  \item
+    \texttt{1}: to the right from cursor
+  \item
+    \texttt{0}: the entire line
+  \end{itemize}
+\item
+  \texttt{callback} \{Function\} Invoked once the operation completes.
+\item
+  Returns: \{boolean\} \texttt{false} if \texttt{stream} wishes for the
+  calling code to wait for the
+  \texttt{\textquotesingle{}drain\textquotesingle{}} event to be emitted
+  before continuing to write additional data; otherwise \texttt{true}.
+\end{itemize}
+
+The \texttt{readline.clearLine()} method clears current line of given
+\href{tty.md}{TTY} stream in a specified direction identified by
+\texttt{dir}.
+
+\subsubsection{\texorpdfstring{\texttt{readline.clearScreenDown(stream{[},\ callback{]})}}{readline.clearScreenDown(stream{[}, callback{]})}}\label{readline.clearscreendownstream-callback}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{stream} \{stream.Writable\}
+\item
+  \texttt{callback} \{Function\} Invoked once the operation completes.
+\item
+  Returns: \{boolean\} \texttt{false} if \texttt{stream} wishes for the
+  calling code to wait for the
+  \texttt{\textquotesingle{}drain\textquotesingle{}} event to be emitted
+  before continuing to write additional data; otherwise \texttt{true}.
+\end{itemize}
+
+The \texttt{readline.clearScreenDown()} method clears the given
+\href{tty.md}{TTY} stream from the current position of the cursor down.
+
+\subsubsection{\texorpdfstring{\texttt{readline.createInterface(options)}}{readline.createInterface(options)}}\label{readline.createinterfaceoptions}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{options} \{Object\}
+
+  \begin{itemize}
+  \tightlist
+  \item
+    \texttt{input} \{stream.Readable\} The
+    \href{stream.md\#readable-streams}{Readable} stream to listen to.
+    This option is \emph{required}.
+  \item
+    \texttt{output} \{stream.Writable\} The
+    \href{stream.md\#writable-streams}{Writable} stream to write
+    readline data to.
+  \item
+    \texttt{completer} \{Function\} An optional function used for Tab
+    autocompletion.
+  \item
+    \texttt{terminal} \{boolean\} \texttt{true} if the \texttt{input}
+    and \texttt{output} streams should be treated like a TTY, and have
+    ANSI/VT100 escape codes written to it. \textbf{Default:} checking
+    \texttt{isTTY} on the \texttt{output} stream upon instantiation.
+  \item
+    \texttt{history} \{string{[}{]}\} Initial list of history lines.
+    This option makes sense only if \texttt{terminal} is set to
+    \texttt{true} by the user or by an internal \texttt{output} check,
+    otherwise the history caching mechanism is not initialized at all.
+    \textbf{Default:} \texttt{{[}{]}}.
+  \item
+    \texttt{historySize} \{number\} Maximum number of history lines
+    retained. To disable the history set this value to \texttt{0}. This
+    option makes sense only if \texttt{terminal} is set to \texttt{true}
+    by the user or by an internal \texttt{output} check, otherwise the
+    history caching mechanism is not initialized at all.
+    \textbf{Default:} \texttt{30}.
+  \item
+    \texttt{removeHistoryDuplicates} \{boolean\} If \texttt{true}, when
+    a new input line added to the history list duplicates an older one,
+    this removes the older line from the list. \textbf{Default:}
+    \texttt{false}.
+  \item
+    \texttt{prompt} \{string\} The prompt string to use.
+    \textbf{Default:}
+    \texttt{\textquotesingle{}\textgreater{}\ \textquotesingle{}}.
+  \item
+    \texttt{crlfDelay} \{number\} If the delay between
+    \texttt{\textbackslash{}r} and \texttt{\textbackslash{}n} exceeds
+    \texttt{crlfDelay} milliseconds, both \texttt{\textbackslash{}r} and
+    \texttt{\textbackslash{}n} will be treated as separate end-of-line
+    input. \texttt{crlfDelay} will be coerced to a number no less than
+    \texttt{100}. It can be set to \texttt{Infinity}, in which case
+    \texttt{\textbackslash{}r} followed by \texttt{\textbackslash{}n}
+    will always be considered a single newline (which may be reasonable
+    for \hyperref[example-read-file-stream-line-by-line]{reading files}
+    with \texttt{\textbackslash{}r\textbackslash{}n} line delimiter).
+    \textbf{Default:} \texttt{100}.
+  \item
+    \texttt{escapeCodeTimeout} \{number\} The duration \texttt{readline}
+    will wait for a character (when reading an ambiguous key sequence in
+    milliseconds one that can both form a complete key sequence using
+    the input read so far and can take additional input to complete a
+    longer key sequence). \textbf{Default:} \texttt{500}.
+  \item
+    \texttt{tabSize} \{integer\} The number of spaces a tab is equal to
+    (minimum 1). \textbf{Default:} \texttt{8}.
+  \item
+    \texttt{signal} \{AbortSignal\} Allows closing the interface using
+    an AbortSignal. Aborting the signal will internally call
+    \texttt{close} on the interface.
+  \end{itemize}
+\item
+  Returns: \{readline.Interface\}
+\end{itemize}
+
+The \texttt{readline.createInterface()} method creates a new
+\texttt{readline.Interface} instance.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ readline }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:readline\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\KeywordTok{const}\NormalTok{ rl }\OperatorTok{=}\NormalTok{ readline}\OperatorTok{.}\FunctionTok{createInterface}\NormalTok{(\{}
+  \DataTypeTok{input}\OperatorTok{:} \BuiltInTok{process}\OperatorTok{.}\AttributeTok{stdin}\OperatorTok{,}
+  \DataTypeTok{output}\OperatorTok{:} \BuiltInTok{process}\OperatorTok{.}\AttributeTok{stdout}\OperatorTok{,}
+\NormalTok{\})}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+Once the \texttt{readline.Interface} instance is created, the most
+common case is to listen for the
+\texttt{\textquotesingle{}line\textquotesingle{}} event:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{rl}\OperatorTok{.}\FunctionTok{on}\NormalTok{(}\StringTok{\textquotesingle{}line\textquotesingle{}}\OperatorTok{,}\NormalTok{ (line) }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+  \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\VerbatimStringTok{\textasciigrave{}Received: }\SpecialCharTok{$\{}\NormalTok{line}\SpecialCharTok{\}}\VerbatimStringTok{\textasciigrave{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{\})}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+If \texttt{terminal} is \texttt{true} for this instance then the
+\texttt{output} stream will get the best compatibility if it defines an
+\texttt{output.columns} property and emits a
+\texttt{\textquotesingle{}resize\textquotesingle{}} event on the
+\texttt{output} if or when the columns ever change
+(\href{process.md\#processstdout}{\texttt{process.stdout}} does this
+automatically when it is a TTY).
+
+When creating a \texttt{readline.Interface} using \texttt{stdin} as
+input, the program will not terminate until it receives an
+\href{https://en.wikipedia.org/wiki/End-of-file\#EOF_character}{EOF
+character}. To exit without waiting for user input, call
+\texttt{process.stdin.unref()}.
+
+\paragraph{\texorpdfstring{Use of the \texttt{completer}
+function}{Use of the completer function}}\label{use-of-the-completer-function-1}
+
+The \texttt{completer} function takes the current line entered by the
+user as an argument, and returns an \texttt{Array} with 2 entries:
+
+\begin{itemize}
+\tightlist
+\item
+  An \texttt{Array} with matching entries for the completion.
+\item
+  The substring that was used for the matching.
+\end{itemize}
+
+For instance:
+\texttt{{[}{[}substr1,\ substr2,\ ...{]},\ originalsubstring{]}}.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{function} \FunctionTok{completer}\NormalTok{(line) \{}
+  \KeywordTok{const}\NormalTok{ completions }\OperatorTok{=} \StringTok{\textquotesingle{}.help .error .exit .quit .q\textquotesingle{}}\OperatorTok{.}\FunctionTok{split}\NormalTok{(}\StringTok{\textquotesingle{} \textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+  \KeywordTok{const}\NormalTok{ hits }\OperatorTok{=}\NormalTok{ completions}\OperatorTok{.}\FunctionTok{filter}\NormalTok{((c) }\KeywordTok{=\textgreater{}}\NormalTok{ c}\OperatorTok{.}\FunctionTok{startsWith}\NormalTok{(line))}\OperatorTok{;}
+  \CommentTok{// Show all completions if none found}
+  \ControlFlowTok{return}\NormalTok{ [hits}\OperatorTok{.}\AttributeTok{length} \OperatorTok{?}\NormalTok{ hits }\OperatorTok{:}\NormalTok{ completions}\OperatorTok{,}\NormalTok{ line]}\OperatorTok{;}
+\NormalTok{\}}
+\end{Highlighting}
+\end{Shaded}
+
+The \texttt{completer} function can be called asynchronously if it
+accepts two arguments:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{function} \FunctionTok{completer}\NormalTok{(linePartial}\OperatorTok{,}\NormalTok{ callback) \{}
+  \FunctionTok{callback}\NormalTok{(}\KeywordTok{null}\OperatorTok{,}\NormalTok{ [[}\StringTok{\textquotesingle{}123\textquotesingle{}}\NormalTok{]}\OperatorTok{,}\NormalTok{ linePartial])}\OperatorTok{;}
+\NormalTok{\}}
+\end{Highlighting}
+\end{Shaded}
+
+\subsubsection{\texorpdfstring{\texttt{readline.cursorTo(stream,\ x{[},\ y{]}{[},\ callback{]})}}{readline.cursorTo(stream, x{[}, y{]}{[}, callback{]})}}\label{readline.cursortostream-x-y-callback}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{stream} \{stream.Writable\}
+\item
+  \texttt{x} \{number\}
+\item
+  \texttt{y} \{number\}
+\item
+  \texttt{callback} \{Function\} Invoked once the operation completes.
+\item
+  Returns: \{boolean\} \texttt{false} if \texttt{stream} wishes for the
+  calling code to wait for the
+  \texttt{\textquotesingle{}drain\textquotesingle{}} event to be emitted
+  before continuing to write additional data; otherwise \texttt{true}.
+\end{itemize}
+
+The \texttt{readline.cursorTo()} method moves cursor to the specified
+position in a given \href{tty.md}{TTY} \texttt{stream}.
+
+\subsubsection{\texorpdfstring{\texttt{readline.moveCursor(stream,\ dx,\ dy{[},\ callback{]})}}{readline.moveCursor(stream, dx, dy{[}, callback{]})}}\label{readline.movecursorstream-dx-dy-callback}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{stream} \{stream.Writable\}
+\item
+  \texttt{dx} \{number\}
+\item
+  \texttt{dy} \{number\}
+\item
+  \texttt{callback} \{Function\} Invoked once the operation completes.
+\item
+  Returns: \{boolean\} \texttt{false} if \texttt{stream} wishes for the
+  calling code to wait for the
+  \texttt{\textquotesingle{}drain\textquotesingle{}} event to be emitted
+  before continuing to write additional data; otherwise \texttt{true}.
+\end{itemize}
+
+The \texttt{readline.moveCursor()} method moves the cursor
+\emph{relative} to its current position in a given \href{tty.md}{TTY}
+\texttt{stream}.
+
+\subsection{\texorpdfstring{\texttt{readline.emitKeypressEvents(stream{[},\ interface{]})}}{readline.emitKeypressEvents(stream{[}, interface{]})}}\label{readline.emitkeypresseventsstream-interface}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{stream} \{stream.Readable\}
+\item
+  \texttt{interface} \{readline.InterfaceConstructor\}
+\end{itemize}
+
+The \texttt{readline.emitKeypressEvents()} method causes the given
+\href{stream.md\#readable-streams}{Readable} stream to begin emitting
+\texttt{\textquotesingle{}keypress\textquotesingle{}} events
+corresponding to received input.
+
+Optionally, \texttt{interface} specifies a \texttt{readline.Interface}
+instance for which autocompletion is disabled when copy-pasted input is
+detected.
+
+If the \texttt{stream} is a \href{tty.md}{TTY}, then it must be in raw
+mode.
+
+This is automatically called by any readline instance on its
+\texttt{input} if the \texttt{input} is a terminal. Closing the
+\texttt{readline} instance does not stop the \texttt{input} from
+emitting \texttt{\textquotesingle{}keypress\textquotesingle{}} events.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{readline}\OperatorTok{.}\FunctionTok{emitKeypressEvents}\NormalTok{(}\BuiltInTok{process}\OperatorTok{.}\AttributeTok{stdin}\NormalTok{)}\OperatorTok{;}
+\ControlFlowTok{if}\NormalTok{ (}\BuiltInTok{process}\OperatorTok{.}\AttributeTok{stdin}\OperatorTok{.}\AttributeTok{isTTY}\NormalTok{)}
+  \BuiltInTok{process}\OperatorTok{.}\AttributeTok{stdin}\OperatorTok{.}\FunctionTok{setRawMode}\NormalTok{(}\KeywordTok{true}\NormalTok{)}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+\subsection{Example: Tiny CLI}\label{example-tiny-cli}
+
+The following example illustrates the use of \texttt{readline.Interface}
+class to implement a small command-line interface:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ readline }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:readline\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\KeywordTok{const}\NormalTok{ rl }\OperatorTok{=}\NormalTok{ readline}\OperatorTok{.}\FunctionTok{createInterface}\NormalTok{(\{}
+  \DataTypeTok{input}\OperatorTok{:} \BuiltInTok{process}\OperatorTok{.}\AttributeTok{stdin}\OperatorTok{,}
+  \DataTypeTok{output}\OperatorTok{:} \BuiltInTok{process}\OperatorTok{.}\AttributeTok{stdout}\OperatorTok{,}
+  \DataTypeTok{prompt}\OperatorTok{:} \StringTok{\textquotesingle{}OHAI\textgreater{} \textquotesingle{}}\OperatorTok{,}
+\NormalTok{\})}\OperatorTok{;}
+
+\NormalTok{rl}\OperatorTok{.}\FunctionTok{prompt}\NormalTok{()}\OperatorTok{;}
+
+\NormalTok{rl}\OperatorTok{.}\FunctionTok{on}\NormalTok{(}\StringTok{\textquotesingle{}line\textquotesingle{}}\OperatorTok{,}\NormalTok{ (line) }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+  \ControlFlowTok{switch}\NormalTok{ (line}\OperatorTok{.}\FunctionTok{trim}\NormalTok{()) \{}
+    \ControlFlowTok{case} \StringTok{\textquotesingle{}hello\textquotesingle{}}\OperatorTok{:}
+      \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\StringTok{\textquotesingle{}world!\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+      \ControlFlowTok{break}\OperatorTok{;}
+    \ControlFlowTok{default}\OperatorTok{:}
+      \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\VerbatimStringTok{\textasciigrave{}Say what? I might have heard \textquotesingle{}}\SpecialCharTok{$\{}\NormalTok{line}\OperatorTok{.}\FunctionTok{trim}\NormalTok{()}\SpecialCharTok{\}}\VerbatimStringTok{\textquotesingle{}\textasciigrave{}}\NormalTok{)}\OperatorTok{;}
+      \ControlFlowTok{break}\OperatorTok{;}
+\NormalTok{  \}}
+\NormalTok{  rl}\OperatorTok{.}\FunctionTok{prompt}\NormalTok{()}\OperatorTok{;}
+\NormalTok{\})}\OperatorTok{.}\FunctionTok{on}\NormalTok{(}\StringTok{\textquotesingle{}close\textquotesingle{}}\OperatorTok{,}\NormalTok{ () }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+  \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\StringTok{\textquotesingle{}Have a great day!\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+  \BuiltInTok{process}\OperatorTok{.}\FunctionTok{exit}\NormalTok{(}\DecValTok{0}\NormalTok{)}\OperatorTok{;}
+\NormalTok{\})}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+\subsection{Example: Read file stream
+line-by-Line}\label{example-read-file-stream-line-by-line}
+
+A common use case for \texttt{readline} is to consume an input file one
+line at a time. The easiest way to do so is leveraging the
+\href{fs.md\#class-fsreadstream}{\texttt{fs.ReadStream}} API as well as
+a \texttt{for\ await...of} loop:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ fs }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:fs\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\KeywordTok{const}\NormalTok{ readline }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:readline\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+
+\KeywordTok{async} \KeywordTok{function} \FunctionTok{processLineByLine}\NormalTok{() \{}
+  \KeywordTok{const}\NormalTok{ fileStream }\OperatorTok{=}\NormalTok{ fs}\OperatorTok{.}\FunctionTok{createReadStream}\NormalTok{(}\StringTok{\textquotesingle{}input.txt\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+
+  \KeywordTok{const}\NormalTok{ rl }\OperatorTok{=}\NormalTok{ readline}\OperatorTok{.}\FunctionTok{createInterface}\NormalTok{(\{}
+    \DataTypeTok{input}\OperatorTok{:}\NormalTok{ fileStream}\OperatorTok{,}
+    \DataTypeTok{crlfDelay}\OperatorTok{:} \KeywordTok{Infinity}\OperatorTok{,}
+\NormalTok{  \})}\OperatorTok{;}
+  \CommentTok{// Note: we use the crlfDelay option to recognize all instances of CR LF}
+  \CommentTok{// (\textquotesingle{}\textbackslash{}r\textbackslash{}n\textquotesingle{}) in input.txt as a single line break.}
+
+  \ControlFlowTok{for} \ControlFlowTok{await}\NormalTok{ (}\KeywordTok{const}\NormalTok{ line }\KeywordTok{of}\NormalTok{ rl) \{}
+    \CommentTok{// Each line in input.txt will be successively available here as \textasciigrave{}line\textasciigrave{}.}
+    \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\VerbatimStringTok{\textasciigrave{}Line from file: }\SpecialCharTok{$\{}\NormalTok{line}\SpecialCharTok{\}}\VerbatimStringTok{\textasciigrave{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{  \}}
+\NormalTok{\}}
+
+\FunctionTok{processLineByLine}\NormalTok{()}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+Alternatively, one could use the
+\hyperref[event-line]{\texttt{\textquotesingle{}line\textquotesingle{}}}
+event:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ fs }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:fs\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\KeywordTok{const}\NormalTok{ readline }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:readline\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+
+\KeywordTok{const}\NormalTok{ rl }\OperatorTok{=}\NormalTok{ readline}\OperatorTok{.}\FunctionTok{createInterface}\NormalTok{(\{}
+  \DataTypeTok{input}\OperatorTok{:}\NormalTok{ fs}\OperatorTok{.}\FunctionTok{createReadStream}\NormalTok{(}\StringTok{\textquotesingle{}sample.txt\textquotesingle{}}\NormalTok{)}\OperatorTok{,}
+  \DataTypeTok{crlfDelay}\OperatorTok{:} \KeywordTok{Infinity}\OperatorTok{,}
+\NormalTok{\})}\OperatorTok{;}
+
+\NormalTok{rl}\OperatorTok{.}\FunctionTok{on}\NormalTok{(}\StringTok{\textquotesingle{}line\textquotesingle{}}\OperatorTok{,}\NormalTok{ (line) }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+  \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\VerbatimStringTok{\textasciigrave{}Line from file: }\SpecialCharTok{$\{}\NormalTok{line}\SpecialCharTok{\}}\VerbatimStringTok{\textasciigrave{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{\})}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+Currently, \texttt{for\ await...of} loop can be a bit slower. If
+\texttt{async} / \texttt{await} flow and speed are both essential, a
+mixed approach can be applied:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ \{ once \} }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:events\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\KeywordTok{const}\NormalTok{ \{ createReadStream \} }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:fs\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\KeywordTok{const}\NormalTok{ \{ createInterface \} }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:readline\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+
+\NormalTok{(}\KeywordTok{async} \KeywordTok{function} \FunctionTok{processLineByLine}\NormalTok{() \{}
+  \ControlFlowTok{try}\NormalTok{ \{}
+    \KeywordTok{const}\NormalTok{ rl }\OperatorTok{=} \FunctionTok{createInterface}\NormalTok{(\{}
+      \DataTypeTok{input}\OperatorTok{:} \FunctionTok{createReadStream}\NormalTok{(}\StringTok{\textquotesingle{}big{-}file.txt\textquotesingle{}}\NormalTok{)}\OperatorTok{,}
+      \DataTypeTok{crlfDelay}\OperatorTok{:} \KeywordTok{Infinity}\OperatorTok{,}
+\NormalTok{    \})}\OperatorTok{;}
+
+\NormalTok{    rl}\OperatorTok{.}\FunctionTok{on}\NormalTok{(}\StringTok{\textquotesingle{}line\textquotesingle{}}\OperatorTok{,}\NormalTok{ (line) }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+      \CommentTok{// Process the line.}
+\NormalTok{    \})}\OperatorTok{;}
+
+    \ControlFlowTok{await} \FunctionTok{once}\NormalTok{(rl}\OperatorTok{,} \StringTok{\textquotesingle{}close\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+
+    \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\StringTok{\textquotesingle{}File processed.\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{  \} }\ControlFlowTok{catch}\NormalTok{ (err) \{}
+    \BuiltInTok{console}\OperatorTok{.}\FunctionTok{error}\NormalTok{(err)}\OperatorTok{;}
+\NormalTok{  \}}
+\NormalTok{\})()}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+\subsection{TTY keybindings}\label{tty-keybindings}
+
+Keybindings
+
+Description
+
+Notes
+
+Ctrl+Shift+Backspace
+
+Delete line left
+
+Doesn't work on Linux, Mac and Windows
+
+Ctrl+Shift+Delete
+
+Delete line right
+
+Doesn't work on Mac
+
+Ctrl+C
+
+Emit SIGINT or close the readline instance
+
+Ctrl+H
+
+Delete left
+
+Ctrl+D
+
+Delete right or close the readline instance in case the current line is
+empty / EOF
+
+Doesn't work on Windows
+
+Ctrl+U
+
+Delete from the current position to the line start
+
+Ctrl+K
+
+Delete from the current position to the end of line
+
+Ctrl+Y
+
+Yank (Recall) the previously deleted text
+
+Only works with text deleted by Ctrl+U or Ctrl+K
+
+Meta+Y
+
+Cycle among previously deleted texts
+
+Only available when the last keystroke is Ctrl+Y or Meta+Y
+
+Ctrl+A
+
+Go to start of line
+
+Ctrl+E
+
+Go to end of line
+
+Ctrl+B
+
+Back one character
+
+Ctrl+F
+
+Forward one character
+
+Ctrl+L
+
+Clear screen
+
+Ctrl+N
+
+Next history item
+
+Ctrl+P
+
+Previous history item
+
+Ctrl+-
+
+Undo previous change
+
+Any keystroke that emits key code 0x1F will do this action. In many
+terminals, for example xterm, this is bound to Ctrl+-.
+
+Ctrl+6
+
+Redo previous change
+
+Many terminals don't have a default redo keystroke. We choose key code
+0x1E to perform redo. In xterm, it is bound to Ctrl+6 by default.
+
+Ctrl+Z
+
+Moves running process into background. Type fg and press Enter to
+return.
+
+Doesn't work on Windows
+
+Ctrl+W or Ctrl +Backspace
+
+Delete backward to a word boundary
+
+Ctrl+Backspace Doesn't work on Linux, Mac and Windows
+
+Ctrl+Delete
+
+Delete forward to a word boundary
+
+Doesn't work on Mac
+
+Ctrl+Left arrow or Meta+B
+
+Word left
+
+Ctrl+Left arrow Doesn't work on Mac
+
+Ctrl+Right arrow or Meta+F
+
+Word right
+
+Ctrl+Right arrow Doesn't work on Mac
+
+Meta+D or Meta +Delete
+
+Delete word right
+
+Meta+Delete Doesn't work on windows
+
+Meta+Backspace
+
+Delete word left
+
+Doesn't work on Mac

@@ -1,0 +1,2298 @@
+\section{Child process}\label{child-process}
+
+\begin{quote}
+Stability: 2 - Stable
+\end{quote}
+
+The \texttt{node:child\_process} module provides the ability to spawn
+subprocesses in a manner that is similar, but not identical, to
+popen(3). This capability is primarily provided by the
+\hyperref[child_processspawncommand-args-options]{\texttt{child\_process.spawn()}}
+function:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ \{ spawn \} }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:child\_process\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\KeywordTok{const}\NormalTok{ ls }\OperatorTok{=} \FunctionTok{spawn}\NormalTok{(}\StringTok{\textquotesingle{}ls\textquotesingle{}}\OperatorTok{,}\NormalTok{ [}\StringTok{\textquotesingle{}{-}lh\textquotesingle{}}\OperatorTok{,} \StringTok{\textquotesingle{}/usr\textquotesingle{}}\NormalTok{])}\OperatorTok{;}
+
+\NormalTok{ls}\OperatorTok{.}\AttributeTok{stdout}\OperatorTok{.}\FunctionTok{on}\NormalTok{(}\StringTok{\textquotesingle{}data\textquotesingle{}}\OperatorTok{,}\NormalTok{ (data) }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+  \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\VerbatimStringTok{\textasciigrave{}stdout: }\SpecialCharTok{$\{}\NormalTok{data}\SpecialCharTok{\}}\VerbatimStringTok{\textasciigrave{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{\})}\OperatorTok{;}
+
+\NormalTok{ls}\OperatorTok{.}\AttributeTok{stderr}\OperatorTok{.}\FunctionTok{on}\NormalTok{(}\StringTok{\textquotesingle{}data\textquotesingle{}}\OperatorTok{,}\NormalTok{ (data) }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+  \BuiltInTok{console}\OperatorTok{.}\FunctionTok{error}\NormalTok{(}\VerbatimStringTok{\textasciigrave{}stderr: }\SpecialCharTok{$\{}\NormalTok{data}\SpecialCharTok{\}}\VerbatimStringTok{\textasciigrave{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{\})}\OperatorTok{;}
+
+\NormalTok{ls}\OperatorTok{.}\FunctionTok{on}\NormalTok{(}\StringTok{\textquotesingle{}close\textquotesingle{}}\OperatorTok{,}\NormalTok{ (code) }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+  \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\VerbatimStringTok{\textasciigrave{}child process exited with code }\SpecialCharTok{$\{}\NormalTok{code}\SpecialCharTok{\}}\VerbatimStringTok{\textasciigrave{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{\})}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+By default, pipes for \texttt{stdin}, \texttt{stdout}, and
+\texttt{stderr} are established between the parent Node.js process and
+the spawned subprocess. These pipes have limited (and platform-specific)
+capacity. If the subprocess writes to stdout in excess of that limit
+without the output being captured, the subprocess blocks waiting for the
+pipe buffer to accept more data. This is identical to the behavior of
+pipes in the shell. Use the
+\texttt{\{\ stdio:\ \textquotesingle{}ignore\textquotesingle{}\ \}}
+option if the output will not be consumed.
+
+The command lookup is performed using the \texttt{options.env.PATH}
+environment variable if \texttt{env} is in the \texttt{options} object.
+Otherwise, \texttt{process.env.PATH} is used. If \texttt{options.env} is
+set without \texttt{PATH}, lookup on Unix is performed on a default
+search path search of \texttt{/usr/bin:/bin} (see your operating
+system's manual for execvpe/execvp), on Windows the current processes
+environment variable \texttt{PATH} is used.
+
+On Windows, environment variables are case-insensitive. Node.js
+lexicographically sorts the \texttt{env} keys and uses the first one
+that case-insensitively matches. Only first (in lexicographic order)
+entry will be passed to the subprocess. This might lead to issues on
+Windows when passing objects to the \texttt{env} option that have
+multiple variants of the same key, such as \texttt{PATH} and
+\texttt{Path}.
+
+The
+\hyperref[child_processspawncommand-args-options]{\texttt{child\_process.spawn()}}
+method spawns the child process asynchronously, without blocking the
+Node.js event loop. The
+\hyperref[child_processspawnsynccommand-args-options]{\texttt{child\_process.spawnSync()}}
+function provides equivalent functionality in a synchronous manner that
+blocks the event loop until the spawned process either exits or is
+terminated.
+
+For convenience, the \texttt{node:child\_process} module provides a
+handful of synchronous and asynchronous alternatives to
+\hyperref[child_processspawncommand-args-options]{\texttt{child\_process.spawn()}}
+and
+\hyperref[child_processspawnsynccommand-args-options]{\texttt{child\_process.spawnSync()}}.
+Each of these alternatives are implemented on top of
+\hyperref[child_processspawncommand-args-options]{\texttt{child\_process.spawn()}}
+or
+\hyperref[child_processspawnsynccommand-args-options]{\texttt{child\_process.spawnSync()}}.
+
+\begin{itemize}
+\tightlist
+\item
+  \hyperref[child_processexeccommand-options-callback]{\texttt{child\_process.exec()}}:
+  spawns a shell and runs a command within that shell, passing the
+  \texttt{stdout} and \texttt{stderr} to a callback function when
+  complete.
+\item
+  \hyperref[child_processexecfilefile-args-options-callback]{\texttt{child\_process.execFile()}}:
+  similar to
+  \hyperref[child_processexeccommand-options-callback]{\texttt{child\_process.exec()}}
+  except that it spawns the command directly without first spawning a
+  shell by default.
+\item
+  \hyperref[child_processforkmodulepath-args-options]{\texttt{child\_process.fork()}}:
+  spawns a new Node.js process and invokes a specified module with an
+  IPC communication channel established that allows sending messages
+  between parent and child.
+\item
+  \hyperref[child_processexecsynccommand-options]{\texttt{child\_process.execSync()}}:
+  a synchronous version of
+  \hyperref[child_processexeccommand-options-callback]{\texttt{child\_process.exec()}}
+  that will block the Node.js event loop.
+\item
+  \hyperref[child_processexecfilesyncfile-args-options]{\texttt{child\_process.execFileSync()}}:
+  a synchronous version of
+  \hyperref[child_processexecfilefile-args-options-callback]{\texttt{child\_process.execFile()}}
+  that will block the Node.js event loop.
+\end{itemize}
+
+For certain use cases, such as automating shell scripts, the
+\hyperref[synchronous-process-creation]{synchronous counterparts} may be
+more convenient. In many cases, however, the synchronous methods can
+have significant impact on performance due to stalling the event loop
+while spawned processes complete.
+
+\subsection{Asynchronous process
+creation}\label{asynchronous-process-creation}
+
+The
+\hyperref[child_processspawncommand-args-options]{\texttt{child\_process.spawn()}},
+\hyperref[child_processforkmodulepath-args-options]{\texttt{child\_process.fork()}},
+\hyperref[child_processexeccommand-options-callback]{\texttt{child\_process.exec()}},
+and
+\hyperref[child_processexecfilefile-args-options-callback]{\texttt{child\_process.execFile()}}
+methods all follow the idiomatic asynchronous programming pattern
+typical of other Node.js APIs.
+
+Each of the methods returns a
+\hyperref[class-childprocess]{\texttt{ChildProcess}} instance. These
+objects implement the Node.js
+\href{events.md\#class-eventemitter}{\texttt{EventEmitter}} API,
+allowing the parent process to register listener functions that are
+called when certain events occur during the life cycle of the child
+process.
+
+The
+\hyperref[child_processexeccommand-options-callback]{\texttt{child\_process.exec()}}
+and
+\hyperref[child_processexecfilefile-args-options-callback]{\texttt{child\_process.execFile()}}
+methods additionally allow for an optional \texttt{callback} function to
+be specified that is invoked when the child process terminates.
+
+\subsubsection{\texorpdfstring{Spawning \texttt{.bat} and \texttt{.cmd}
+files on
+Windows}{Spawning .bat and .cmd files on Windows}}\label{spawning-.bat-and-.cmd-files-on-windows}
+
+The importance of the distinction between
+\hyperref[child_processexeccommand-options-callback]{\texttt{child\_process.exec()}}
+and
+\hyperref[child_processexecfilefile-args-options-callback]{\texttt{child\_process.execFile()}}
+can vary based on platform. On Unix-type operating systems (Unix, Linux,
+macOS)
+\hyperref[child_processexecfilefile-args-options-callback]{\texttt{child\_process.execFile()}}
+can be more efficient because it does not spawn a shell by default. On
+Windows, however, \texttt{.bat} and \texttt{.cmd} files are not
+executable on their own without a terminal, and therefore cannot be
+launched using
+\hyperref[child_processexecfilefile-args-options-callback]{\texttt{child\_process.execFile()}}.
+When running on Windows, \texttt{.bat} and \texttt{.cmd} files can be
+invoked using
+\hyperref[child_processspawncommand-args-options]{\texttt{child\_process.spawn()}}
+with the \texttt{shell} option set, with
+\hyperref[child_processexeccommand-options-callback]{\texttt{child\_process.exec()}},
+or by spawning \texttt{cmd.exe} and passing the \texttt{.bat} or
+\texttt{.cmd} file as an argument (which is what the \texttt{shell}
+option and
+\hyperref[child_processexeccommand-options-callback]{\texttt{child\_process.exec()}}
+do). In any case, if the script filename contains spaces it needs to be
+quoted.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{// On Windows Only...}
+\KeywordTok{const}\NormalTok{ \{ spawn \} }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:child\_process\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\KeywordTok{const}\NormalTok{ bat }\OperatorTok{=} \FunctionTok{spawn}\NormalTok{(}\StringTok{\textquotesingle{}cmd.exe\textquotesingle{}}\OperatorTok{,}\NormalTok{ [}\StringTok{\textquotesingle{}/c\textquotesingle{}}\OperatorTok{,} \StringTok{\textquotesingle{}my.bat\textquotesingle{}}\NormalTok{])}\OperatorTok{;}
+
+\NormalTok{bat}\OperatorTok{.}\AttributeTok{stdout}\OperatorTok{.}\FunctionTok{on}\NormalTok{(}\StringTok{\textquotesingle{}data\textquotesingle{}}\OperatorTok{,}\NormalTok{ (data) }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+  \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(data}\OperatorTok{.}\FunctionTok{toString}\NormalTok{())}\OperatorTok{;}
+\NormalTok{\})}\OperatorTok{;}
+
+\NormalTok{bat}\OperatorTok{.}\AttributeTok{stderr}\OperatorTok{.}\FunctionTok{on}\NormalTok{(}\StringTok{\textquotesingle{}data\textquotesingle{}}\OperatorTok{,}\NormalTok{ (data) }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+  \BuiltInTok{console}\OperatorTok{.}\FunctionTok{error}\NormalTok{(data}\OperatorTok{.}\FunctionTok{toString}\NormalTok{())}\OperatorTok{;}
+\NormalTok{\})}\OperatorTok{;}
+
+\NormalTok{bat}\OperatorTok{.}\FunctionTok{on}\NormalTok{(}\StringTok{\textquotesingle{}exit\textquotesingle{}}\OperatorTok{,}\NormalTok{ (code) }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+  \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\VerbatimStringTok{\textasciigrave{}Child exited with code }\SpecialCharTok{$\{}\NormalTok{code}\SpecialCharTok{\}}\VerbatimStringTok{\textasciigrave{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{\})}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{// OR...}
+\KeywordTok{const}\NormalTok{ \{ exec}\OperatorTok{,}\NormalTok{ spawn \} }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:child\_process\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\FunctionTok{exec}\NormalTok{(}\StringTok{\textquotesingle{}my.bat\textquotesingle{}}\OperatorTok{,}\NormalTok{ (err}\OperatorTok{,}\NormalTok{ stdout}\OperatorTok{,}\NormalTok{ stderr) }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+  \ControlFlowTok{if}\NormalTok{ (err) \{}
+    \BuiltInTok{console}\OperatorTok{.}\FunctionTok{error}\NormalTok{(err)}\OperatorTok{;}
+    \ControlFlowTok{return}\OperatorTok{;}
+\NormalTok{  \}}
+  \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(stdout)}\OperatorTok{;}
+\NormalTok{\})}\OperatorTok{;}
+
+\CommentTok{// Script with spaces in the filename:}
+\KeywordTok{const}\NormalTok{ bat }\OperatorTok{=} \FunctionTok{spawn}\NormalTok{(}\StringTok{\textquotesingle{}"my script.cmd"\textquotesingle{}}\OperatorTok{,}\NormalTok{ [}\StringTok{\textquotesingle{}a\textquotesingle{}}\OperatorTok{,} \StringTok{\textquotesingle{}b\textquotesingle{}}\NormalTok{]}\OperatorTok{,}\NormalTok{ \{ }\DataTypeTok{shell}\OperatorTok{:} \KeywordTok{true}\NormalTok{ \})}\OperatorTok{;}
+\CommentTok{// or:}
+\FunctionTok{exec}\NormalTok{(}\StringTok{\textquotesingle{}"my script.cmd" a b\textquotesingle{}}\OperatorTok{,}\NormalTok{ (err}\OperatorTok{,}\NormalTok{ stdout}\OperatorTok{,}\NormalTok{ stderr) }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+  \CommentTok{// ...}
+\NormalTok{\})}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+\subsubsection{\texorpdfstring{\texttt{child\_process.exec(command{[},\ options{]}{[},\ callback{]})}}{child\_process.exec(command{[}, options{]}{[}, callback{]})}}\label{child_process.execcommand-options-callback}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{command} \{string\} The command to run, with space-separated
+  arguments.
+\item
+  \texttt{options} \{Object\}
+
+  \begin{itemize}
+  \tightlist
+  \item
+    \texttt{cwd} \{string\textbar URL\} Current working directory of the
+    child process. \textbf{Default:} \texttt{process.cwd()}.
+  \item
+    \texttt{env} \{Object\} Environment key-value pairs.
+    \textbf{Default:} \texttt{process.env}.
+  \item
+    \texttt{encoding} \{string\} \textbf{Default:}
+    \texttt{\textquotesingle{}utf8\textquotesingle{}}
+  \item
+    \texttt{shell} \{string\} Shell to execute the command with. See
+    \hyperref[shell-requirements]{Shell requirements} and
+    \hyperref[default-windows-shell]{Default Windows shell}.
+    \textbf{Default:}
+    \texttt{\textquotesingle{}/bin/sh\textquotesingle{}} on Unix,
+    \texttt{process.env.ComSpec} on Windows.
+  \item
+    \texttt{signal} \{AbortSignal\} allows aborting the child process
+    using an AbortSignal.
+  \item
+    \texttt{timeout} \{number\} \textbf{Default:} \texttt{0}
+  \item
+    \texttt{maxBuffer} \{number\} Largest amount of data in bytes
+    allowed on stdout or stderr. If exceeded, the child process is
+    terminated and any output is truncated. See caveat at
+    \hyperref[maxbuffer-and-unicode]{\texttt{maxBuffer} and Unicode}.
+    \textbf{Default:} \texttt{1024\ *\ 1024}.
+  \item
+    \texttt{killSignal} \{string\textbar integer\} \textbf{Default:}
+    \texttt{\textquotesingle{}SIGTERM\textquotesingle{}}
+  \item
+    \texttt{uid} \{number\} Sets the user identity of the process (see
+    setuid(2)).
+  \item
+    \texttt{gid} \{number\} Sets the group identity of the process (see
+    setgid(2)).
+  \item
+    \texttt{windowsHide} \{boolean\} Hide the subprocess console window
+    that would normally be created on Windows systems. \textbf{Default:}
+    \texttt{false}.
+  \end{itemize}
+\item
+  \texttt{callback} \{Function\} called with the output when process
+  terminates.
+
+  \begin{itemize}
+  \tightlist
+  \item
+    \texttt{error} \{Error\}
+  \item
+    \texttt{stdout} \{string\textbar Buffer\}
+  \item
+    \texttt{stderr} \{string\textbar Buffer\}
+  \end{itemize}
+\item
+  Returns: \{ChildProcess\}
+\end{itemize}
+
+Spawns a shell then executes the \texttt{command} within that shell,
+buffering any generated output. The \texttt{command} string passed to
+the exec function is processed directly by the shell and special
+characters (vary based on
+\href{https://en.wikipedia.org/wiki/List_of_command-line_interpreters}{shell})
+need to be dealt with accordingly:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ \{ exec \} }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:child\_process\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+
+\FunctionTok{exec}\NormalTok{(}\StringTok{\textquotesingle{}"/path/to/test file/test.sh" arg1 arg2\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// Double quotes are used so that the space in the path is not interpreted as}
+\CommentTok{// a delimiter of multiple arguments.}
+
+\FunctionTok{exec}\NormalTok{(}\StringTok{\textquotesingle{}echo "The }\SpecialCharTok{\textbackslash{}\textbackslash{}}\StringTok{$HOME variable is $HOME"\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// The $HOME variable is escaped in the first instance, but not in the second.}
+\end{Highlighting}
+\end{Shaded}
+
+\textbf{Never pass unsanitized user input to this function. Any input
+containing shell metacharacters may be used to trigger arbitrary command
+execution.}
+
+If a \texttt{callback} function is provided, it is called with the
+arguments \texttt{(error,\ stdout,\ stderr)}. On success, \texttt{error}
+will be \texttt{null}. On error, \texttt{error} will be an instance of
+\href{errors.md\#class-error}{\texttt{Error}}. The \texttt{error.code}
+property will be the exit code of the process. By convention, any exit
+code other than \texttt{0} indicates an error. \texttt{error.signal}
+will be the signal that terminated the process.
+
+The \texttt{stdout} and \texttt{stderr} arguments passed to the callback
+will contain the stdout and stderr output of the child process. By
+default, Node.js will decode the output as UTF-8 and pass strings to the
+callback. The \texttt{encoding} option can be used to specify the
+character encoding used to decode the stdout and stderr output. If
+\texttt{encoding} is
+\texttt{\textquotesingle{}buffer\textquotesingle{}}, or an unrecognized
+character encoding, \texttt{Buffer} objects will be passed to the
+callback instead.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ \{ exec \} }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:child\_process\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\FunctionTok{exec}\NormalTok{(}\StringTok{\textquotesingle{}cat *.js missing\_file | wc {-}l\textquotesingle{}}\OperatorTok{,}\NormalTok{ (error}\OperatorTok{,}\NormalTok{ stdout}\OperatorTok{,}\NormalTok{ stderr) }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+  \ControlFlowTok{if}\NormalTok{ (error) \{}
+    \BuiltInTok{console}\OperatorTok{.}\FunctionTok{error}\NormalTok{(}\VerbatimStringTok{\textasciigrave{}exec error: }\SpecialCharTok{$\{}\NormalTok{error}\SpecialCharTok{\}}\VerbatimStringTok{\textasciigrave{}}\NormalTok{)}\OperatorTok{;}
+    \ControlFlowTok{return}\OperatorTok{;}
+\NormalTok{  \}}
+  \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\VerbatimStringTok{\textasciigrave{}stdout: }\SpecialCharTok{$\{}\NormalTok{stdout}\SpecialCharTok{\}}\VerbatimStringTok{\textasciigrave{}}\NormalTok{)}\OperatorTok{;}
+  \BuiltInTok{console}\OperatorTok{.}\FunctionTok{error}\NormalTok{(}\VerbatimStringTok{\textasciigrave{}stderr: }\SpecialCharTok{$\{}\NormalTok{stderr}\SpecialCharTok{\}}\VerbatimStringTok{\textasciigrave{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{\})}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+If \texttt{timeout} is greater than \texttt{0}, the parent will send the
+signal identified by the \texttt{killSignal} property (the default is
+\texttt{\textquotesingle{}SIGTERM\textquotesingle{}}) if the child runs
+longer than \texttt{timeout} milliseconds.
+
+Unlike the exec(3) POSIX system call, \texttt{child\_process.exec()}
+does not replace the existing process and uses a shell to execute the
+command.
+
+If this method is invoked as its
+\href{util.md\#utilpromisifyoriginal}{\texttt{util.promisify()}}ed
+version, it returns a \texttt{Promise} for an \texttt{Object} with
+\texttt{stdout} and \texttt{stderr} properties. The returned
+\texttt{ChildProcess} instance is attached to the \texttt{Promise} as a
+\texttt{child} property. In case of an error (including any error
+resulting in an exit code other than 0), a rejected promise is returned,
+with the same \texttt{error} object given in the callback, but with two
+additional properties \texttt{stdout} and \texttt{stderr}.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ util }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:util\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\KeywordTok{const}\NormalTok{ exec }\OperatorTok{=}\NormalTok{ util}\OperatorTok{.}\FunctionTok{promisify}\NormalTok{(}\PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:child\_process\textquotesingle{}}\NormalTok{)}\OperatorTok{.}\AttributeTok{exec}\NormalTok{)}\OperatorTok{;}
+
+\KeywordTok{async} \KeywordTok{function} \FunctionTok{lsExample}\NormalTok{() \{}
+  \KeywordTok{const}\NormalTok{ \{ stdout}\OperatorTok{,}\NormalTok{ stderr \} }\OperatorTok{=} \ControlFlowTok{await} \FunctionTok{exec}\NormalTok{(}\StringTok{\textquotesingle{}ls\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+  \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\StringTok{\textquotesingle{}stdout:\textquotesingle{}}\OperatorTok{,}\NormalTok{ stdout)}\OperatorTok{;}
+  \BuiltInTok{console}\OperatorTok{.}\FunctionTok{error}\NormalTok{(}\StringTok{\textquotesingle{}stderr:\textquotesingle{}}\OperatorTok{,}\NormalTok{ stderr)}\OperatorTok{;}
+\NormalTok{\}}
+\FunctionTok{lsExample}\NormalTok{()}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+If the \texttt{signal} option is enabled, calling \texttt{.abort()} on
+the corresponding \texttt{AbortController} is similar to calling
+\texttt{.kill()} on the child process except the error passed to the
+callback will be an \texttt{AbortError}:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ \{ exec \} }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:child\_process\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\KeywordTok{const}\NormalTok{ controller }\OperatorTok{=} \KeywordTok{new} \FunctionTok{AbortController}\NormalTok{()}\OperatorTok{;}
+\KeywordTok{const}\NormalTok{ \{ signal \} }\OperatorTok{=}\NormalTok{ controller}\OperatorTok{;}
+\KeywordTok{const}\NormalTok{ child }\OperatorTok{=} \FunctionTok{exec}\NormalTok{(}\StringTok{\textquotesingle{}grep ssh\textquotesingle{}}\OperatorTok{,}\NormalTok{ \{ signal \}}\OperatorTok{,}\NormalTok{ (error) }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+  \BuiltInTok{console}\OperatorTok{.}\FunctionTok{error}\NormalTok{(error)}\OperatorTok{;} \CommentTok{// an AbortError}
+\NormalTok{\})}\OperatorTok{;}
+\NormalTok{controller}\OperatorTok{.}\FunctionTok{abort}\NormalTok{()}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+\subsubsection{\texorpdfstring{\texttt{child\_process.execFile(file{[},\ args{]}{[},\ options{]}{[},\ callback{]})}}{child\_process.execFile(file{[}, args{]}{[}, options{]}{[}, callback{]})}}\label{child_process.execfilefile-args-options-callback}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{file} \{string\} The name or path of the executable file to
+  run.
+\item
+  \texttt{args} \{string{[}{]}\} List of string arguments.
+\item
+  \texttt{options} \{Object\}
+
+  \begin{itemize}
+  \tightlist
+  \item
+    \texttt{cwd} \{string\textbar URL\} Current working directory of the
+    child process.
+  \item
+    \texttt{env} \{Object\} Environment key-value pairs.
+    \textbf{Default:} \texttt{process.env}.
+  \item
+    \texttt{encoding} \{string\} \textbf{Default:}
+    \texttt{\textquotesingle{}utf8\textquotesingle{}}
+  \item
+    \texttt{timeout} \{number\} \textbf{Default:} \texttt{0}
+  \item
+    \texttt{maxBuffer} \{number\} Largest amount of data in bytes
+    allowed on stdout or stderr. If exceeded, the child process is
+    terminated and any output is truncated. See caveat at
+    \hyperref[maxbuffer-and-unicode]{\texttt{maxBuffer} and Unicode}.
+    \textbf{Default:} \texttt{1024\ *\ 1024}.
+  \item
+    \texttt{killSignal} \{string\textbar integer\} \textbf{Default:}
+    \texttt{\textquotesingle{}SIGTERM\textquotesingle{}}
+  \item
+    \texttt{uid} \{number\} Sets the user identity of the process (see
+    setuid(2)).
+  \item
+    \texttt{gid} \{number\} Sets the group identity of the process (see
+    setgid(2)).
+  \item
+    \texttt{windowsHide} \{boolean\} Hide the subprocess console window
+    that would normally be created on Windows systems. \textbf{Default:}
+    \texttt{false}.
+  \item
+    \texttt{windowsVerbatimArguments} \{boolean\} No quoting or escaping
+    of arguments is done on Windows. Ignored on Unix. \textbf{Default:}
+    \texttt{false}.
+  \item
+    \texttt{shell} \{boolean\textbar string\} If \texttt{true}, runs
+    \texttt{command} inside of a shell. Uses
+    \texttt{\textquotesingle{}/bin/sh\textquotesingle{}} on Unix, and
+    \texttt{process.env.ComSpec} on Windows. A different shell can be
+    specified as a string. See \hyperref[shell-requirements]{Shell
+    requirements} and \hyperref[default-windows-shell]{Default Windows
+    shell}. \textbf{Default:} \texttt{false} (no shell).
+  \item
+    \texttt{signal} \{AbortSignal\} allows aborting the child process
+    using an AbortSignal.
+  \end{itemize}
+\item
+  \texttt{callback} \{Function\} Called with the output when process
+  terminates.
+
+  \begin{itemize}
+  \tightlist
+  \item
+    \texttt{error} \{Error\}
+  \item
+    \texttt{stdout} \{string\textbar Buffer\}
+  \item
+    \texttt{stderr} \{string\textbar Buffer\}
+  \end{itemize}
+\item
+  Returns: \{ChildProcess\}
+\end{itemize}
+
+The \texttt{child\_process.execFile()} function is similar to
+\hyperref[child_processexeccommand-options-callback]{\texttt{child\_process.exec()}}
+except that it does not spawn a shell by default. Rather, the specified
+executable \texttt{file} is spawned directly as a new process making it
+slightly more efficient than
+\hyperref[child_processexeccommand-options-callback]{\texttt{child\_process.exec()}}.
+
+The same options as
+\hyperref[child_processexeccommand-options-callback]{\texttt{child\_process.exec()}}
+are supported. Since a shell is not spawned, behaviors such as I/O
+redirection and file globbing are not supported.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ \{ execFile \} }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:child\_process\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\KeywordTok{const}\NormalTok{ child }\OperatorTok{=} \FunctionTok{execFile}\NormalTok{(}\StringTok{\textquotesingle{}node\textquotesingle{}}\OperatorTok{,}\NormalTok{ [}\StringTok{\textquotesingle{}{-}{-}version\textquotesingle{}}\NormalTok{]}\OperatorTok{,}\NormalTok{ (error}\OperatorTok{,}\NormalTok{ stdout}\OperatorTok{,}\NormalTok{ stderr) }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+  \ControlFlowTok{if}\NormalTok{ (error) \{}
+    \ControlFlowTok{throw}\NormalTok{ error}\OperatorTok{;}
+\NormalTok{  \}}
+  \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(stdout)}\OperatorTok{;}
+\NormalTok{\})}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+The \texttt{stdout} and \texttt{stderr} arguments passed to the callback
+will contain the stdout and stderr output of the child process. By
+default, Node.js will decode the output as UTF-8 and pass strings to the
+callback. The \texttt{encoding} option can be used to specify the
+character encoding used to decode the stdout and stderr output. If
+\texttt{encoding} is
+\texttt{\textquotesingle{}buffer\textquotesingle{}}, or an unrecognized
+character encoding, \texttt{Buffer} objects will be passed to the
+callback instead.
+
+If this method is invoked as its
+\href{util.md\#utilpromisifyoriginal}{\texttt{util.promisify()}}ed
+version, it returns a \texttt{Promise} for an \texttt{Object} with
+\texttt{stdout} and \texttt{stderr} properties. The returned
+\texttt{ChildProcess} instance is attached to the \texttt{Promise} as a
+\texttt{child} property. In case of an error (including any error
+resulting in an exit code other than 0), a rejected promise is returned,
+with the same \texttt{error} object given in the callback, but with two
+additional properties \texttt{stdout} and \texttt{stderr}.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ util }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:util\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\KeywordTok{const}\NormalTok{ execFile }\OperatorTok{=}\NormalTok{ util}\OperatorTok{.}\FunctionTok{promisify}\NormalTok{(}\PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:child\_process\textquotesingle{}}\NormalTok{)}\OperatorTok{.}\AttributeTok{execFile}\NormalTok{)}\OperatorTok{;}
+\KeywordTok{async} \KeywordTok{function} \FunctionTok{getVersion}\NormalTok{() \{}
+  \KeywordTok{const}\NormalTok{ \{ stdout \} }\OperatorTok{=} \ControlFlowTok{await} \FunctionTok{execFile}\NormalTok{(}\StringTok{\textquotesingle{}node\textquotesingle{}}\OperatorTok{,}\NormalTok{ [}\StringTok{\textquotesingle{}{-}{-}version\textquotesingle{}}\NormalTok{])}\OperatorTok{;}
+  \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(stdout)}\OperatorTok{;}
+\NormalTok{\}}
+\FunctionTok{getVersion}\NormalTok{()}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+\textbf{If the \texttt{shell} option is enabled, do not pass unsanitized
+user input to this function. Any input containing shell metacharacters
+may be used to trigger arbitrary command execution.}
+
+If the \texttt{signal} option is enabled, calling \texttt{.abort()} on
+the corresponding \texttt{AbortController} is similar to calling
+\texttt{.kill()} on the child process except the error passed to the
+callback will be an \texttt{AbortError}:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ \{ execFile \} }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:child\_process\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\KeywordTok{const}\NormalTok{ controller }\OperatorTok{=} \KeywordTok{new} \FunctionTok{AbortController}\NormalTok{()}\OperatorTok{;}
+\KeywordTok{const}\NormalTok{ \{ signal \} }\OperatorTok{=}\NormalTok{ controller}\OperatorTok{;}
+\KeywordTok{const}\NormalTok{ child }\OperatorTok{=} \FunctionTok{execFile}\NormalTok{(}\StringTok{\textquotesingle{}node\textquotesingle{}}\OperatorTok{,}\NormalTok{ [}\StringTok{\textquotesingle{}{-}{-}version\textquotesingle{}}\NormalTok{]}\OperatorTok{,}\NormalTok{ \{ signal \}}\OperatorTok{,}\NormalTok{ (error) }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+  \BuiltInTok{console}\OperatorTok{.}\FunctionTok{error}\NormalTok{(error)}\OperatorTok{;} \CommentTok{// an AbortError}
+\NormalTok{\})}\OperatorTok{;}
+\NormalTok{controller}\OperatorTok{.}\FunctionTok{abort}\NormalTok{()}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+\subsubsection{\texorpdfstring{\texttt{child\_process.fork(modulePath{[},\ args{]}{[},\ options{]})}}{child\_process.fork(modulePath{[}, args{]}{[}, options{]})}}\label{child_process.forkmodulepath-args-options}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{modulePath} \{string\textbar URL\} The module to run in the
+  child.
+\item
+  \texttt{args} \{string{[}{]}\} List of string arguments.
+\item
+  \texttt{options} \{Object\}
+
+  \begin{itemize}
+  \tightlist
+  \item
+    \texttt{cwd} \{string\textbar URL\} Current working directory of the
+    child process.
+  \item
+    \texttt{detached} \{boolean\} Prepare child to run independently of
+    its parent process. Specific behavior depends on the platform, see
+    \hyperref[optionsdetached]{\texttt{options.detached}}).
+  \item
+    \texttt{env} \{Object\} Environment key-value pairs.
+    \textbf{Default:} \texttt{process.env}.
+  \item
+    \texttt{execPath} \{string\} Executable used to create the child
+    process.
+  \item
+    \texttt{execArgv} \{string{[}{]}\} List of string arguments passed
+    to the executable. \textbf{Default:} \texttt{process.execArgv}.
+  \item
+    \texttt{gid} \{number\} Sets the group identity of the process (see
+    setgid(2)).
+  \item
+    \texttt{serialization} \{string\} Specify the kind of serialization
+    used for sending messages between processes. Possible values are
+    \texttt{\textquotesingle{}json\textquotesingle{}} and
+    \texttt{\textquotesingle{}advanced\textquotesingle{}}. See
+    \hyperref[advanced-serialization]{Advanced serialization} for more
+    details. \textbf{Default:}
+    \texttt{\textquotesingle{}json\textquotesingle{}}.
+  \item
+    \texttt{signal} \{AbortSignal\} Allows closing the child process
+    using an AbortSignal.
+  \item
+    \texttt{killSignal} \{string\textbar integer\} The signal value to
+    be used when the spawned process will be killed by timeout or abort
+    signal. \textbf{Default:}
+    \texttt{\textquotesingle{}SIGTERM\textquotesingle{}}.
+  \item
+    \texttt{silent} \{boolean\} If \texttt{true}, stdin, stdout, and
+    stderr of the child will be piped to the parent, otherwise they will
+    be inherited from the parent, see the
+    \texttt{\textquotesingle{}pipe\textquotesingle{}} and
+    \texttt{\textquotesingle{}inherit\textquotesingle{}} options for
+    \hyperref[child_processspawncommand-args-options]{\texttt{child\_process.spawn()}}'s
+    \hyperref[optionsstdio]{\texttt{stdio}} for more details.
+    \textbf{Default:} \texttt{false}.
+  \item
+    \texttt{stdio} \{Array\textbar string\} See
+    \hyperref[child_processspawncommand-args-options]{\texttt{child\_process.spawn()}}'s
+    \hyperref[optionsstdio]{\texttt{stdio}}. When this option is
+    provided, it overrides \texttt{silent}. If the array variant is
+    used, it must contain exactly one item with value
+    \texttt{\textquotesingle{}ipc\textquotesingle{}} or an error will be
+    thrown. For instance
+    \texttt{{[}0,\ 1,\ 2,\ \textquotesingle{}ipc\textquotesingle{}{]}}.
+  \item
+    \texttt{uid} \{number\} Sets the user identity of the process (see
+    setuid(2)).
+  \item
+    \texttt{windowsVerbatimArguments} \{boolean\} No quoting or escaping
+    of arguments is done on Windows. Ignored on Unix. \textbf{Default:}
+    \texttt{false}.
+  \item
+    \texttt{timeout} \{number\} In milliseconds the maximum amount of
+    time the process is allowed to run. \textbf{Default:}
+    \texttt{undefined}.
+  \end{itemize}
+\item
+  Returns: \{ChildProcess\}
+\end{itemize}
+
+The \texttt{child\_process.fork()} method is a special case of
+\hyperref[child_processspawncommand-args-options]{\texttt{child\_process.spawn()}}
+used specifically to spawn new Node.js processes. Like
+\hyperref[child_processspawncommand-args-options]{\texttt{child\_process.spawn()}},
+a \hyperref[class-childprocess]{\texttt{ChildProcess}} object is
+returned. The returned
+\hyperref[class-childprocess]{\texttt{ChildProcess}} will have an
+additional communication channel built-in that allows messages to be
+passed back and forth between the parent and child. See
+\hyperref[subprocesssendmessage-sendhandle-options-callback]{\texttt{subprocess.send()}}
+for details.
+
+Keep in mind that spawned Node.js child processes are independent of the
+parent with exception of the IPC communication channel that is
+established between the two. Each process has its own memory, with their
+own V8 instances. Because of the additional resource allocations
+required, spawning a large number of child Node.js processes is not
+recommended.
+
+By default, \texttt{child\_process.fork()} will spawn new Node.js
+instances using the
+\href{process.md\#processexecpath}{\texttt{process.execPath}} of the
+parent process. The \texttt{execPath} property in the \texttt{options}
+object allows for an alternative execution path to be used.
+
+Node.js processes launched with a custom \texttt{execPath} will
+communicate with the parent process using the file descriptor (fd)
+identified using the environment variable \texttt{NODE\_CHANNEL\_FD} on
+the child process.
+
+Unlike the fork(2) POSIX system call, \texttt{child\_process.fork()}
+does not clone the current process.
+
+The \texttt{shell} option available in
+\hyperref[child_processspawncommand-args-options]{\texttt{child\_process.spawn()}}
+is not supported by \texttt{child\_process.fork()} and will be ignored
+if set.
+
+If the \texttt{signal} option is enabled, calling \texttt{.abort()} on
+the corresponding \texttt{AbortController} is similar to calling
+\texttt{.kill()} on the child process except the error passed to the
+callback will be an \texttt{AbortError}:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\ControlFlowTok{if}\NormalTok{ (}\BuiltInTok{process}\OperatorTok{.}\AttributeTok{argv}\NormalTok{[}\DecValTok{2}\NormalTok{] }\OperatorTok{===} \StringTok{\textquotesingle{}child\textquotesingle{}}\NormalTok{) \{}
+  \PreprocessorTok{setTimeout}\NormalTok{(() }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+    \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\VerbatimStringTok{\textasciigrave{}Hello from }\SpecialCharTok{$\{}\BuiltInTok{process}\OperatorTok{.}\AttributeTok{argv}\NormalTok{[}\DecValTok{2}\NormalTok{]}\SpecialCharTok{\}}\VerbatimStringTok{!\textasciigrave{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{  \}}\OperatorTok{,} \DecValTok{1\_000}\NormalTok{)}\OperatorTok{;}
+\NormalTok{\} }\ControlFlowTok{else}\NormalTok{ \{}
+  \KeywordTok{const}\NormalTok{ \{ fork \} }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:child\_process\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+  \KeywordTok{const}\NormalTok{ controller }\OperatorTok{=} \KeywordTok{new} \FunctionTok{AbortController}\NormalTok{()}\OperatorTok{;}
+  \KeywordTok{const}\NormalTok{ \{ signal \} }\OperatorTok{=}\NormalTok{ controller}\OperatorTok{;}
+  \KeywordTok{const}\NormalTok{ child }\OperatorTok{=} \FunctionTok{fork}\NormalTok{(}\BuiltInTok{\_\_filename}\OperatorTok{,}\NormalTok{ [}\StringTok{\textquotesingle{}child\textquotesingle{}}\NormalTok{]}\OperatorTok{,}\NormalTok{ \{ signal \})}\OperatorTok{;}
+\NormalTok{  child}\OperatorTok{.}\FunctionTok{on}\NormalTok{(}\StringTok{\textquotesingle{}error\textquotesingle{}}\OperatorTok{,}\NormalTok{ (err) }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+    \CommentTok{// This will be called with err being an AbortError if the controller aborts}
+\NormalTok{  \})}\OperatorTok{;}
+\NormalTok{  controller}\OperatorTok{.}\FunctionTok{abort}\NormalTok{()}\OperatorTok{;} \CommentTok{// Stops the child process}
+\NormalTok{\}}
+\end{Highlighting}
+\end{Shaded}
+
+\subsubsection{\texorpdfstring{\texttt{child\_process.spawn(command{[},\ args{]}{[},\ options{]})}}{child\_process.spawn(command{[}, args{]}{[}, options{]})}}\label{child_process.spawncommand-args-options}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{command} \{string\} The command to run.
+\item
+  \texttt{args} \{string{[}{]}\} List of string arguments.
+\item
+  \texttt{options} \{Object\}
+
+  \begin{itemize}
+  \tightlist
+  \item
+    \texttt{cwd} \{string\textbar URL\} Current working directory of the
+    child process.
+  \item
+    \texttt{env} \{Object\} Environment key-value pairs.
+    \textbf{Default:} \texttt{process.env}.
+  \item
+    \texttt{argv0} \{string\} Explicitly set the value of
+    \texttt{argv{[}0{]}} sent to the child process. This will be set to
+    \texttt{command} if not specified.
+  \item
+    \texttt{stdio} \{Array\textbar string\} Child's stdio configuration
+    (see \hyperref[optionsstdio]{\texttt{options.stdio}}).
+  \item
+    \texttt{detached} \{boolean\} Prepare child to run independently of
+    its parent process. Specific behavior depends on the platform, see
+    \hyperref[optionsdetached]{\texttt{options.detached}}).
+  \item
+    \texttt{uid} \{number\} Sets the user identity of the process (see
+    setuid(2)).
+  \item
+    \texttt{gid} \{number\} Sets the group identity of the process (see
+    setgid(2)).
+  \item
+    \texttt{serialization} \{string\} Specify the kind of serialization
+    used for sending messages between processes. Possible values are
+    \texttt{\textquotesingle{}json\textquotesingle{}} and
+    \texttt{\textquotesingle{}advanced\textquotesingle{}}. See
+    \hyperref[advanced-serialization]{Advanced serialization} for more
+    details. \textbf{Default:}
+    \texttt{\textquotesingle{}json\textquotesingle{}}.
+  \item
+    \texttt{shell} \{boolean\textbar string\} If \texttt{true}, runs
+    \texttt{command} inside of a shell. Uses
+    \texttt{\textquotesingle{}/bin/sh\textquotesingle{}} on Unix, and
+    \texttt{process.env.ComSpec} on Windows. A different shell can be
+    specified as a string. See \hyperref[shell-requirements]{Shell
+    requirements} and \hyperref[default-windows-shell]{Default Windows
+    shell}. \textbf{Default:} \texttt{false} (no shell).
+  \item
+    \texttt{windowsVerbatimArguments} \{boolean\} No quoting or escaping
+    of arguments is done on Windows. Ignored on Unix. This is set to
+    \texttt{true} automatically when \texttt{shell} is specified and is
+    CMD. \textbf{Default:} \texttt{false}.
+  \item
+    \texttt{windowsHide} \{boolean\} Hide the subprocess console window
+    that would normally be created on Windows systems. \textbf{Default:}
+    \texttt{false}.
+  \item
+    \texttt{signal} \{AbortSignal\} allows aborting the child process
+    using an AbortSignal.
+  \item
+    \texttt{timeout} \{number\} In milliseconds the maximum amount of
+    time the process is allowed to run. \textbf{Default:}
+    \texttt{undefined}.
+  \item
+    \texttt{killSignal} \{string\textbar integer\} The signal value to
+    be used when the spawned process will be killed by timeout or abort
+    signal. \textbf{Default:}
+    \texttt{\textquotesingle{}SIGTERM\textquotesingle{}}.
+  \end{itemize}
+\item
+  Returns: \{ChildProcess\}
+\end{itemize}
+
+The \texttt{child\_process.spawn()} method spawns a new process using
+the given \texttt{command}, with command-line arguments in
+\texttt{args}. If omitted, \texttt{args} defaults to an empty array.
+
+\textbf{If the \texttt{shell} option is enabled, do not pass unsanitized
+user input to this function. Any input containing shell metacharacters
+may be used to trigger arbitrary command execution.}
+
+A third argument may be used to specify additional options, with these
+defaults:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ defaults }\OperatorTok{=}\NormalTok{ \{}
+  \DataTypeTok{cwd}\OperatorTok{:} \KeywordTok{undefined}\OperatorTok{,}
+  \DataTypeTok{env}\OperatorTok{:} \BuiltInTok{process}\OperatorTok{.}\AttributeTok{env}\OperatorTok{,}
+\NormalTok{\}}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+Use \texttt{cwd} to specify the working directory from which the process
+is spawned. If not given, the default is to inherit the current working
+directory. If given, but the path does not exist, the child process
+emits an \texttt{ENOENT} error and exits immediately. \texttt{ENOENT} is
+also emitted when the command does not exist.
+
+Use \texttt{env} to specify environment variables that will be visible
+to the new process, the default is
+\href{process.md\#processenv}{\texttt{process.env}}.
+
+\texttt{undefined} values in \texttt{env} will be ignored.
+
+Example of running \texttt{ls\ -lh\ /usr}, capturing \texttt{stdout},
+\texttt{stderr}, and the exit code:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ \{ spawn \} }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:child\_process\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\KeywordTok{const}\NormalTok{ ls }\OperatorTok{=} \FunctionTok{spawn}\NormalTok{(}\StringTok{\textquotesingle{}ls\textquotesingle{}}\OperatorTok{,}\NormalTok{ [}\StringTok{\textquotesingle{}{-}lh\textquotesingle{}}\OperatorTok{,} \StringTok{\textquotesingle{}/usr\textquotesingle{}}\NormalTok{])}\OperatorTok{;}
+
+\NormalTok{ls}\OperatorTok{.}\AttributeTok{stdout}\OperatorTok{.}\FunctionTok{on}\NormalTok{(}\StringTok{\textquotesingle{}data\textquotesingle{}}\OperatorTok{,}\NormalTok{ (data) }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+  \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\VerbatimStringTok{\textasciigrave{}stdout: }\SpecialCharTok{$\{}\NormalTok{data}\SpecialCharTok{\}}\VerbatimStringTok{\textasciigrave{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{\})}\OperatorTok{;}
+
+\NormalTok{ls}\OperatorTok{.}\AttributeTok{stderr}\OperatorTok{.}\FunctionTok{on}\NormalTok{(}\StringTok{\textquotesingle{}data\textquotesingle{}}\OperatorTok{,}\NormalTok{ (data) }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+  \BuiltInTok{console}\OperatorTok{.}\FunctionTok{error}\NormalTok{(}\VerbatimStringTok{\textasciigrave{}stderr: }\SpecialCharTok{$\{}\NormalTok{data}\SpecialCharTok{\}}\VerbatimStringTok{\textasciigrave{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{\})}\OperatorTok{;}
+
+\NormalTok{ls}\OperatorTok{.}\FunctionTok{on}\NormalTok{(}\StringTok{\textquotesingle{}close\textquotesingle{}}\OperatorTok{,}\NormalTok{ (code) }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+  \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\VerbatimStringTok{\textasciigrave{}child process exited with code }\SpecialCharTok{$\{}\NormalTok{code}\SpecialCharTok{\}}\VerbatimStringTok{\textasciigrave{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{\})}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+Example: A very elaborate way to run
+\texttt{ps\ ax\ \textbar{}\ grep\ ssh}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ \{ spawn \} }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:child\_process\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\KeywordTok{const}\NormalTok{ ps }\OperatorTok{=} \FunctionTok{spawn}\NormalTok{(}\StringTok{\textquotesingle{}ps\textquotesingle{}}\OperatorTok{,}\NormalTok{ [}\StringTok{\textquotesingle{}ax\textquotesingle{}}\NormalTok{])}\OperatorTok{;}
+\KeywordTok{const}\NormalTok{ grep }\OperatorTok{=} \FunctionTok{spawn}\NormalTok{(}\StringTok{\textquotesingle{}grep\textquotesingle{}}\OperatorTok{,}\NormalTok{ [}\StringTok{\textquotesingle{}ssh\textquotesingle{}}\NormalTok{])}\OperatorTok{;}
+
+\NormalTok{ps}\OperatorTok{.}\AttributeTok{stdout}\OperatorTok{.}\FunctionTok{on}\NormalTok{(}\StringTok{\textquotesingle{}data\textquotesingle{}}\OperatorTok{,}\NormalTok{ (data) }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+\NormalTok{  grep}\OperatorTok{.}\AttributeTok{stdin}\OperatorTok{.}\FunctionTok{write}\NormalTok{(data)}\OperatorTok{;}
+\NormalTok{\})}\OperatorTok{;}
+
+\NormalTok{ps}\OperatorTok{.}\AttributeTok{stderr}\OperatorTok{.}\FunctionTok{on}\NormalTok{(}\StringTok{\textquotesingle{}data\textquotesingle{}}\OperatorTok{,}\NormalTok{ (data) }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+  \BuiltInTok{console}\OperatorTok{.}\FunctionTok{error}\NormalTok{(}\VerbatimStringTok{\textasciigrave{}ps stderr: }\SpecialCharTok{$\{}\NormalTok{data}\SpecialCharTok{\}}\VerbatimStringTok{\textasciigrave{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{\})}\OperatorTok{;}
+
+\NormalTok{ps}\OperatorTok{.}\FunctionTok{on}\NormalTok{(}\StringTok{\textquotesingle{}close\textquotesingle{}}\OperatorTok{,}\NormalTok{ (code) }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+  \ControlFlowTok{if}\NormalTok{ (code }\OperatorTok{!==} \DecValTok{0}\NormalTok{) \{}
+    \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\VerbatimStringTok{\textasciigrave{}ps process exited with code }\SpecialCharTok{$\{}\NormalTok{code}\SpecialCharTok{\}}\VerbatimStringTok{\textasciigrave{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{  \}}
+\NormalTok{  grep}\OperatorTok{.}\AttributeTok{stdin}\OperatorTok{.}\FunctionTok{end}\NormalTok{()}\OperatorTok{;}
+\NormalTok{\})}\OperatorTok{;}
+
+\NormalTok{grep}\OperatorTok{.}\AttributeTok{stdout}\OperatorTok{.}\FunctionTok{on}\NormalTok{(}\StringTok{\textquotesingle{}data\textquotesingle{}}\OperatorTok{,}\NormalTok{ (data) }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+  \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(data}\OperatorTok{.}\FunctionTok{toString}\NormalTok{())}\OperatorTok{;}
+\NormalTok{\})}\OperatorTok{;}
+
+\NormalTok{grep}\OperatorTok{.}\AttributeTok{stderr}\OperatorTok{.}\FunctionTok{on}\NormalTok{(}\StringTok{\textquotesingle{}data\textquotesingle{}}\OperatorTok{,}\NormalTok{ (data) }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+  \BuiltInTok{console}\OperatorTok{.}\FunctionTok{error}\NormalTok{(}\VerbatimStringTok{\textasciigrave{}grep stderr: }\SpecialCharTok{$\{}\NormalTok{data}\SpecialCharTok{\}}\VerbatimStringTok{\textasciigrave{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{\})}\OperatorTok{;}
+
+\NormalTok{grep}\OperatorTok{.}\FunctionTok{on}\NormalTok{(}\StringTok{\textquotesingle{}close\textquotesingle{}}\OperatorTok{,}\NormalTok{ (code) }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+  \ControlFlowTok{if}\NormalTok{ (code }\OperatorTok{!==} \DecValTok{0}\NormalTok{) \{}
+    \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\VerbatimStringTok{\textasciigrave{}grep process exited with code }\SpecialCharTok{$\{}\NormalTok{code}\SpecialCharTok{\}}\VerbatimStringTok{\textasciigrave{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{  \}}
+\NormalTok{\})}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+Example of checking for failed \texttt{spawn}:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ \{ spawn \} }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:child\_process\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\KeywordTok{const}\NormalTok{ subprocess }\OperatorTok{=} \FunctionTok{spawn}\NormalTok{(}\StringTok{\textquotesingle{}bad\_command\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+
+\NormalTok{subprocess}\OperatorTok{.}\FunctionTok{on}\NormalTok{(}\StringTok{\textquotesingle{}error\textquotesingle{}}\OperatorTok{,}\NormalTok{ (err) }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+  \BuiltInTok{console}\OperatorTok{.}\FunctionTok{error}\NormalTok{(}\StringTok{\textquotesingle{}Failed to start subprocess.\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{\})}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+Certain platforms (macOS, Linux) will use the value of
+\texttt{argv{[}0{]}} for the process title while others (Windows, SunOS)
+will use \texttt{command}.
+
+Node.js overwrites \texttt{argv{[}0{]}} with \texttt{process.execPath}
+on startup, so \texttt{process.argv{[}0{]}} in a Node.js child process
+will not match the \texttt{argv0} parameter passed to \texttt{spawn}
+from the parent. Retrieve it with the \texttt{process.argv0} property
+instead.
+
+If the \texttt{signal} option is enabled, calling \texttt{.abort()} on
+the corresponding \texttt{AbortController} is similar to calling
+\texttt{.kill()} on the child process except the error passed to the
+callback will be an \texttt{AbortError}:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ \{ spawn \} }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:child\_process\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\KeywordTok{const}\NormalTok{ controller }\OperatorTok{=} \KeywordTok{new} \FunctionTok{AbortController}\NormalTok{()}\OperatorTok{;}
+\KeywordTok{const}\NormalTok{ \{ signal \} }\OperatorTok{=}\NormalTok{ controller}\OperatorTok{;}
+\KeywordTok{const}\NormalTok{ grep }\OperatorTok{=} \FunctionTok{spawn}\NormalTok{(}\StringTok{\textquotesingle{}grep\textquotesingle{}}\OperatorTok{,}\NormalTok{ [}\StringTok{\textquotesingle{}ssh\textquotesingle{}}\NormalTok{]}\OperatorTok{,}\NormalTok{ \{ signal \})}\OperatorTok{;}
+\NormalTok{grep}\OperatorTok{.}\FunctionTok{on}\NormalTok{(}\StringTok{\textquotesingle{}error\textquotesingle{}}\OperatorTok{,}\NormalTok{ (err) }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+  \CommentTok{// This will be called with err being an AbortError if the controller aborts}
+\NormalTok{\})}\OperatorTok{;}
+\NormalTok{controller}\OperatorTok{.}\FunctionTok{abort}\NormalTok{()}\OperatorTok{;} \CommentTok{// Stops the child process}
+\end{Highlighting}
+\end{Shaded}
+
+\paragraph{\texorpdfstring{\texttt{options.detached}}{options.detached}}\label{options.detached}
+
+On Windows, setting \texttt{options.detached} to \texttt{true} makes it
+possible for the child process to continue running after the parent
+exits. The child will have its own console window. Once enabled for a
+child process, it cannot be disabled.
+
+On non-Windows platforms, if \texttt{options.detached} is set to
+\texttt{true}, the child process will be made the leader of a new
+process group and session. Child processes may continue running after
+the parent exits regardless of whether they are detached or not. See
+setsid(2) for more information.
+
+By default, the parent will wait for the detached child to exit. To
+prevent the parent from waiting for a given \texttt{subprocess} to exit,
+use the \texttt{subprocess.unref()} method. Doing so will cause the
+parent's event loop to not include the child in its reference count,
+allowing the parent to exit independently of the child, unless there is
+an established IPC channel between the child and the parent.
+
+When using the \texttt{detached} option to start a long-running process,
+the process will not stay running in the background after the parent
+exits unless it is provided with a \texttt{stdio} configuration that is
+not connected to the parent. If the parent's \texttt{stdio} is
+inherited, the child will remain attached to the controlling terminal.
+
+Example of a long-running process, by detaching and also ignoring its
+parent \texttt{stdio} file descriptors, in order to ignore the parent's
+termination:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ \{ spawn \} }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:child\_process\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+
+\KeywordTok{const}\NormalTok{ subprocess }\OperatorTok{=} \FunctionTok{spawn}\NormalTok{(}\BuiltInTok{process}\OperatorTok{.}\AttributeTok{argv}\NormalTok{[}\DecValTok{0}\NormalTok{]}\OperatorTok{,}\NormalTok{ [}\StringTok{\textquotesingle{}child\_program.js\textquotesingle{}}\NormalTok{]}\OperatorTok{,}\NormalTok{ \{}
+  \DataTypeTok{detached}\OperatorTok{:} \KeywordTok{true}\OperatorTok{,}
+  \DataTypeTok{stdio}\OperatorTok{:} \StringTok{\textquotesingle{}ignore\textquotesingle{}}\OperatorTok{,}
+\NormalTok{\})}\OperatorTok{;}
+
+\NormalTok{subprocess}\OperatorTok{.}\FunctionTok{unref}\NormalTok{()}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+Alternatively one can redirect the child process' output into files:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ fs }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:fs\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\KeywordTok{const}\NormalTok{ \{ spawn \} }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:child\_process\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\KeywordTok{const}\NormalTok{ out }\OperatorTok{=}\NormalTok{ fs}\OperatorTok{.}\FunctionTok{openSync}\NormalTok{(}\StringTok{\textquotesingle{}./out.log\textquotesingle{}}\OperatorTok{,} \StringTok{\textquotesingle{}a\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\KeywordTok{const}\NormalTok{ err }\OperatorTok{=}\NormalTok{ fs}\OperatorTok{.}\FunctionTok{openSync}\NormalTok{(}\StringTok{\textquotesingle{}./out.log\textquotesingle{}}\OperatorTok{,} \StringTok{\textquotesingle{}a\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+
+\KeywordTok{const}\NormalTok{ subprocess }\OperatorTok{=} \FunctionTok{spawn}\NormalTok{(}\StringTok{\textquotesingle{}prg\textquotesingle{}}\OperatorTok{,}\NormalTok{ []}\OperatorTok{,}\NormalTok{ \{}
+  \DataTypeTok{detached}\OperatorTok{:} \KeywordTok{true}\OperatorTok{,}
+  \DataTypeTok{stdio}\OperatorTok{:}\NormalTok{ [ }\StringTok{\textquotesingle{}ignore\textquotesingle{}}\OperatorTok{,}\NormalTok{ out}\OperatorTok{,}\NormalTok{ err ]}\OperatorTok{,}
+\NormalTok{\})}\OperatorTok{;}
+
+\NormalTok{subprocess}\OperatorTok{.}\FunctionTok{unref}\NormalTok{()}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+\paragraph{\texorpdfstring{\texttt{options.stdio}}{options.stdio}}\label{options.stdio}
+
+The \texttt{options.stdio} option is used to configure the pipes that
+are established between the parent and child process. By default, the
+child's stdin, stdout, and stderr are redirected to corresponding
+\hyperref[subprocessstdin]{\texttt{subprocess.stdin}},
+\hyperref[subprocessstdout]{\texttt{subprocess.stdout}}, and
+\hyperref[subprocessstderr]{\texttt{subprocess.stderr}} streams on the
+\hyperref[class-childprocess]{\texttt{ChildProcess}} object. This is
+equivalent to setting the \texttt{options.stdio} equal to
+\texttt{{[}\textquotesingle{}pipe\textquotesingle{},\ \textquotesingle{}pipe\textquotesingle{},\ \textquotesingle{}pipe\textquotesingle{}{]}}.
+
+For convenience, \texttt{options.stdio} may be one of the following
+strings:
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{\textquotesingle{}pipe\textquotesingle{}}: equivalent to
+  \texttt{{[}\textquotesingle{}pipe\textquotesingle{},\ \textquotesingle{}pipe\textquotesingle{},\ \textquotesingle{}pipe\textquotesingle{}{]}}
+  (the default)
+\item
+  \texttt{\textquotesingle{}overlapped\textquotesingle{}}: equivalent to
+  \texttt{{[}\textquotesingle{}overlapped\textquotesingle{},\ \textquotesingle{}overlapped\textquotesingle{},\ \textquotesingle{}overlapped\textquotesingle{}{]}}
+\item
+  \texttt{\textquotesingle{}ignore\textquotesingle{}}: equivalent to
+  \texttt{{[}\textquotesingle{}ignore\textquotesingle{},\ \textquotesingle{}ignore\textquotesingle{},\ \textquotesingle{}ignore\textquotesingle{}{]}}
+\item
+  \texttt{\textquotesingle{}inherit\textquotesingle{}}: equivalent to
+  \texttt{{[}\textquotesingle{}inherit\textquotesingle{},\ \textquotesingle{}inherit\textquotesingle{},\ \textquotesingle{}inherit\textquotesingle{}{]}}
+  or \texttt{{[}0,\ 1,\ 2{]}}
+\end{itemize}
+
+Otherwise, the value of \texttt{options.stdio} is an array where each
+index corresponds to an fd in the child. The fds 0, 1, and 2 correspond
+to stdin, stdout, and stderr, respectively. Additional fds can be
+specified to create additional pipes between the parent and child. The
+value is one of the following:
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\item
+  \texttt{\textquotesingle{}pipe\textquotesingle{}}: Create a pipe
+  between the child process and the parent process. The parent end of
+  the pipe is exposed to the parent as a property on the
+  \texttt{child\_process} object as
+  \hyperref[subprocessstdio]{\texttt{subprocess.stdio{[}fd{]}}}. Pipes
+  created for fds 0, 1, and 2 are also available as
+  \hyperref[subprocessstdin]{\texttt{subprocess.stdin}},
+  \hyperref[subprocessstdout]{\texttt{subprocess.stdout}} and
+  \hyperref[subprocessstderr]{\texttt{subprocess.stderr}}, respectively.
+  These are not actual Unix pipes and therefore the child process can
+  not use them by their descriptor files, e.g.~\texttt{/dev/fd/2} or
+  \texttt{/dev/stdout}.
+\item
+  \texttt{\textquotesingle{}overlapped\textquotesingle{}}: Same as
+  \texttt{\textquotesingle{}pipe\textquotesingle{}} except that the
+  \texttt{FILE\_FLAG\_OVERLAPPED} flag is set on the handle. This is
+  necessary for overlapped I/O on the child process's stdio handles. See
+  the
+  \href{https://docs.microsoft.com/en-us/windows/win32/fileio/synchronous-and-asynchronous-i-o}{docs}
+  for more details. This is exactly the same as
+  \texttt{\textquotesingle{}pipe\textquotesingle{}} on non-Windows
+  systems.
+\item
+  \texttt{\textquotesingle{}ipc\textquotesingle{}}: Create an IPC
+  channel for passing messages/file descriptors between parent and
+  child. A \hyperref[class-childprocess]{\texttt{ChildProcess}} may have
+  at most one IPC stdio file descriptor. Setting this option enables the
+  \hyperref[subprocesssendmessage-sendhandle-options-callback]{\texttt{subprocess.send()}}
+  method. If the child is a Node.js process, the presence of an IPC
+  channel will enable
+  \href{process.md\#processsendmessage-sendhandle-options-callback}{\texttt{process.send()}}
+  and
+  \href{process.md\#processdisconnect}{\texttt{process.disconnect()}}
+  methods, as well as
+  \href{process.md\#event-disconnect}{\texttt{\textquotesingle{}disconnect\textquotesingle{}}}
+  and
+  \href{process.md\#event-message}{\texttt{\textquotesingle{}message\textquotesingle{}}}
+  events within the child.
+
+  Accessing the IPC channel fd in any way other than
+  \href{process.md\#processsendmessage-sendhandle-options-callback}{\texttt{process.send()}}
+  or using the IPC channel with a child process that is not a Node.js
+  instance is not supported.
+\item
+  \texttt{\textquotesingle{}ignore\textquotesingle{}}: Instructs Node.js
+  to ignore the fd in the child. While Node.js will always open fds 0,
+  1, and 2 for the processes it spawns, setting the fd to
+  \texttt{\textquotesingle{}ignore\textquotesingle{}} will cause Node.js
+  to open \texttt{/dev/null} and attach it to the child's fd.
+\item
+  \texttt{\textquotesingle{}inherit\textquotesingle{}}: Pass through the
+  corresponding stdio stream to/from the parent process. In the first
+  three positions, this is equivalent to \texttt{process.stdin},
+  \texttt{process.stdout}, and \texttt{process.stderr}, respectively. In
+  any other position, equivalent to
+  \texttt{\textquotesingle{}ignore\textquotesingle{}}.
+\item
+  \{Stream\} object: Share a readable or writable stream that refers to
+  a tty, file, socket, or a pipe with the child process. The stream's
+  underlying file descriptor is duplicated in the child process to the
+  fd that corresponds to the index in the \texttt{stdio} array. The
+  stream must have an underlying descriptor (file streams do not until
+  the \texttt{\textquotesingle{}open\textquotesingle{}} event has
+  occurred).
+\item
+  Positive integer: The integer value is interpreted as a file
+  descriptor that is open in the parent process. It is shared with the
+  child process, similar to how \{Stream\} objects can be shared.
+  Passing sockets is not supported on Windows.
+\item
+  \texttt{null}, \texttt{undefined}: Use default value. For stdio fds 0,
+  1, and 2 (in other words, stdin, stdout, and stderr) a pipe is
+  created. For fd 3 and up, the default is
+  \texttt{\textquotesingle{}ignore\textquotesingle{}}.
+\end{enumerate}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ \{ spawn \} }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:child\_process\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+
+\CommentTok{// Child will use parent\textquotesingle{}s stdios.}
+\FunctionTok{spawn}\NormalTok{(}\StringTok{\textquotesingle{}prg\textquotesingle{}}\OperatorTok{,}\NormalTok{ []}\OperatorTok{,}\NormalTok{ \{ }\DataTypeTok{stdio}\OperatorTok{:} \StringTok{\textquotesingle{}inherit\textquotesingle{}}\NormalTok{ \})}\OperatorTok{;}
+
+\CommentTok{// Spawn child sharing only stderr.}
+\FunctionTok{spawn}\NormalTok{(}\StringTok{\textquotesingle{}prg\textquotesingle{}}\OperatorTok{,}\NormalTok{ []}\OperatorTok{,}\NormalTok{ \{ }\DataTypeTok{stdio}\OperatorTok{:}\NormalTok{ [}\StringTok{\textquotesingle{}pipe\textquotesingle{}}\OperatorTok{,} \StringTok{\textquotesingle{}pipe\textquotesingle{}}\OperatorTok{,} \BuiltInTok{process}\OperatorTok{.}\AttributeTok{stderr}\NormalTok{] \})}\OperatorTok{;}
+
+\CommentTok{// Open an extra fd=4, to interact with programs presenting a}
+\CommentTok{// startd{-}style interface.}
+\FunctionTok{spawn}\NormalTok{(}\StringTok{\textquotesingle{}prg\textquotesingle{}}\OperatorTok{,}\NormalTok{ []}\OperatorTok{,}\NormalTok{ \{ }\DataTypeTok{stdio}\OperatorTok{:}\NormalTok{ [}\StringTok{\textquotesingle{}pipe\textquotesingle{}}\OperatorTok{,} \KeywordTok{null}\OperatorTok{,} \KeywordTok{null}\OperatorTok{,} \KeywordTok{null}\OperatorTok{,} \StringTok{\textquotesingle{}pipe\textquotesingle{}}\NormalTok{] \})}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+\emph{It is worth noting that when an IPC channel is established between
+the parent and child processes, and the child is a Node.js process, the
+child is launched with the IPC channel unreferenced (using
+\texttt{unref()}) until the child registers an event handler for the
+\href{process.md\#event-disconnect}{\texttt{\textquotesingle{}disconnect\textquotesingle{}}}
+event or the
+\href{process.md\#event-message}{\texttt{\textquotesingle{}message\textquotesingle{}}}
+event. This allows the child to exit normally without the process being
+held open by the open IPC channel.}
+
+On Unix-like operating systems, the
+\hyperref[child_processspawncommand-args-options]{\texttt{child\_process.spawn()}}
+method performs memory operations synchronously before decoupling the
+event loop from the child. Applications with a large memory footprint
+may find frequent
+\hyperref[child_processspawncommand-args-options]{\texttt{child\_process.spawn()}}
+calls to be a bottleneck. For more information, see
+\href{https://bugs.chromium.org/p/v8/issues/detail?id=7381}{V8 issue
+7381}.
+
+See also:
+\hyperref[child_processexeccommand-options-callback]{\texttt{child\_process.exec()}}
+and
+\hyperref[child_processforkmodulepath-args-options]{\texttt{child\_process.fork()}}.
+
+\subsection{Synchronous process
+creation}\label{synchronous-process-creation}
+
+The
+\hyperref[child_processspawnsynccommand-args-options]{\texttt{child\_process.spawnSync()}},
+\hyperref[child_processexecsynccommand-options]{\texttt{child\_process.execSync()}},
+and
+\hyperref[child_processexecfilesyncfile-args-options]{\texttt{child\_process.execFileSync()}}
+methods are synchronous and will block the Node.js event loop, pausing
+execution of any additional code until the spawned process exits.
+
+Blocking calls like these are mostly useful for simplifying
+general-purpose scripting tasks and for simplifying the
+loading/processing of application configuration at startup.
+
+\subsubsection{\texorpdfstring{\texttt{child\_process.execFileSync(file{[},\ args{]}{[},\ options{]})}}{child\_process.execFileSync(file{[}, args{]}{[}, options{]})}}\label{child_process.execfilesyncfile-args-options}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{file} \{string\} The name or path of the executable file to
+  run.
+\item
+  \texttt{args} \{string{[}{]}\} List of string arguments.
+\item
+  \texttt{options} \{Object\}
+
+  \begin{itemize}
+  \tightlist
+  \item
+    \texttt{cwd} \{string\textbar URL\} Current working directory of the
+    child process.
+  \item
+    \texttt{input}
+    \{string\textbar Buffer\textbar TypedArray\textbar DataView\} The
+    value which will be passed as stdin to the spawned process. If
+    \texttt{stdio{[}0{]}} is set to
+    \texttt{\textquotesingle{}pipe\textquotesingle{}}, Supplying this
+    value will override \texttt{stdio{[}0{]}}.
+  \item
+    \texttt{stdio} \{string\textbar Array\} Child's stdio configuration.
+    \texttt{stderr} by default will be output to the parent process'
+    stderr unless \texttt{stdio} is specified. \textbf{Default:}
+    \texttt{\textquotesingle{}pipe\textquotesingle{}}.
+  \item
+    \texttt{env} \{Object\} Environment key-value pairs.
+    \textbf{Default:} \texttt{process.env}.
+  \item
+    \texttt{uid} \{number\} Sets the user identity of the process (see
+    setuid(2)).
+  \item
+    \texttt{gid} \{number\} Sets the group identity of the process (see
+    setgid(2)).
+  \item
+    \texttt{timeout} \{number\} In milliseconds the maximum amount of
+    time the process is allowed to run. \textbf{Default:}
+    \texttt{undefined}.
+  \item
+    \texttt{killSignal} \{string\textbar integer\} The signal value to
+    be used when the spawned process will be killed. \textbf{Default:}
+    \texttt{\textquotesingle{}SIGTERM\textquotesingle{}}.
+  \item
+    \texttt{maxBuffer} \{number\} Largest amount of data in bytes
+    allowed on stdout or stderr. If exceeded, the child process is
+    terminated. See caveat at
+    \hyperref[maxbuffer-and-unicode]{\texttt{maxBuffer} and Unicode}.
+    \textbf{Default:} \texttt{1024\ *\ 1024}.
+  \item
+    \texttt{encoding} \{string\} The encoding used for all stdio inputs
+    and outputs. \textbf{Default:}
+    \texttt{\textquotesingle{}buffer\textquotesingle{}}.
+  \item
+    \texttt{windowsHide} \{boolean\} Hide the subprocess console window
+    that would normally be created on Windows systems. \textbf{Default:}
+    \texttt{false}.
+  \item
+    \texttt{shell} \{boolean\textbar string\} If \texttt{true}, runs
+    \texttt{command} inside of a shell. Uses
+    \texttt{\textquotesingle{}/bin/sh\textquotesingle{}} on Unix, and
+    \texttt{process.env.ComSpec} on Windows. A different shell can be
+    specified as a string. See \hyperref[shell-requirements]{Shell
+    requirements} and \hyperref[default-windows-shell]{Default Windows
+    shell}. \textbf{Default:} \texttt{false} (no shell).
+  \end{itemize}
+\item
+  Returns: \{Buffer\textbar string\} The stdout from the command.
+\end{itemize}
+
+The \texttt{child\_process.execFileSync()} method is generally identical
+to
+\hyperref[child_processexecfilefile-args-options-callback]{\texttt{child\_process.execFile()}}
+with the exception that the method will not return until the child
+process has fully closed. When a timeout has been encountered and
+\texttt{killSignal} is sent, the method won't return until the process
+has completely exited.
+
+If the child process intercepts and handles the \texttt{SIGTERM} signal
+and does not exit, the parent process will still wait until the child
+process has exited.
+
+If the process times out or has a non-zero exit code, this method will
+throw an \href{errors.md\#class-error}{\texttt{Error}} that will include
+the full result of the underlying
+\hyperref[child_processspawnsynccommand-args-options]{\texttt{child\_process.spawnSync()}}.
+
+\textbf{If the \texttt{shell} option is enabled, do not pass unsanitized
+user input to this function. Any input containing shell metacharacters
+may be used to trigger arbitrary command execution.}
+
+\subsubsection{\texorpdfstring{\texttt{child\_process.execSync(command{[},\ options{]})}}{child\_process.execSync(command{[}, options{]})}}\label{child_process.execsynccommand-options}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{command} \{string\} The command to run.
+\item
+  \texttt{options} \{Object\}
+
+  \begin{itemize}
+  \tightlist
+  \item
+    \texttt{cwd} \{string\textbar URL\} Current working directory of the
+    child process.
+  \item
+    \texttt{input}
+    \{string\textbar Buffer\textbar TypedArray\textbar DataView\} The
+    value which will be passed as stdin to the spawned process. If
+    \texttt{stdio{[}0{]}} is set to
+    \texttt{\textquotesingle{}pipe\textquotesingle{}}, Supplying this
+    value will override \texttt{stdio{[}0{]}}.
+  \item
+    \texttt{stdio} \{string\textbar Array\} Child's stdio configuration.
+    \texttt{stderr} by default will be output to the parent process'
+    stderr unless \texttt{stdio} is specified. \textbf{Default:}
+    \texttt{\textquotesingle{}pipe\textquotesingle{}}.
+  \item
+    \texttt{env} \{Object\} Environment key-value pairs.
+    \textbf{Default:} \texttt{process.env}.
+  \item
+    \texttt{shell} \{string\} Shell to execute the command with. See
+    \hyperref[shell-requirements]{Shell requirements} and
+    \hyperref[default-windows-shell]{Default Windows shell}.
+    \textbf{Default:}
+    \texttt{\textquotesingle{}/bin/sh\textquotesingle{}} on Unix,
+    \texttt{process.env.ComSpec} on Windows.
+  \item
+    \texttt{uid} \{number\} Sets the user identity of the process. (See
+    setuid(2)).
+  \item
+    \texttt{gid} \{number\} Sets the group identity of the process. (See
+    setgid(2)).
+  \item
+    \texttt{timeout} \{number\} In milliseconds the maximum amount of
+    time the process is allowed to run. \textbf{Default:}
+    \texttt{undefined}.
+  \item
+    \texttt{killSignal} \{string\textbar integer\} The signal value to
+    be used when the spawned process will be killed. \textbf{Default:}
+    \texttt{\textquotesingle{}SIGTERM\textquotesingle{}}.
+  \item
+    \texttt{maxBuffer} \{number\} Largest amount of data in bytes
+    allowed on stdout or stderr. If exceeded, the child process is
+    terminated and any output is truncated. See caveat at
+    \hyperref[maxbuffer-and-unicode]{\texttt{maxBuffer} and Unicode}.
+    \textbf{Default:} \texttt{1024\ *\ 1024}.
+  \item
+    \texttt{encoding} \{string\} The encoding used for all stdio inputs
+    and outputs. \textbf{Default:}
+    \texttt{\textquotesingle{}buffer\textquotesingle{}}.
+  \item
+    \texttt{windowsHide} \{boolean\} Hide the subprocess console window
+    that would normally be created on Windows systems. \textbf{Default:}
+    \texttt{false}.
+  \end{itemize}
+\item
+  Returns: \{Buffer\textbar string\} The stdout from the command.
+\end{itemize}
+
+The \texttt{child\_process.execSync()} method is generally identical to
+\hyperref[child_processexeccommand-options-callback]{\texttt{child\_process.exec()}}
+with the exception that the method will not return until the child
+process has fully closed. When a timeout has been encountered and
+\texttt{killSignal} is sent, the method won't return until the process
+has completely exited. If the child process intercepts and handles the
+\texttt{SIGTERM} signal and doesn't exit, the parent process will wait
+until the child process has exited.
+
+If the process times out or has a non-zero exit code, this method will
+throw. The \href{errors.md\#class-error}{\texttt{Error}} object will
+contain the entire result from
+\hyperref[child_processspawnsynccommand-args-options]{\texttt{child\_process.spawnSync()}}.
+
+\textbf{Never pass unsanitized user input to this function. Any input
+containing shell metacharacters may be used to trigger arbitrary command
+execution.}
+
+\subsubsection{\texorpdfstring{\texttt{child\_process.spawnSync(command{[},\ args{]}{[},\ options{]})}}{child\_process.spawnSync(command{[}, args{]}{[}, options{]})}}\label{child_process.spawnsynccommand-args-options}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{command} \{string\} The command to run.
+\item
+  \texttt{args} \{string{[}{]}\} List of string arguments.
+\item
+  \texttt{options} \{Object\}
+
+  \begin{itemize}
+  \tightlist
+  \item
+    \texttt{cwd} \{string\textbar URL\} Current working directory of the
+    child process.
+  \item
+    \texttt{input}
+    \{string\textbar Buffer\textbar TypedArray\textbar DataView\} The
+    value which will be passed as stdin to the spawned process. If
+    \texttt{stdio{[}0{]}} is set to
+    \texttt{\textquotesingle{}pipe\textquotesingle{}}, Supplying this
+    value will override \texttt{stdio{[}0{]}}.
+  \item
+    \texttt{argv0} \{string\} Explicitly set the value of
+    \texttt{argv{[}0{]}} sent to the child process. This will be set to
+    \texttt{command} if not specified.
+  \item
+    \texttt{stdio} \{string\textbar Array\} Child's stdio configuration.
+    \textbf{Default:} \texttt{\textquotesingle{}pipe\textquotesingle{}}.
+  \item
+    \texttt{env} \{Object\} Environment key-value pairs.
+    \textbf{Default:} \texttt{process.env}.
+  \item
+    \texttt{uid} \{number\} Sets the user identity of the process (see
+    setuid(2)).
+  \item
+    \texttt{gid} \{number\} Sets the group identity of the process (see
+    setgid(2)).
+  \item
+    \texttt{timeout} \{number\} In milliseconds the maximum amount of
+    time the process is allowed to run. \textbf{Default:}
+    \texttt{undefined}.
+  \item
+    \texttt{killSignal} \{string\textbar integer\} The signal value to
+    be used when the spawned process will be killed. \textbf{Default:}
+    \texttt{\textquotesingle{}SIGTERM\textquotesingle{}}.
+  \item
+    \texttt{maxBuffer} \{number\} Largest amount of data in bytes
+    allowed on stdout or stderr. If exceeded, the child process is
+    terminated and any output is truncated. See caveat at
+    \hyperref[maxbuffer-and-unicode]{\texttt{maxBuffer} and Unicode}.
+    \textbf{Default:} \texttt{1024\ *\ 1024}.
+  \item
+    \texttt{encoding} \{string\} The encoding used for all stdio inputs
+    and outputs. \textbf{Default:}
+    \texttt{\textquotesingle{}buffer\textquotesingle{}}.
+  \item
+    \texttt{shell} \{boolean\textbar string\} If \texttt{true}, runs
+    \texttt{command} inside of a shell. Uses
+    \texttt{\textquotesingle{}/bin/sh\textquotesingle{}} on Unix, and
+    \texttt{process.env.ComSpec} on Windows. A different shell can be
+    specified as a string. See \hyperref[shell-requirements]{Shell
+    requirements} and \hyperref[default-windows-shell]{Default Windows
+    shell}. \textbf{Default:} \texttt{false} (no shell).
+  \item
+    \texttt{windowsVerbatimArguments} \{boolean\} No quoting or escaping
+    of arguments is done on Windows. Ignored on Unix. This is set to
+    \texttt{true} automatically when \texttt{shell} is specified and is
+    CMD. \textbf{Default:} \texttt{false}.
+  \item
+    \texttt{windowsHide} \{boolean\} Hide the subprocess console window
+    that would normally be created on Windows systems. \textbf{Default:}
+    \texttt{false}.
+  \end{itemize}
+\item
+  Returns: \{Object\}
+
+  \begin{itemize}
+  \tightlist
+  \item
+    \texttt{pid} \{number\} Pid of the child process.
+  \item
+    \texttt{output} \{Array\} Array of results from stdio output.
+  \item
+    \texttt{stdout} \{Buffer\textbar string\} The contents of
+    \texttt{output{[}1{]}}.
+  \item
+    \texttt{stderr} \{Buffer\textbar string\} The contents of
+    \texttt{output{[}2{]}}.
+  \item
+    \texttt{status} \{number\textbar null\} The exit code of the
+    subprocess, or \texttt{null} if the subprocess terminated due to a
+    signal.
+  \item
+    \texttt{signal} \{string\textbar null\} The signal used to kill the
+    subprocess, or \texttt{null} if the subprocess did not terminate due
+    to a signal.
+  \item
+    \texttt{error} \{Error\} The error object if the child process
+    failed or timed out.
+  \end{itemize}
+\end{itemize}
+
+The \texttt{child\_process.spawnSync()} method is generally identical to
+\hyperref[child_processspawncommand-args-options]{\texttt{child\_process.spawn()}}
+with the exception that the function will not return until the child
+process has fully closed. When a timeout has been encountered and
+\texttt{killSignal} is sent, the method won't return until the process
+has completely exited. If the process intercepts and handles the
+\texttt{SIGTERM} signal and doesn't exit, the parent process will wait
+until the child process has exited.
+
+\textbf{If the \texttt{shell} option is enabled, do not pass unsanitized
+user input to this function. Any input containing shell metacharacters
+may be used to trigger arbitrary command execution.}
+
+\subsection{\texorpdfstring{Class:
+\texttt{ChildProcess}}{Class: ChildProcess}}\label{class-childprocess}
+
+\begin{itemize}
+\tightlist
+\item
+  Extends: \{EventEmitter\}
+\end{itemize}
+
+Instances of the \texttt{ChildProcess} represent spawned child
+processes.
+
+Instances of \texttt{ChildProcess} are not intended to be created
+directly. Rather, use the
+\hyperref[child_processspawncommand-args-options]{\texttt{child\_process.spawn()}},
+\hyperref[child_processexeccommand-options-callback]{\texttt{child\_process.exec()}},
+\hyperref[child_processexecfilefile-args-options-callback]{\texttt{child\_process.execFile()}},
+or
+\hyperref[child_processforkmodulepath-args-options]{\texttt{child\_process.fork()}}
+methods to create instances of \texttt{ChildProcess}.
+
+\subsubsection{\texorpdfstring{Event:
+\texttt{\textquotesingle{}close\textquotesingle{}}}{Event: \textquotesingle close\textquotesingle{}}}\label{event-close}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{code} \{number\} The exit code if the child exited on its own.
+\item
+  \texttt{signal} \{string\} The signal by which the child process was
+  terminated.
+\end{itemize}
+
+The \texttt{\textquotesingle{}close\textquotesingle{}} event is emitted
+after a process has ended \emph{and} the stdio streams of a child
+process have been closed. This is distinct from the
+\hyperref[event-exit]{\texttt{\textquotesingle{}exit\textquotesingle{}}}
+event, since multiple processes might share the same stdio streams. The
+\texttt{\textquotesingle{}close\textquotesingle{}} event will always
+emit after
+\hyperref[event-exit]{\texttt{\textquotesingle{}exit\textquotesingle{}}}
+was already emitted, or
+\hyperref[event-error]{\texttt{\textquotesingle{}error\textquotesingle{}}}
+if the child failed to spawn.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ \{ spawn \} }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:child\_process\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\KeywordTok{const}\NormalTok{ ls }\OperatorTok{=} \FunctionTok{spawn}\NormalTok{(}\StringTok{\textquotesingle{}ls\textquotesingle{}}\OperatorTok{,}\NormalTok{ [}\StringTok{\textquotesingle{}{-}lh\textquotesingle{}}\OperatorTok{,} \StringTok{\textquotesingle{}/usr\textquotesingle{}}\NormalTok{])}\OperatorTok{;}
+
+\NormalTok{ls}\OperatorTok{.}\AttributeTok{stdout}\OperatorTok{.}\FunctionTok{on}\NormalTok{(}\StringTok{\textquotesingle{}data\textquotesingle{}}\OperatorTok{,}\NormalTok{ (data) }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+  \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\VerbatimStringTok{\textasciigrave{}stdout: }\SpecialCharTok{$\{}\NormalTok{data}\SpecialCharTok{\}}\VerbatimStringTok{\textasciigrave{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{\})}\OperatorTok{;}
+
+\NormalTok{ls}\OperatorTok{.}\FunctionTok{on}\NormalTok{(}\StringTok{\textquotesingle{}close\textquotesingle{}}\OperatorTok{,}\NormalTok{ (code) }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+  \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\VerbatimStringTok{\textasciigrave{}child process close all stdio with code }\SpecialCharTok{$\{}\NormalTok{code}\SpecialCharTok{\}}\VerbatimStringTok{\textasciigrave{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{\})}\OperatorTok{;}
+
+\NormalTok{ls}\OperatorTok{.}\FunctionTok{on}\NormalTok{(}\StringTok{\textquotesingle{}exit\textquotesingle{}}\OperatorTok{,}\NormalTok{ (code) }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+  \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\VerbatimStringTok{\textasciigrave{}child process exited with code }\SpecialCharTok{$\{}\NormalTok{code}\SpecialCharTok{\}}\VerbatimStringTok{\textasciigrave{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{\})}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+\subsubsection{\texorpdfstring{Event:
+\texttt{\textquotesingle{}disconnect\textquotesingle{}}}{Event: \textquotesingle disconnect\textquotesingle{}}}\label{event-disconnect}
+
+The \texttt{\textquotesingle{}disconnect\textquotesingle{}} event is
+emitted after calling the
+\hyperref[subprocessdisconnect]{\texttt{subprocess.disconnect()}} method
+in parent process or
+\href{process.md\#processdisconnect}{\texttt{process.disconnect()}} in
+child process. After disconnecting it is no longer possible to send or
+receive messages, and the
+\hyperref[subprocessconnected]{\texttt{subprocess.connected}} property
+is \texttt{false}.
+
+\subsubsection{\texorpdfstring{Event:
+\texttt{\textquotesingle{}error\textquotesingle{}}}{Event: \textquotesingle error\textquotesingle{}}}\label{event-error}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{err} \{Error\} The error.
+\end{itemize}
+
+The \texttt{\textquotesingle{}error\textquotesingle{}} event is emitted
+whenever:
+
+\begin{itemize}
+\tightlist
+\item
+  The process could not be spawned.
+\item
+  The process could not be killed.
+\item
+  Sending a message to the child process failed.
+\item
+  The child process was aborted via the \texttt{signal} option.
+\end{itemize}
+
+The \texttt{\textquotesingle{}exit\textquotesingle{}} event may or may
+not fire after an error has occurred. When listening to both the
+\texttt{\textquotesingle{}exit\textquotesingle{}} and
+\texttt{\textquotesingle{}error\textquotesingle{}} events, guard against
+accidentally invoking handler functions multiple times.
+
+See also \hyperref[subprocesskillsignal]{\texttt{subprocess.kill()}} and
+\hyperref[subprocesssendmessage-sendhandle-options-callback]{\texttt{subprocess.send()}}.
+
+\subsubsection{\texorpdfstring{Event:
+\texttt{\textquotesingle{}exit\textquotesingle{}}}{Event: \textquotesingle exit\textquotesingle{}}}\label{event-exit}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{code} \{number\} The exit code if the child exited on its own.
+\item
+  \texttt{signal} \{string\} The signal by which the child process was
+  terminated.
+\end{itemize}
+
+The \texttt{\textquotesingle{}exit\textquotesingle{}} event is emitted
+after the child process ends. If the process exited, \texttt{code} is
+the final exit code of the process, otherwise \texttt{null}. If the
+process terminated due to receipt of a signal, \texttt{signal} is the
+string name of the signal, otherwise \texttt{null}. One of the two will
+always be non-\texttt{null}.
+
+When the \texttt{\textquotesingle{}exit\textquotesingle{}} event is
+triggered, child process stdio streams might still be open.
+
+Node.js establishes signal handlers for \texttt{SIGINT} and
+\texttt{SIGTERM} and Node.js processes will not terminate immediately
+due to receipt of those signals. Rather, Node.js will perform a sequence
+of cleanup actions and then will re-raise the handled signal.
+
+See waitpid(2).
+
+\subsubsection{\texorpdfstring{Event:
+\texttt{\textquotesingle{}message\textquotesingle{}}}{Event: \textquotesingle message\textquotesingle{}}}\label{event-message}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{message} \{Object\} A parsed JSON object or primitive value.
+\item
+  \texttt{sendHandle} \{Handle\} A
+  \href{net.md\#class-netsocket}{\texttt{net.Socket}} or
+  \href{net.md\#class-netserver}{\texttt{net.Server}} object, or
+  undefined.
+\end{itemize}
+
+The \texttt{\textquotesingle{}message\textquotesingle{}} event is
+triggered when a child process uses
+\href{process.md\#processsendmessage-sendhandle-options-callback}{\texttt{process.send()}}
+to send messages.
+
+The message goes through serialization and parsing. The resulting
+message might not be the same as what is originally sent.
+
+If the \texttt{serialization} option was set to
+\texttt{\textquotesingle{}advanced\textquotesingle{}} used when spawning
+the child process, the \texttt{message} argument can contain data that
+JSON is not able to represent. See
+\hyperref[advanced-serialization]{Advanced serialization} for more
+details.
+
+\subsubsection{\texorpdfstring{Event:
+\texttt{\textquotesingle{}spawn\textquotesingle{}}}{Event: \textquotesingle spawn\textquotesingle{}}}\label{event-spawn}
+
+The \texttt{\textquotesingle{}spawn\textquotesingle{}} event is emitted
+once the child process has spawned successfully. If the child process
+does not spawn successfully, the
+\texttt{\textquotesingle{}spawn\textquotesingle{}} event is not emitted
+and the \texttt{\textquotesingle{}error\textquotesingle{}} event is
+emitted instead.
+
+If emitted, the \texttt{\textquotesingle{}spawn\textquotesingle{}} event
+comes before all other events and before any data is received via
+\texttt{stdout} or \texttt{stderr}.
+
+The \texttt{\textquotesingle{}spawn\textquotesingle{}} event will fire
+regardless of whether an error occurs \textbf{within} the spawned
+process. For example, if \texttt{bash\ some-command} spawns
+successfully, the \texttt{\textquotesingle{}spawn\textquotesingle{}}
+event will fire, though \texttt{bash} may fail to spawn
+\texttt{some-command}. This caveat also applies when using
+\texttt{\{\ shell:\ true\ \}}.
+
+\subsubsection{\texorpdfstring{\texttt{subprocess.channel}}{subprocess.channel}}\label{subprocess.channel}
+
+\begin{itemize}
+\tightlist
+\item
+  \{Object\} A pipe representing the IPC channel to the child process.
+\end{itemize}
+
+The \texttt{subprocess.channel} property is a reference to the child's
+IPC channel. If no IPC channel exists, this property is
+\texttt{undefined}.
+
+\paragraph{\texorpdfstring{\texttt{subprocess.channel.ref()}}{subprocess.channel.ref()}}\label{subprocess.channel.ref}
+
+This method makes the IPC channel keep the event loop of the parent
+process running if \texttt{.unref()} has been called before.
+
+\paragraph{\texorpdfstring{\texttt{subprocess.channel.unref()}}{subprocess.channel.unref()}}\label{subprocess.channel.unref}
+
+This method makes the IPC channel not keep the event loop of the parent
+process running, and lets it finish even while the channel is open.
+
+\subsubsection{\texorpdfstring{\texttt{subprocess.connected}}{subprocess.connected}}\label{subprocess.connected}
+
+\begin{itemize}
+\tightlist
+\item
+  \{boolean\} Set to \texttt{false} after
+  \texttt{subprocess.disconnect()} is called.
+\end{itemize}
+
+The \texttt{subprocess.connected} property indicates whether it is still
+possible to send and receive messages from a child process. When
+\texttt{subprocess.connected} is \texttt{false}, it is no longer
+possible to send or receive messages.
+
+\subsubsection{\texorpdfstring{\texttt{subprocess.disconnect()}}{subprocess.disconnect()}}\label{subprocess.disconnect}
+
+Closes the IPC channel between parent and child, allowing the child to
+exit gracefully once there are no other connections keeping it alive.
+After calling this method the \texttt{subprocess.connected} and
+\texttt{process.connected} properties in both the parent and child
+(respectively) will be set to \texttt{false}, and it will be no longer
+possible to pass messages between the processes.
+
+The \texttt{\textquotesingle{}disconnect\textquotesingle{}} event will
+be emitted when there are no messages in the process of being received.
+This will most often be triggered immediately after calling
+\texttt{subprocess.disconnect()}.
+
+When the child process is a Node.js instance (e.g.~spawned using
+\hyperref[child_processforkmodulepath-args-options]{\texttt{child\_process.fork()}}),
+the \texttt{process.disconnect()} method can be invoked within the child
+process to close the IPC channel as well.
+
+\subsubsection{\texorpdfstring{\texttt{subprocess.exitCode}}{subprocess.exitCode}}\label{subprocess.exitcode}
+
+\begin{itemize}
+\tightlist
+\item
+  \{integer\}
+\end{itemize}
+
+The \texttt{subprocess.exitCode} property indicates the exit code of the
+child process. If the child process is still running, the field will be
+\texttt{null}.
+
+\subsubsection{\texorpdfstring{\texttt{subprocess.kill({[}signal{]})}}{subprocess.kill({[}signal{]})}}\label{subprocess.killsignal}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{signal} \{number\textbar string\}
+\item
+  Returns: \{boolean\}
+\end{itemize}
+
+The \texttt{subprocess.kill()} method sends a signal to the child
+process. If no argument is given, the process will be sent the
+\texttt{\textquotesingle{}SIGTERM\textquotesingle{}} signal. See
+signal(7) for a list of available signals. This function returns
+\texttt{true} if kill(2) succeeds, and \texttt{false} otherwise.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ \{ spawn \} }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:child\_process\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\KeywordTok{const}\NormalTok{ grep }\OperatorTok{=} \FunctionTok{spawn}\NormalTok{(}\StringTok{\textquotesingle{}grep\textquotesingle{}}\OperatorTok{,}\NormalTok{ [}\StringTok{\textquotesingle{}ssh\textquotesingle{}}\NormalTok{])}\OperatorTok{;}
+
+\NormalTok{grep}\OperatorTok{.}\FunctionTok{on}\NormalTok{(}\StringTok{\textquotesingle{}close\textquotesingle{}}\OperatorTok{,}\NormalTok{ (code}\OperatorTok{,}\NormalTok{ signal) }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+  \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}
+    \VerbatimStringTok{\textasciigrave{}child process terminated due to receipt of signal }\SpecialCharTok{$\{}\NormalTok{signal}\SpecialCharTok{\}}\VerbatimStringTok{\textasciigrave{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{\})}\OperatorTok{;}
+
+\CommentTok{// Send SIGHUP to process.}
+\NormalTok{grep}\OperatorTok{.}\FunctionTok{kill}\NormalTok{(}\StringTok{\textquotesingle{}SIGHUP\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+The \hyperref[class-childprocess]{\texttt{ChildProcess}} object may emit
+an
+\hyperref[event-error]{\texttt{\textquotesingle{}error\textquotesingle{}}}
+event if the signal cannot be delivered. Sending a signal to a child
+process that has already exited is not an error but may have unforeseen
+consequences. Specifically, if the process identifier (PID) has been
+reassigned to another process, the signal will be delivered to that
+process instead which can have unexpected results.
+
+While the function is called \texttt{kill}, the signal delivered to the
+child process may not actually terminate the process.
+
+See kill(2) for reference.
+
+On Windows, where POSIX signals do not exist, the \texttt{signal}
+argument will be ignored, and the process will be killed forcefully and
+abruptly (similar to
+\texttt{\textquotesingle{}SIGKILL\textquotesingle{}}). See
+\href{process.md\#signal-events}{Signal Events} for more details.
+
+On Linux, child processes of child processes will not be terminated when
+attempting to kill their parent. This is likely to happen when running a
+new process in a shell or with the use of the \texttt{shell} option of
+\texttt{ChildProcess}:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\StringTok{\textquotesingle{}use strict\textquotesingle{}}\OperatorTok{;}
+\KeywordTok{const}\NormalTok{ \{ spawn \} }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:child\_process\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+
+\KeywordTok{const}\NormalTok{ subprocess }\OperatorTok{=} \FunctionTok{spawn}\NormalTok{(}
+  \StringTok{\textquotesingle{}sh\textquotesingle{}}\OperatorTok{,}
+\NormalTok{  [}
+    \StringTok{\textquotesingle{}{-}c\textquotesingle{}}\OperatorTok{,}
+    \VerbatimStringTok{\textasciigrave{}node {-}e "setInterval(() =\textgreater{} \{}
+\VerbatimStringTok{      console.log(process.pid, \textquotesingle{}is alive\textquotesingle{})}
+\VerbatimStringTok{    \}, 500);"\textasciigrave{}}\OperatorTok{,}
+\NormalTok{  ]}\OperatorTok{,}\NormalTok{ \{}
+    \DataTypeTok{stdio}\OperatorTok{:}\NormalTok{ [}\StringTok{\textquotesingle{}inherit\textquotesingle{}}\OperatorTok{,} \StringTok{\textquotesingle{}inherit\textquotesingle{}}\OperatorTok{,} \StringTok{\textquotesingle{}inherit\textquotesingle{}}\NormalTok{]}\OperatorTok{,}
+\NormalTok{  \}}\OperatorTok{,}
+\NormalTok{)}\OperatorTok{;}
+
+\PreprocessorTok{setTimeout}\NormalTok{(() }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+\NormalTok{  subprocess}\OperatorTok{.}\FunctionTok{kill}\NormalTok{()}\OperatorTok{;} \CommentTok{// Does not terminate the Node.js process in the shell.}
+\NormalTok{\}}\OperatorTok{,} \DecValTok{2000}\NormalTok{)}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+\subsubsection{\texorpdfstring{\texttt{subprocess{[}Symbol.dispose{]}()}}{subprocess{[}Symbol.dispose{]}()}}\label{subprocesssymbol.dispose}
+
+\begin{quote}
+Stability: 1 - Experimental
+\end{quote}
+
+Calls \hyperref[subprocesskillsignal]{\texttt{subprocess.kill()}} with
+\texttt{\textquotesingle{}SIGTERM\textquotesingle{}}.
+
+\subsubsection{\texorpdfstring{\texttt{subprocess.killed}}{subprocess.killed}}\label{subprocess.killed}
+
+\begin{itemize}
+\tightlist
+\item
+  \{boolean\} Set to \texttt{true} after \texttt{subprocess.kill()} is
+  used to successfully send a signal to the child process.
+\end{itemize}
+
+The \texttt{subprocess.killed} property indicates whether the child
+process successfully received a signal from \texttt{subprocess.kill()}.
+The \texttt{killed} property does not indicate that the child process
+has been terminated.
+
+\subsubsection{\texorpdfstring{\texttt{subprocess.pid}}{subprocess.pid}}\label{subprocess.pid}
+
+\begin{itemize}
+\tightlist
+\item
+  \{integer\textbar undefined\}
+\end{itemize}
+
+Returns the process identifier (PID) of the child process. If the child
+process fails to spawn due to errors, then the value is
+\texttt{undefined} and \texttt{error} is emitted.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ \{ spawn \} }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:child\_process\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\KeywordTok{const}\NormalTok{ grep }\OperatorTok{=} \FunctionTok{spawn}\NormalTok{(}\StringTok{\textquotesingle{}grep\textquotesingle{}}\OperatorTok{,}\NormalTok{ [}\StringTok{\textquotesingle{}ssh\textquotesingle{}}\NormalTok{])}\OperatorTok{;}
+
+\BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\VerbatimStringTok{\textasciigrave{}Spawned child pid: }\SpecialCharTok{$\{}\NormalTok{grep}\OperatorTok{.}\AttributeTok{pid}\SpecialCharTok{\}}\VerbatimStringTok{\textasciigrave{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{grep}\OperatorTok{.}\AttributeTok{stdin}\OperatorTok{.}\FunctionTok{end}\NormalTok{()}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+\subsubsection{\texorpdfstring{\texttt{subprocess.ref()}}{subprocess.ref()}}\label{subprocess.ref}
+
+Calling \texttt{subprocess.ref()} after making a call to
+\texttt{subprocess.unref()} will restore the removed reference count for
+the child process, forcing the parent to wait for the child to exit
+before exiting itself.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ \{ spawn \} }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:child\_process\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+
+\KeywordTok{const}\NormalTok{ subprocess }\OperatorTok{=} \FunctionTok{spawn}\NormalTok{(}\BuiltInTok{process}\OperatorTok{.}\AttributeTok{argv}\NormalTok{[}\DecValTok{0}\NormalTok{]}\OperatorTok{,}\NormalTok{ [}\StringTok{\textquotesingle{}child\_program.js\textquotesingle{}}\NormalTok{]}\OperatorTok{,}\NormalTok{ \{}
+  \DataTypeTok{detached}\OperatorTok{:} \KeywordTok{true}\OperatorTok{,}
+  \DataTypeTok{stdio}\OperatorTok{:} \StringTok{\textquotesingle{}ignore\textquotesingle{}}\OperatorTok{,}
+\NormalTok{\})}\OperatorTok{;}
+
+\NormalTok{subprocess}\OperatorTok{.}\FunctionTok{unref}\NormalTok{()}\OperatorTok{;}
+\NormalTok{subprocess}\OperatorTok{.}\FunctionTok{ref}\NormalTok{()}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+\subsubsection{\texorpdfstring{\texttt{subprocess.send(message{[},\ sendHandle{[},\ options{]}{]}{[},\ callback{]})}}{subprocess.send(message{[}, sendHandle{[}, options{]}{]}{[}, callback{]})}}\label{subprocess.sendmessage-sendhandle-options-callback}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{message} \{Object\}
+\item
+  \texttt{sendHandle} \{Handle\}
+\item
+  \texttt{options} \{Object\} The \texttt{options} argument, if present,
+  is an object used to parameterize the sending of certain types of
+  handles. \texttt{options} supports the following properties:
+
+  \begin{itemize}
+  \tightlist
+  \item
+    \texttt{keepOpen} \{boolean\} A value that can be used when passing
+    instances of \texttt{net.Socket}. When \texttt{true}, the socket is
+    kept open in the sending process. \textbf{Default:} \texttt{false}.
+  \end{itemize}
+\item
+  \texttt{callback} \{Function\}
+\item
+  Returns: \{boolean\}
+\end{itemize}
+
+When an IPC channel has been established between the parent and child (
+i.e.~when using
+\hyperref[child_processforkmodulepath-args-options]{\texttt{child\_process.fork()}}),
+the \texttt{subprocess.send()} method can be used to send messages to
+the child process. When the child process is a Node.js instance, these
+messages can be received via the
+\href{process.md\#event-message}{\texttt{\textquotesingle{}message\textquotesingle{}}}
+event.
+
+The message goes through serialization and parsing. The resulting
+message might not be the same as what is originally sent.
+
+For example, in the parent script:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ cp }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:child\_process\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\KeywordTok{const}\NormalTok{ n }\OperatorTok{=}\NormalTok{ cp}\OperatorTok{.}\FunctionTok{fork}\NormalTok{(}\VerbatimStringTok{\textasciigrave{}}\SpecialCharTok{$\{}\BuiltInTok{\_\_dirname}\SpecialCharTok{\}}\VerbatimStringTok{/sub.js\textasciigrave{}}\NormalTok{)}\OperatorTok{;}
+
+\NormalTok{n}\OperatorTok{.}\FunctionTok{on}\NormalTok{(}\StringTok{\textquotesingle{}message\textquotesingle{}}\OperatorTok{,}\NormalTok{ (m) }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+  \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\StringTok{\textquotesingle{}PARENT got message:\textquotesingle{}}\OperatorTok{,}\NormalTok{ m)}\OperatorTok{;}
+\NormalTok{\})}\OperatorTok{;}
+
+\CommentTok{// Causes the child to print: CHILD got message: \{ hello: \textquotesingle{}world\textquotesingle{} \}}
+\NormalTok{n}\OperatorTok{.}\FunctionTok{send}\NormalTok{(\{ }\DataTypeTok{hello}\OperatorTok{:} \StringTok{\textquotesingle{}world\textquotesingle{}}\NormalTok{ \})}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+And then the child script,
+\texttt{\textquotesingle{}sub.js\textquotesingle{}} might look like
+this:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\BuiltInTok{process}\OperatorTok{.}\FunctionTok{on}\NormalTok{(}\StringTok{\textquotesingle{}message\textquotesingle{}}\OperatorTok{,}\NormalTok{ (m) }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+  \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\StringTok{\textquotesingle{}CHILD got message:\textquotesingle{}}\OperatorTok{,}\NormalTok{ m)}\OperatorTok{;}
+\NormalTok{\})}\OperatorTok{;}
+
+\CommentTok{// Causes the parent to print: PARENT got message: \{ foo: \textquotesingle{}bar\textquotesingle{}, baz: null \}}
+\BuiltInTok{process}\OperatorTok{.}\FunctionTok{send}\NormalTok{(\{ }\DataTypeTok{foo}\OperatorTok{:} \StringTok{\textquotesingle{}bar\textquotesingle{}}\OperatorTok{,} \DataTypeTok{baz}\OperatorTok{:} \KeywordTok{NaN}\NormalTok{ \})}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+Child Node.js processes will have a
+\href{process.md\#processsendmessage-sendhandle-options-callback}{\texttt{process.send()}}
+method of their own that allows the child to send messages back to the
+parent.
+
+There is a special case when sending a
+\texttt{\{cmd:\ \textquotesingle{}NODE\_foo\textquotesingle{}\}}
+message. Messages containing a \texttt{NODE\_} prefix in the
+\texttt{cmd} property are reserved for use within Node.js core and will
+not be emitted in the child's
+\href{process.md\#event-message}{\texttt{\textquotesingle{}message\textquotesingle{}}}
+event. Rather, such messages are emitted using the
+\texttt{\textquotesingle{}internalMessage\textquotesingle{}} event and
+are consumed internally by Node.js. Applications should avoid using such
+messages or listening for
+\texttt{\textquotesingle{}internalMessage\textquotesingle{}} events as
+it is subject to change without notice.
+
+The optional \texttt{sendHandle} argument that may be passed to
+\texttt{subprocess.send()} is for passing a TCP server or socket object
+to the child process. The child will receive the object as the second
+argument passed to the callback function registered on the
+\href{process.md\#event-message}{\texttt{\textquotesingle{}message\textquotesingle{}}}
+event. Any data that is received and buffered in the socket will not be
+sent to the child.
+
+The optional \texttt{callback} is a function that is invoked after the
+message is sent but before the child may have received it. The function
+is called with a single argument: \texttt{null} on success, or an
+\href{errors.md\#class-error}{\texttt{Error}} object on failure.
+
+If no \texttt{callback} function is provided and the message cannot be
+sent, an \texttt{\textquotesingle{}error\textquotesingle{}} event will
+be emitted by the \hyperref[class-childprocess]{\texttt{ChildProcess}}
+object. This can happen, for instance, when the child process has
+already exited.
+
+\texttt{subprocess.send()} will return \texttt{false} if the channel has
+closed or when the backlog of unsent messages exceeds a threshold that
+makes it unwise to send more. Otherwise, the method returns
+\texttt{true}. The \texttt{callback} function can be used to implement
+flow control.
+
+\paragraph{Example: sending a server
+object}\label{example-sending-a-server-object}
+
+The \texttt{sendHandle} argument can be used, for instance, to pass the
+handle of a TCP server object to the child process as illustrated in the
+example below:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ subprocess }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:child\_process\textquotesingle{}}\NormalTok{)}\OperatorTok{.}\FunctionTok{fork}\NormalTok{(}\StringTok{\textquotesingle{}subprocess.js\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+
+\CommentTok{// Open up the server object and send the handle.}
+\KeywordTok{const}\NormalTok{ server }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:net\textquotesingle{}}\NormalTok{)}\OperatorTok{.}\FunctionTok{createServer}\NormalTok{()}\OperatorTok{;}
+\NormalTok{server}\OperatorTok{.}\FunctionTok{on}\NormalTok{(}\StringTok{\textquotesingle{}connection\textquotesingle{}}\OperatorTok{,}\NormalTok{ (socket) }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+\NormalTok{  socket}\OperatorTok{.}\FunctionTok{end}\NormalTok{(}\StringTok{\textquotesingle{}handled by parent\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{\})}\OperatorTok{;}
+\NormalTok{server}\OperatorTok{.}\FunctionTok{listen}\NormalTok{(}\DecValTok{1337}\OperatorTok{,}\NormalTok{ () }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+\NormalTok{  subprocess}\OperatorTok{.}\FunctionTok{send}\NormalTok{(}\StringTok{\textquotesingle{}server\textquotesingle{}}\OperatorTok{,}\NormalTok{ server)}\OperatorTok{;}
+\NormalTok{\})}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+The child would then receive the server object as:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\BuiltInTok{process}\OperatorTok{.}\FunctionTok{on}\NormalTok{(}\StringTok{\textquotesingle{}message\textquotesingle{}}\OperatorTok{,}\NormalTok{ (m}\OperatorTok{,}\NormalTok{ server) }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+  \ControlFlowTok{if}\NormalTok{ (m }\OperatorTok{===} \StringTok{\textquotesingle{}server\textquotesingle{}}\NormalTok{) \{}
+\NormalTok{    server}\OperatorTok{.}\FunctionTok{on}\NormalTok{(}\StringTok{\textquotesingle{}connection\textquotesingle{}}\OperatorTok{,}\NormalTok{ (socket) }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+\NormalTok{      socket}\OperatorTok{.}\FunctionTok{end}\NormalTok{(}\StringTok{\textquotesingle{}handled by child\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{    \})}\OperatorTok{;}
+\NormalTok{  \}}
+\NormalTok{\})}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+Once the server is now shared between the parent and child, some
+connections can be handled by the parent and some by the child.
+
+While the example above uses a server created using the
+\texttt{node:net} module, \texttt{node:dgram} module servers use exactly
+the same workflow with the exceptions of listening on a
+\texttt{\textquotesingle{}message\textquotesingle{}} event instead of
+\texttt{\textquotesingle{}connection\textquotesingle{}} and using
+\texttt{server.bind()} instead of \texttt{server.listen()}. This is,
+however, only supported on Unix platforms.
+
+\paragraph{Example: sending a socket
+object}\label{example-sending-a-socket-object}
+
+Similarly, the \texttt{sendHandler} argument can be used to pass the
+handle of a socket to the child process. The example below spawns two
+children that each handle connections with ``normal'' or ``special''
+priority:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ \{ fork \} }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:child\_process\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\KeywordTok{const}\NormalTok{ normal }\OperatorTok{=} \FunctionTok{fork}\NormalTok{(}\StringTok{\textquotesingle{}subprocess.js\textquotesingle{}}\OperatorTok{,}\NormalTok{ [}\StringTok{\textquotesingle{}normal\textquotesingle{}}\NormalTok{])}\OperatorTok{;}
+\KeywordTok{const}\NormalTok{ special }\OperatorTok{=} \FunctionTok{fork}\NormalTok{(}\StringTok{\textquotesingle{}subprocess.js\textquotesingle{}}\OperatorTok{,}\NormalTok{ [}\StringTok{\textquotesingle{}special\textquotesingle{}}\NormalTok{])}\OperatorTok{;}
+
+\CommentTok{// Open up the server and send sockets to child. Use pauseOnConnect to prevent}
+\CommentTok{// the sockets from being read before they are sent to the child process.}
+\KeywordTok{const}\NormalTok{ server }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:net\textquotesingle{}}\NormalTok{)}\OperatorTok{.}\FunctionTok{createServer}\NormalTok{(\{ }\DataTypeTok{pauseOnConnect}\OperatorTok{:} \KeywordTok{true}\NormalTok{ \})}\OperatorTok{;}
+\NormalTok{server}\OperatorTok{.}\FunctionTok{on}\NormalTok{(}\StringTok{\textquotesingle{}connection\textquotesingle{}}\OperatorTok{,}\NormalTok{ (socket) }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+
+  \CommentTok{// If this is special priority...}
+  \ControlFlowTok{if}\NormalTok{ (socket}\OperatorTok{.}\AttributeTok{remoteAddress} \OperatorTok{===} \StringTok{\textquotesingle{}74.125.127.100\textquotesingle{}}\NormalTok{) \{}
+\NormalTok{    special}\OperatorTok{.}\FunctionTok{send}\NormalTok{(}\StringTok{\textquotesingle{}socket\textquotesingle{}}\OperatorTok{,}\NormalTok{ socket)}\OperatorTok{;}
+    \ControlFlowTok{return}\OperatorTok{;}
+\NormalTok{  \}}
+  \CommentTok{// This is normal priority.}
+\NormalTok{  normal}\OperatorTok{.}\FunctionTok{send}\NormalTok{(}\StringTok{\textquotesingle{}socket\textquotesingle{}}\OperatorTok{,}\NormalTok{ socket)}\OperatorTok{;}
+\NormalTok{\})}\OperatorTok{;}
+\NormalTok{server}\OperatorTok{.}\FunctionTok{listen}\NormalTok{(}\DecValTok{1337}\NormalTok{)}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+The \texttt{subprocess.js} would receive the socket handle as the second
+argument passed to the event callback function:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\BuiltInTok{process}\OperatorTok{.}\FunctionTok{on}\NormalTok{(}\StringTok{\textquotesingle{}message\textquotesingle{}}\OperatorTok{,}\NormalTok{ (m}\OperatorTok{,}\NormalTok{ socket) }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+  \ControlFlowTok{if}\NormalTok{ (m }\OperatorTok{===} \StringTok{\textquotesingle{}socket\textquotesingle{}}\NormalTok{) \{}
+    \ControlFlowTok{if}\NormalTok{ (socket) \{}
+      \CommentTok{// Check that the client socket exists.}
+      \CommentTok{// It is possible for the socket to be closed between the time it is}
+      \CommentTok{// sent and the time it is received in the child process.}
+\NormalTok{      socket}\OperatorTok{.}\FunctionTok{end}\NormalTok{(}\VerbatimStringTok{\textasciigrave{}Request handled with }\SpecialCharTok{$\{}\BuiltInTok{process}\OperatorTok{.}\AttributeTok{argv}\NormalTok{[}\DecValTok{2}\NormalTok{]}\SpecialCharTok{\}}\VerbatimStringTok{ priority\textasciigrave{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{    \}}
+\NormalTok{  \}}
+\NormalTok{\})}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+Do not use \texttt{.maxConnections} on a socket that has been passed to
+a subprocess. The parent cannot track when the socket is destroyed.
+
+Any \texttt{\textquotesingle{}message\textquotesingle{}} handlers in the
+subprocess should verify that \texttt{socket} exists, as the connection
+may have been closed during the time it takes to send the connection to
+the child.
+
+\subsubsection{\texorpdfstring{\texttt{subprocess.signalCode}}{subprocess.signalCode}}\label{subprocess.signalcode}
+
+\begin{itemize}
+\tightlist
+\item
+  \{string\textbar null\}
+\end{itemize}
+
+The \texttt{subprocess.signalCode} property indicates the signal
+received by the child process if any, else \texttt{null}.
+
+\subsubsection{\texorpdfstring{\texttt{subprocess.spawnargs}}{subprocess.spawnargs}}\label{subprocess.spawnargs}
+
+\begin{itemize}
+\tightlist
+\item
+  \{Array\}
+\end{itemize}
+
+The \texttt{subprocess.spawnargs} property represents the full list of
+command-line arguments the child process was launched with.
+
+\subsubsection{\texorpdfstring{\texttt{subprocess.spawnfile}}{subprocess.spawnfile}}\label{subprocess.spawnfile}
+
+\begin{itemize}
+\tightlist
+\item
+  \{string\}
+\end{itemize}
+
+The \texttt{subprocess.spawnfile} property indicates the executable file
+name of the child process that is launched.
+
+For
+\hyperref[child_processforkmodulepath-args-options]{\texttt{child\_process.fork()}},
+its value will be equal to
+\href{process.md\#processexecpath}{\texttt{process.execPath}}. For
+\hyperref[child_processspawncommand-args-options]{\texttt{child\_process.spawn()}},
+its value will be the name of the executable file. For
+\hyperref[child_processexeccommand-options-callback]{\texttt{child\_process.exec()}},
+its value will be the name of the shell in which the child process is
+launched.
+
+\subsubsection{\texorpdfstring{\texttt{subprocess.stderr}}{subprocess.stderr}}\label{subprocess.stderr}
+
+\begin{itemize}
+\tightlist
+\item
+  \{stream.Readable\textbar null\textbar undefined\}
+\end{itemize}
+
+A \texttt{Readable\ Stream} that represents the child process's
+\texttt{stderr}.
+
+If the child was spawned with \texttt{stdio{[}2{]}} set to anything
+other than \texttt{\textquotesingle{}pipe\textquotesingle{}}, then this
+will be \texttt{null}.
+
+\texttt{subprocess.stderr} is an alias for
+\texttt{subprocess.stdio{[}2{]}}. Both properties will refer to the same
+value.
+
+The \texttt{subprocess.stderr} property can be \texttt{null} or
+\texttt{undefined} if the child process could not be successfully
+spawned.
+
+\subsubsection{\texorpdfstring{\texttt{subprocess.stdin}}{subprocess.stdin}}\label{subprocess.stdin}
+
+\begin{itemize}
+\tightlist
+\item
+  \{stream.Writable\textbar null\textbar undefined\}
+\end{itemize}
+
+A \texttt{Writable\ Stream} that represents the child process's
+\texttt{stdin}.
+
+If a child process waits to read all of its input, the child will not
+continue until this stream has been closed via \texttt{end()}.
+
+If the child was spawned with \texttt{stdio{[}0{]}} set to anything
+other than \texttt{\textquotesingle{}pipe\textquotesingle{}}, then this
+will be \texttt{null}.
+
+\texttt{subprocess.stdin} is an alias for
+\texttt{subprocess.stdio{[}0{]}}. Both properties will refer to the same
+value.
+
+The \texttt{subprocess.stdin} property can be \texttt{null} or
+\texttt{undefined} if the child process could not be successfully
+spawned.
+
+\subsubsection{\texorpdfstring{\texttt{subprocess.stdio}}{subprocess.stdio}}\label{subprocess.stdio}
+
+\begin{itemize}
+\tightlist
+\item
+  \{Array\}
+\end{itemize}
+
+A sparse array of pipes to the child process, corresponding with
+positions in the \hyperref[optionsstdio]{\texttt{stdio}} option passed
+to
+\hyperref[child_processspawncommand-args-options]{\texttt{child\_process.spawn()}}
+that have been set to the value
+\texttt{\textquotesingle{}pipe\textquotesingle{}}.
+\texttt{subprocess.stdio{[}0{]}}, \texttt{subprocess.stdio{[}1{]}}, and
+\texttt{subprocess.stdio{[}2{]}} are also available as
+\texttt{subprocess.stdin}, \texttt{subprocess.stdout}, and
+\texttt{subprocess.stderr}, respectively.
+
+In the following example, only the child's fd \texttt{1} (stdout) is
+configured as a pipe, so only the parent's
+\texttt{subprocess.stdio{[}1{]}} is a stream, all other values in the
+array are \texttt{null}.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ assert }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:assert\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\KeywordTok{const}\NormalTok{ fs }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:fs\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\KeywordTok{const}\NormalTok{ child\_process }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:child\_process\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+
+\KeywordTok{const}\NormalTok{ subprocess }\OperatorTok{=}\NormalTok{ child\_process}\OperatorTok{.}\FunctionTok{spawn}\NormalTok{(}\StringTok{\textquotesingle{}ls\textquotesingle{}}\OperatorTok{,}\NormalTok{ \{}
+  \DataTypeTok{stdio}\OperatorTok{:}\NormalTok{ [}
+    \DecValTok{0}\OperatorTok{,} \CommentTok{// Use parent\textquotesingle{}s stdin for child.}
+    \StringTok{\textquotesingle{}pipe\textquotesingle{}}\OperatorTok{,} \CommentTok{// Pipe child\textquotesingle{}s stdout to parent.}
+\NormalTok{    fs}\OperatorTok{.}\FunctionTok{openSync}\NormalTok{(}\StringTok{\textquotesingle{}err.out\textquotesingle{}}\OperatorTok{,} \StringTok{\textquotesingle{}w\textquotesingle{}}\NormalTok{)}\OperatorTok{,} \CommentTok{// Direct child\textquotesingle{}s stderr to a file.}
+\NormalTok{  ]}\OperatorTok{,}
+\NormalTok{\})}\OperatorTok{;}
+
+\NormalTok{assert}\OperatorTok{.}\FunctionTok{strictEqual}\NormalTok{(subprocess}\OperatorTok{.}\AttributeTok{stdio}\NormalTok{[}\DecValTok{0}\NormalTok{]}\OperatorTok{,} \KeywordTok{null}\NormalTok{)}\OperatorTok{;}
+\NormalTok{assert}\OperatorTok{.}\FunctionTok{strictEqual}\NormalTok{(subprocess}\OperatorTok{.}\AttributeTok{stdio}\NormalTok{[}\DecValTok{0}\NormalTok{]}\OperatorTok{,}\NormalTok{ subprocess}\OperatorTok{.}\AttributeTok{stdin}\NormalTok{)}\OperatorTok{;}
+
+\FunctionTok{assert}\NormalTok{(subprocess}\OperatorTok{.}\AttributeTok{stdout}\NormalTok{)}\OperatorTok{;}
+\NormalTok{assert}\OperatorTok{.}\FunctionTok{strictEqual}\NormalTok{(subprocess}\OperatorTok{.}\AttributeTok{stdio}\NormalTok{[}\DecValTok{1}\NormalTok{]}\OperatorTok{,}\NormalTok{ subprocess}\OperatorTok{.}\AttributeTok{stdout}\NormalTok{)}\OperatorTok{;}
+
+\NormalTok{assert}\OperatorTok{.}\FunctionTok{strictEqual}\NormalTok{(subprocess}\OperatorTok{.}\AttributeTok{stdio}\NormalTok{[}\DecValTok{2}\NormalTok{]}\OperatorTok{,} \KeywordTok{null}\NormalTok{)}\OperatorTok{;}
+\NormalTok{assert}\OperatorTok{.}\FunctionTok{strictEqual}\NormalTok{(subprocess}\OperatorTok{.}\AttributeTok{stdio}\NormalTok{[}\DecValTok{2}\NormalTok{]}\OperatorTok{,}\NormalTok{ subprocess}\OperatorTok{.}\AttributeTok{stderr}\NormalTok{)}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+The \texttt{subprocess.stdio} property can be \texttt{undefined} if the
+child process could not be successfully spawned.
+
+\subsubsection{\texorpdfstring{\texttt{subprocess.stdout}}{subprocess.stdout}}\label{subprocess.stdout}
+
+\begin{itemize}
+\tightlist
+\item
+  \{stream.Readable\textbar null\textbar undefined\}
+\end{itemize}
+
+A \texttt{Readable\ Stream} that represents the child process's
+\texttt{stdout}.
+
+If the child was spawned with \texttt{stdio{[}1{]}} set to anything
+other than \texttt{\textquotesingle{}pipe\textquotesingle{}}, then this
+will be \texttt{null}.
+
+\texttt{subprocess.stdout} is an alias for
+\texttt{subprocess.stdio{[}1{]}}. Both properties will refer to the same
+value.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ \{ spawn \} }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:child\_process\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+
+\KeywordTok{const}\NormalTok{ subprocess }\OperatorTok{=} \FunctionTok{spawn}\NormalTok{(}\StringTok{\textquotesingle{}ls\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+
+\NormalTok{subprocess}\OperatorTok{.}\AttributeTok{stdout}\OperatorTok{.}\FunctionTok{on}\NormalTok{(}\StringTok{\textquotesingle{}data\textquotesingle{}}\OperatorTok{,}\NormalTok{ (data) }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+  \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\VerbatimStringTok{\textasciigrave{}Received chunk }\SpecialCharTok{$\{}\NormalTok{data}\SpecialCharTok{\}}\VerbatimStringTok{\textasciigrave{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{\})}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+The \texttt{subprocess.stdout} property can be \texttt{null} or
+\texttt{undefined} if the child process could not be successfully
+spawned.
+
+\subsubsection{\texorpdfstring{\texttt{subprocess.unref()}}{subprocess.unref()}}\label{subprocess.unref}
+
+By default, the parent will wait for the detached child to exit. To
+prevent the parent from waiting for a given \texttt{subprocess} to exit,
+use the \texttt{subprocess.unref()} method. Doing so will cause the
+parent's event loop to not include the child in its reference count,
+allowing the parent to exit independently of the child, unless there is
+an established IPC channel between the child and the parent.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ \{ spawn \} }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:child\_process\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+
+\KeywordTok{const}\NormalTok{ subprocess }\OperatorTok{=} \FunctionTok{spawn}\NormalTok{(}\BuiltInTok{process}\OperatorTok{.}\AttributeTok{argv}\NormalTok{[}\DecValTok{0}\NormalTok{]}\OperatorTok{,}\NormalTok{ [}\StringTok{\textquotesingle{}child\_program.js\textquotesingle{}}\NormalTok{]}\OperatorTok{,}\NormalTok{ \{}
+  \DataTypeTok{detached}\OperatorTok{:} \KeywordTok{true}\OperatorTok{,}
+  \DataTypeTok{stdio}\OperatorTok{:} \StringTok{\textquotesingle{}ignore\textquotesingle{}}\OperatorTok{,}
+\NormalTok{\})}\OperatorTok{;}
+
+\NormalTok{subprocess}\OperatorTok{.}\FunctionTok{unref}\NormalTok{()}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+\subsection{\texorpdfstring{\texttt{maxBuffer} and
+Unicode}{maxBuffer and Unicode}}\label{maxbuffer-and-unicode}
+
+The \texttt{maxBuffer} option specifies the largest number of bytes
+allowed on \texttt{stdout} or \texttt{stderr}. If this value is
+exceeded, then the child process is terminated. This impacts output that
+includes multibyte character encodings such as UTF-8 or UTF-16. For
+instance,
+\texttt{console.log(\textquotesingle{}中文测试\textquotesingle{})} will
+send 13 UTF-8 encoded bytes to \texttt{stdout} although there are only 4
+characters.
+
+\subsection{Shell requirements}\label{shell-requirements}
+
+The shell should understand the \texttt{-c} switch. If the shell is
+\texttt{\textquotesingle{}cmd.exe\textquotesingle{}}, it should
+understand the \texttt{/d\ /s\ /c} switches and command-line parsing
+should be compatible.
+
+\subsection{Default Windows shell}\label{default-windows-shell}
+
+Although Microsoft specifies \texttt{\%COMSPEC\%} must contain the path
+to \texttt{\textquotesingle{}cmd.exe\textquotesingle{}} in the root
+environment, child processes are not always subject to the same
+requirement. Thus, in \texttt{child\_process} functions where a shell
+can be spawned, \texttt{\textquotesingle{}cmd.exe\textquotesingle{}} is
+used as a fallback if \texttt{process.env.ComSpec} is unavailable.
+
+\subsection{Advanced serialization}\label{advanced-serialization}
+
+Child processes support a serialization mechanism for IPC that is based
+on the \href{v8.md\#serialization-api}{serialization API of the
+\texttt{node:v8} module}, based on the
+\href{https://developer.mozilla.org/en-US/docs/Web/API/Web_Workers_API/Structured_clone_algorithm}{HTML
+structured clone algorithm}. This is generally more powerful and
+supports more built-in JavaScript object types, such as \texttt{BigInt},
+\texttt{Map} and \texttt{Set}, \texttt{ArrayBuffer} and
+\texttt{TypedArray}, \texttt{Buffer}, \texttt{Error}, \texttt{RegExp}
+etc.
+
+However, this format is not a full superset of JSON, and e.g.~properties
+set on objects of such built-in types will not be passed on through the
+serialization step. Additionally, performance may not be equivalent to
+that of JSON, depending on the structure of the passed data. Therefore,
+this feature requires opting in by setting the \texttt{serialization}
+option to \texttt{\textquotesingle{}advanced\textquotesingle{}} when
+calling
+\hyperref[child_processspawncommand-args-options]{\texttt{child\_process.spawn()}}
+or
+\hyperref[child_processforkmodulepath-args-options]{\texttt{child\_process.fork()}}.

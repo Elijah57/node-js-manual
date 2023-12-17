@@ -1,0 +1,104 @@
+\section{Usage and example}\label{usage-and-example}
+
+\subsection{Usage}\label{usage}
+
+\texttt{node\ {[}options{]}\ {[}V8\ options{]}\ {[}script.js\ \textbar{}\ -e\ "script"\ \textbar{}\ -\ {]}\ {[}arguments{]}}
+
+Please see the \href{cli.md\#options}{Command-line options} document for
+more information.
+
+\subsection{Example}\label{example}
+
+An example of a \href{http.md}{web server} written with Node.js which
+responds with
+\texttt{\textquotesingle{}Hello,\ World!\textquotesingle{}}:
+
+Commands in this document start with \texttt{\$} or
+\texttt{\textgreater{}} to replicate how they would appear in a user's
+terminal. Do not include the \texttt{\$} and \texttt{\textgreater{}}
+characters. They are there to show the start of each command.
+
+Lines that don't start with \texttt{\$} or \texttt{\textgreater{}}
+character show the output of the previous command.
+
+First, make sure to have downloaded and installed Node.js. See
+\href{https://nodejs.org/en/download/package-manager/}{Installing
+Node.js via package manager} for further install information.
+
+Now, create an empty project folder called \texttt{projects}, then
+navigate into it.
+
+Linux and Mac:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{mkdir}\NormalTok{ \textasciitilde{}/projects}
+\BuiltInTok{cd}\NormalTok{ \textasciitilde{}/projects}
+\end{Highlighting}
+\end{Shaded}
+
+Windows CMD:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{mkdir }\OperatorTok{\%}\NormalTok{USERPROFILE}\OperatorTok{\%}\NormalTok{\textbackslash{}projects}
+\FunctionTok{cd} \OperatorTok{\%}\NormalTok{USERPROFILE}\OperatorTok{\%}\NormalTok{\textbackslash{}projects}
+\end{Highlighting}
+\end{Shaded}
+
+Windows PowerShell:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{mkdir }\VariableTok{$env}\OperatorTok{:}\VariableTok{USERPROFILE}\NormalTok{\textbackslash{}projects}
+\FunctionTok{cd} \VariableTok{$env}\OperatorTok{:}\VariableTok{USERPROFILE}\NormalTok{\textbackslash{}projects}
+\end{Highlighting}
+\end{Shaded}
+
+Next, create a new source file in the \texttt{projects} folder and call
+it \texttt{hello-world.js}.
+
+Open \texttt{hello-world.js} in any preferred text editor and paste in
+the following content:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ http }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:http\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+
+\KeywordTok{const}\NormalTok{ hostname }\OperatorTok{=} \StringTok{\textquotesingle{}127.0.0.1\textquotesingle{}}\OperatorTok{;}
+\KeywordTok{const}\NormalTok{ port }\OperatorTok{=} \DecValTok{3000}\OperatorTok{;}
+
+\KeywordTok{const}\NormalTok{ server }\OperatorTok{=}\NormalTok{ http}\OperatorTok{.}\FunctionTok{createServer}\NormalTok{((req}\OperatorTok{,}\NormalTok{ res) }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+\NormalTok{  res}\OperatorTok{.}\AttributeTok{statusCode} \OperatorTok{=} \DecValTok{200}\OperatorTok{;}
+\NormalTok{  res}\OperatorTok{.}\FunctionTok{setHeader}\NormalTok{(}\StringTok{\textquotesingle{}Content{-}Type\textquotesingle{}}\OperatorTok{,} \StringTok{\textquotesingle{}text/plain\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{  res}\OperatorTok{.}\FunctionTok{end}\NormalTok{(}\StringTok{\textquotesingle{}Hello, World!}\SpecialCharTok{\textbackslash{}n}\StringTok{\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{\})}\OperatorTok{;}
+
+\NormalTok{server}\OperatorTok{.}\FunctionTok{listen}\NormalTok{(port}\OperatorTok{,}\NormalTok{ hostname}\OperatorTok{,}\NormalTok{ () }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+  \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\VerbatimStringTok{\textasciigrave{}Server running at http://}\SpecialCharTok{$\{}\NormalTok{hostname}\SpecialCharTok{\}}\VerbatimStringTok{:}\SpecialCharTok{$\{}\NormalTok{port}\SpecialCharTok{\}}\VerbatimStringTok{/\textasciigrave{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{\})}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+Save the file. Then, in the terminal window, to run the
+\texttt{hello-world.js} file, enter:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\ExtensionTok{node}\NormalTok{ hello{-}world.js}
+\end{Highlighting}
+\end{Shaded}
+
+Output like this should appear in the terminal:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{Server running at http://127.0.0.1:3000/}
+\end{Highlighting}
+\end{Shaded}
+
+Now, open any preferred web browser and visit
+\texttt{http://127.0.0.1:3000}.
+
+If the browser displays the string \texttt{Hello,\ World!}, that
+indicates the server is working.

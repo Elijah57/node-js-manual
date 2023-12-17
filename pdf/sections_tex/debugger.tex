@@ -1,0 +1,325 @@
+\section{Debugger}\label{debugger}
+
+\begin{quote}
+Stability: 2 - Stable
+\end{quote}
+
+Node.js includes a command-line debugging utility. The Node.js debugger
+client is not a full-featured debugger, but simple stepping and
+inspection are possible.
+
+To use it, start Node.js with the \texttt{inspect} argument followed by
+the path to the script to debug.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{$ node inspect myscript.js}
+\NormalTok{\textless{} Debugger listening on ws://127.0.0.1:9229/621111f9{-}ffcb{-}4e82{-}b718{-}48a145fa5db8}
+\NormalTok{\textless{} For help, see: https://nodejs.org/en/docs/inspector}
+\NormalTok{\textless{}}
+\NormalTok{connecting to 127.0.0.1:9229 ... ok}
+\NormalTok{\textless{} Debugger attached.}
+\NormalTok{\textless{}}
+\NormalTok{ ok}
+\NormalTok{Break on start in myscript.js:2}
+\NormalTok{  1 // myscript.js}
+\NormalTok{\textgreater{} 2 global.x = 5;}
+\NormalTok{  3 setTimeout(() =\textgreater{} \{}
+\NormalTok{  4   debugger;}
+\NormalTok{debug\textgreater{}}
+\end{Highlighting}
+\end{Shaded}
+
+The debugger automatically breaks on the first executable line. To
+instead run until the first breakpoint (specified by a
+\href{https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/debugger}{\texttt{debugger}}
+statement), set the \texttt{NODE\_INSPECT\_RESUME\_ON\_START}
+environment variable to \texttt{1}.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{$ cat myscript.js}
+\NormalTok{// myscript.js}
+\NormalTok{global.x = 5;}
+\NormalTok{setTimeout(() =\textgreater{} \{}
+\NormalTok{  debugger;}
+\NormalTok{  console.log(\textquotesingle{}world\textquotesingle{});}
+\NormalTok{\}, 1000);}
+\NormalTok{console.log(\textquotesingle{}hello\textquotesingle{});}
+\NormalTok{$ NODE\_INSPECT\_RESUME\_ON\_START=1 node inspect myscript.js}
+\NormalTok{\textless{} Debugger listening on ws://127.0.0.1:9229/f1ed133e{-}7876{-}495b{-}83ae{-}c32c6fc319c2}
+\NormalTok{\textless{} For help, see: https://nodejs.org/en/docs/inspector}
+\NormalTok{\textless{}}
+\NormalTok{connecting to 127.0.0.1:9229 ... ok}
+\NormalTok{\textless{} Debugger attached.}
+\NormalTok{\textless{}}
+\NormalTok{\textless{} hello}
+\NormalTok{\textless{}}
+\NormalTok{break in myscript.js:4}
+\NormalTok{  2 global.x = 5;}
+\NormalTok{  3 setTimeout(() =\textgreater{} \{}
+\NormalTok{\textgreater{} 4   debugger;}
+\NormalTok{  5   console.log(\textquotesingle{}world\textquotesingle{});}
+\NormalTok{  6 \}, 1000);}
+\NormalTok{debug\textgreater{} next}
+\NormalTok{break in myscript.js:5}
+\NormalTok{  3 setTimeout(() =\textgreater{} \{}
+\NormalTok{  4   debugger;}
+\NormalTok{\textgreater{} 5   console.log(\textquotesingle{}world\textquotesingle{});}
+\NormalTok{  6 \}, 1000);}
+\NormalTok{  7 console.log(\textquotesingle{}hello\textquotesingle{});}
+\NormalTok{debug\textgreater{} repl}
+\NormalTok{Press Ctrl+C to leave debug repl}
+\NormalTok{\textgreater{} x}
+\NormalTok{5}
+\NormalTok{\textgreater{} 2 + 2}
+\NormalTok{4}
+\NormalTok{debug\textgreater{} next}
+\NormalTok{\textless{} world}
+\NormalTok{\textless{}}
+\NormalTok{break in myscript.js:6}
+\NormalTok{  4   debugger;}
+\NormalTok{  5   console.log(\textquotesingle{}world\textquotesingle{});}
+\NormalTok{\textgreater{} 6 \}, 1000);}
+\NormalTok{  7 console.log(\textquotesingle{}hello\textquotesingle{});}
+\NormalTok{  8}
+\NormalTok{debug\textgreater{} .exit}
+\NormalTok{$}
+\end{Highlighting}
+\end{Shaded}
+
+The \texttt{repl} command allows code to be evaluated remotely. The
+\texttt{next} command steps to the next line. Type \texttt{help} to see
+what other commands are available.
+
+Pressing \texttt{enter} without typing a command will repeat the
+previous debugger command.
+
+\subsection{Watchers}\label{watchers}
+
+It is possible to watch expression and variable values while debugging.
+On every breakpoint, each expression from the watchers list will be
+evaluated in the current context and displayed immediately before the
+breakpoint's source code listing.
+
+To begin watching an expression, type
+\texttt{watch(\textquotesingle{}my\_expression\textquotesingle{})}. The
+command \texttt{watchers} will print the active watchers. To remove a
+watcher, type
+\texttt{unwatch(\textquotesingle{}my\_expression\textquotesingle{})}.
+
+\subsection{Command reference}\label{command-reference}
+
+\subsubsection{Stepping}\label{stepping}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{cont}, \texttt{c}: Continue execution
+\item
+  \texttt{next}, \texttt{n}: Step next
+\item
+  \texttt{step}, \texttt{s}: Step in
+\item
+  \texttt{out}, \texttt{o}: Step out
+\item
+  \texttt{pause}: Pause running code (like pause button in Developer
+  Tools)
+\end{itemize}
+
+\subsubsection{Breakpoints}\label{breakpoints}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{setBreakpoint()}, \texttt{sb()}: Set breakpoint on current
+  line
+\item
+  \texttt{setBreakpoint(line)}, \texttt{sb(line)}: Set breakpoint on
+  specific line
+\item
+  \texttt{setBreakpoint(\textquotesingle{}fn()\textquotesingle{})},
+  \texttt{sb(...)}: Set breakpoint on a first statement in function's
+  body
+\item
+  \texttt{setBreakpoint(\textquotesingle{}script.js\textquotesingle{},\ 1)},
+  \texttt{sb(...)}: Set breakpoint on first line of \texttt{script.js}
+\item
+  \texttt{setBreakpoint(\textquotesingle{}script.js\textquotesingle{},\ 1,\ \textquotesingle{}num\ \textless{}\ 4\textquotesingle{})},
+  \texttt{sb(...)}: Set conditional breakpoint on first line of
+  \texttt{script.js} that only breaks when \texttt{num\ \textless{}\ 4}
+  evaluates to \texttt{true}
+\item
+  \texttt{clearBreakpoint(\textquotesingle{}script.js\textquotesingle{},\ 1)},
+  \texttt{cb(...)}: Clear breakpoint in \texttt{script.js} on line 1
+\end{itemize}
+
+It is also possible to set a breakpoint in a file (module) that is not
+loaded yet:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{$ node inspect main.js}
+\NormalTok{\textless{} Debugger listening on ws://127.0.0.1:9229/48a5b28a{-}550c{-}471b{-}b5e1{-}d13dd7165df9}
+\NormalTok{\textless{} For help, see: https://nodejs.org/en/docs/inspector}
+\NormalTok{\textless{}}
+\NormalTok{connecting to 127.0.0.1:9229 ... ok}
+\NormalTok{\textless{} Debugger attached.}
+\NormalTok{\textless{}}
+\NormalTok{Break on start in main.js:1}
+\NormalTok{\textgreater{} 1 const mod = require(\textquotesingle{}./mod.js\textquotesingle{});}
+\NormalTok{  2 mod.hello();}
+\NormalTok{  3 mod.hello();}
+\NormalTok{debug\textgreater{} setBreakpoint(\textquotesingle{}mod.js\textquotesingle{}, 22)}
+\NormalTok{Warning: script \textquotesingle{}mod.js\textquotesingle{} was not loaded yet.}
+\NormalTok{debug\textgreater{} c}
+\NormalTok{break in mod.js:22}
+\NormalTok{ 20 // USE OR OTHER DEALINGS IN THE SOFTWARE.}
+\NormalTok{ 21}
+\NormalTok{\textgreater{}22 exports.hello = function() \{}
+\NormalTok{ 23   return \textquotesingle{}hello from module\textquotesingle{};}
+\NormalTok{ 24 \};}
+\NormalTok{debug\textgreater{}}
+\end{Highlighting}
+\end{Shaded}
+
+It is also possible to set a conditional breakpoint that only breaks
+when a given expression evaluates to \texttt{true}:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{$ node inspect main.js}
+\NormalTok{\textless{} Debugger listening on ws://127.0.0.1:9229/ce24daa8{-}3816{-}44d4{-}b8ab{-}8273c8a66d35}
+\NormalTok{\textless{} For help, see: https://nodejs.org/en/docs/inspector}
+\NormalTok{\textless{}}
+\NormalTok{connecting to 127.0.0.1:9229 ... ok}
+\NormalTok{\textless{} Debugger attached.}
+\NormalTok{Break on start in main.js:7}
+\NormalTok{  5 \}}
+\NormalTok{  6}
+\NormalTok{\textgreater{} 7 addOne(10);}
+\NormalTok{  8 addOne({-}1);}
+\NormalTok{  9}
+\NormalTok{debug\textgreater{} setBreakpoint(\textquotesingle{}main.js\textquotesingle{}, 4, \textquotesingle{}num \textless{} 0\textquotesingle{})}
+\NormalTok{  1 \textquotesingle{}use strict\textquotesingle{};}
+\NormalTok{  2}
+\NormalTok{  3 function addOne(num) \{}
+\NormalTok{\textgreater{} 4   return num + 1;}
+\NormalTok{  5 \}}
+\NormalTok{  6}
+\NormalTok{  7 addOne(10);}
+\NormalTok{  8 addOne({-}1);}
+\NormalTok{  9}
+\NormalTok{debug\textgreater{} cont}
+\NormalTok{break in main.js:4}
+\NormalTok{  2}
+\NormalTok{  3 function addOne(num) \{}
+\NormalTok{\textgreater{} 4   return num + 1;}
+\NormalTok{  5 \}}
+\NormalTok{  6}
+\NormalTok{debug\textgreater{} exec(\textquotesingle{}num\textquotesingle{})}
+\NormalTok{{-}1}
+\NormalTok{debug\textgreater{}}
+\end{Highlighting}
+\end{Shaded}
+
+\subsubsection{Information}\label{information}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{backtrace}, \texttt{bt}: Print backtrace of current execution
+  frame
+\item
+  \texttt{list(5)}: List scripts source code with 5 line context (5
+  lines before and after)
+\item
+  \texttt{watch(expr)}: Add expression to watch list
+\item
+  \texttt{unwatch(expr)}: Remove expression from watch list
+\item
+  \texttt{unwatch(index)}: Remove expression at specific index from
+  watch list
+\item
+  \texttt{watchers}: List all watchers and their values (automatically
+  listed on each breakpoint)
+\item
+  \texttt{repl}: Open debugger's repl for evaluation in debugging
+  script's context
+\item
+  \texttt{exec\ expr}, \texttt{p\ expr}: Execute an expression in
+  debugging script's context and print its value
+\item
+  \texttt{profile}: Start CPU profiling session
+\item
+  \texttt{profileEnd}: Stop current CPU profiling session
+\item
+  \texttt{profiles}: List all completed CPU profiling sessions
+\item
+  \texttt{profiles{[}n{]}.save(filepath\ =\ \textquotesingle{}node.cpuprofile\textquotesingle{})}:
+  Save CPU profiling session to disk as JSON
+\item
+  \texttt{takeHeapSnapshot(filepath\ =\ \textquotesingle{}node.heapsnapshot\textquotesingle{})}:
+  Take a heap snapshot and save to disk as JSON
+\end{itemize}
+
+\subsubsection{Execution control}\label{execution-control}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{run}: Run script (automatically runs on debugger's start)
+\item
+  \texttt{restart}: Restart script
+\item
+  \texttt{kill}: Kill script
+\end{itemize}
+
+\subsubsection{Various}\label{various}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{scripts}: List all loaded scripts
+\item
+  \texttt{version}: Display V8's version
+\end{itemize}
+
+\subsection{Advanced usage}\label{advanced-usage}
+
+\subsubsection{V8 inspector integration for
+Node.js}\label{v8-inspector-integration-for-node.js}
+
+V8 Inspector integration allows attaching Chrome DevTools to Node.js
+instances for debugging and profiling. It uses the
+\href{https://chromedevtools.github.io/devtools-protocol/}{Chrome
+DevTools Protocol}.
+
+V8 Inspector can be enabled by passing the \texttt{-\/-inspect} flag
+when starting a Node.js application. It is also possible to supply a
+custom port with that flag, e.g.~\texttt{-\/-inspect=9222} will accept
+DevTools connections on port 9222.
+
+To break on the first line of the application code, pass the
+\texttt{-\/-inspect-brk} flag instead of \texttt{-\/-inspect}.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{$ node {-}{-}inspect index.js}
+\NormalTok{Debugger listening on ws://127.0.0.1:9229/dc9010dd{-}f8b8{-}4ac5{-}a510{-}c1a114ec7d29}
+\NormalTok{For help, see: https://nodejs.org/en/docs/inspector}
+\end{Highlighting}
+\end{Shaded}
+
+(In the example above, the UUID dc9010dd-f8b8-4ac5-a510-c1a114ec7d29 at
+the end of the URL is generated on the fly, it varies in different
+debugging sessions.)
+
+If the Chrome browser is older than 66.0.3345.0, use
+\texttt{inspector.html} instead of \texttt{js\_app.html} in the above
+URL.
+
+Chrome DevTools doesn't support debugging
+\href{worker_threads.md}{worker threads} yet.
+\href{https://github.com/GoogleChromeLabs/ndb/}{ndb} can be used to
+debug them.

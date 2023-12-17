@@ -1,0 +1,107 @@
+\section{String decoder}\label{string-decoder}
+
+\begin{quote}
+Stability: 2 - Stable
+\end{quote}
+
+The \texttt{node:string\_decoder} module provides an API for decoding
+\texttt{Buffer} objects into strings in a manner that preserves encoded
+multi-byte UTF-8 and UTF-16 characters. It can be accessed using:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ \{ StringDecoder \} }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:string\_decoder\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+The following example shows the basic use of the \texttt{StringDecoder}
+class.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ \{ StringDecoder \} }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:string\_decoder\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\KeywordTok{const}\NormalTok{ decoder }\OperatorTok{=} \KeywordTok{new} \FunctionTok{StringDecoder}\NormalTok{(}\StringTok{\textquotesingle{}utf8\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+
+\KeywordTok{const}\NormalTok{ cent }\OperatorTok{=} \BuiltInTok{Buffer}\OperatorTok{.}\FunctionTok{from}\NormalTok{([}\BaseNTok{0xC2}\OperatorTok{,} \BaseNTok{0xA2}\NormalTok{])}\OperatorTok{;}
+\BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(decoder}\OperatorTok{.}\FunctionTok{write}\NormalTok{(cent))}\OperatorTok{;} \CommentTok{// Prints: ¢}
+
+\KeywordTok{const}\NormalTok{ euro }\OperatorTok{=} \BuiltInTok{Buffer}\OperatorTok{.}\FunctionTok{from}\NormalTok{([}\BaseNTok{0xE2}\OperatorTok{,} \BaseNTok{0x82}\OperatorTok{,} \BaseNTok{0xAC}\NormalTok{])}\OperatorTok{;}
+\BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(decoder}\OperatorTok{.}\FunctionTok{write}\NormalTok{(euro))}\OperatorTok{;} \CommentTok{// Prints: €}
+\end{Highlighting}
+\end{Shaded}
+
+When a \texttt{Buffer} instance is written to the \texttt{StringDecoder}
+instance, an internal buffer is used to ensure that the decoded string
+does not contain any incomplete multibyte characters. These are held in
+the buffer until the next call to \texttt{stringDecoder.write()} or
+until \texttt{stringDecoder.end()} is called.
+
+In the following example, the three UTF-8 encoded bytes of the European
+Euro symbol (\texttt{€}) are written over three separate operations:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ \{ StringDecoder \} }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:string\_decoder\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\KeywordTok{const}\NormalTok{ decoder }\OperatorTok{=} \KeywordTok{new} \FunctionTok{StringDecoder}\NormalTok{(}\StringTok{\textquotesingle{}utf8\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+
+\NormalTok{decoder}\OperatorTok{.}\FunctionTok{write}\NormalTok{(}\BuiltInTok{Buffer}\OperatorTok{.}\FunctionTok{from}\NormalTok{([}\BaseNTok{0xE2}\NormalTok{]))}\OperatorTok{;}
+\NormalTok{decoder}\OperatorTok{.}\FunctionTok{write}\NormalTok{(}\BuiltInTok{Buffer}\OperatorTok{.}\FunctionTok{from}\NormalTok{([}\BaseNTok{0x82}\NormalTok{]))}\OperatorTok{;}
+\BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(decoder}\OperatorTok{.}\FunctionTok{end}\NormalTok{(}\BuiltInTok{Buffer}\OperatorTok{.}\FunctionTok{from}\NormalTok{([}\BaseNTok{0xAC}\NormalTok{])))}\OperatorTok{;} \CommentTok{// Prints: €}
+\end{Highlighting}
+\end{Shaded}
+
+\subsection{\texorpdfstring{Class:
+\texttt{StringDecoder}}{Class: StringDecoder}}\label{class-stringdecoder}
+
+\subsubsection{\texorpdfstring{\texttt{new\ StringDecoder({[}encoding{]})}}{new StringDecoder({[}encoding{]})}}\label{new-stringdecoderencoding}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{encoding} \{string\} The character
+  \href{buffer.md\#buffers-and-character-encodings}{encoding} the
+  \texttt{StringDecoder} will use. \textbf{Default:}
+  \texttt{\textquotesingle{}utf8\textquotesingle{}}.
+\end{itemize}
+
+Creates a new \texttt{StringDecoder} instance.
+
+\subsubsection{\texorpdfstring{\texttt{stringDecoder.end({[}buffer{]})}}{stringDecoder.end({[}buffer{]})}}\label{stringdecoder.endbuffer}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{buffer}
+  \{string\textbar Buffer\textbar TypedArray\textbar DataView\} The
+  bytes to decode.
+\item
+  Returns: \{string\}
+\end{itemize}
+
+Returns any remaining input stored in the internal buffer as a string.
+Bytes representing incomplete UTF-8 and UTF-16 characters will be
+replaced with substitution characters appropriate for the character
+encoding.
+
+If the \texttt{buffer} argument is provided, one final call to
+\texttt{stringDecoder.write()} is performed before returning the
+remaining input. After \texttt{end()} is called, the
+\texttt{stringDecoder} object can be reused for new input.
+
+\subsubsection{\texorpdfstring{\texttt{stringDecoder.write(buffer)}}{stringDecoder.write(buffer)}}\label{stringdecoder.writebuffer}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{buffer}
+  \{string\textbar Buffer\textbar TypedArray\textbar DataView\} The
+  bytes to decode.
+\item
+  Returns: \{string\}
+\end{itemize}
+
+Returns a decoded string, ensuring that any incomplete multibyte
+characters at the end of the \texttt{Buffer}, or \texttt{TypedArray}, or
+\texttt{DataView} are omitted from the returned string and stored in an
+internal buffer for the next call to \texttt{stringDecoder.write()} or
+\texttt{stringDecoder.end()}.

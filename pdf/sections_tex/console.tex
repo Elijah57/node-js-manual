@@ -1,0 +1,648 @@
+\section{Console}\label{console}
+
+\begin{quote}
+Stability: 2 - Stable
+\end{quote}
+
+The \texttt{node:console} module provides a simple debugging console
+that is similar to the JavaScript console mechanism provided by web
+browsers.
+
+The module exports two specific components:
+
+\begin{itemize}
+\tightlist
+\item
+  A \texttt{Console} class with methods such as \texttt{console.log()},
+  \texttt{console.error()}, and \texttt{console.warn()} that can be used
+  to write to any Node.js stream.
+\item
+  A global \texttt{console} instance configured to write to
+  \href{process.md\#processstdout}{\texttt{process.stdout}} and
+  \href{process.md\#processstderr}{\texttt{process.stderr}}. The global
+  \texttt{console} can be used without calling
+  \texttt{require(\textquotesingle{}node:console\textquotesingle{})}.
+\end{itemize}
+
+\emph{\textbf{Warning}}: The global console object's methods are neither
+consistently synchronous like the browser APIs they resemble, nor are
+they consistently asynchronous like all other Node.js streams. See the
+\href{process.md\#a-note-on-process-io}{note on process I/O} for more
+information.
+
+Example using the global \texttt{console}:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\StringTok{\textquotesingle{}hello world\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// Prints: hello world, to stdout}
+\BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\StringTok{\textquotesingle{}hello \%s\textquotesingle{}}\OperatorTok{,} \StringTok{\textquotesingle{}world\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// Prints: hello world, to stdout}
+\BuiltInTok{console}\OperatorTok{.}\FunctionTok{error}\NormalTok{(}\KeywordTok{new} \BuiltInTok{Error}\NormalTok{(}\StringTok{\textquotesingle{}Whoops, something bad happened\textquotesingle{}}\NormalTok{))}\OperatorTok{;}
+\CommentTok{// Prints error message and stack trace to stderr:}
+\CommentTok{//   Error: Whoops, something bad happened}
+\CommentTok{//     at [eval]:5:15}
+\CommentTok{//     at Script.runInThisContext (node:vm:132:18)}
+\CommentTok{//     at Object.runInThisContext (node:vm:309:38)}
+\CommentTok{//     at node:internal/process/execution:77:19}
+\CommentTok{//     at [eval]{-}wrapper:6:22}
+\CommentTok{//     at evalScript (node:internal/process/execution:76:60)}
+\CommentTok{//     at node:internal/main/eval\_string:23:3}
+
+\KeywordTok{const}\NormalTok{ name }\OperatorTok{=} \StringTok{\textquotesingle{}Will Robinson\textquotesingle{}}\OperatorTok{;}
+\BuiltInTok{console}\OperatorTok{.}\FunctionTok{warn}\NormalTok{(}\VerbatimStringTok{\textasciigrave{}Danger }\SpecialCharTok{$\{}\NormalTok{name}\SpecialCharTok{\}}\VerbatimStringTok{! Danger!\textasciigrave{}}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// Prints: Danger Will Robinson! Danger!, to stderr}
+\end{Highlighting}
+\end{Shaded}
+
+Example using the \texttt{Console} class:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ out }\OperatorTok{=} \FunctionTok{getStreamSomehow}\NormalTok{()}\OperatorTok{;}
+\KeywordTok{const}\NormalTok{ err }\OperatorTok{=} \FunctionTok{getStreamSomehow}\NormalTok{()}\OperatorTok{;}
+\KeywordTok{const}\NormalTok{ myConsole }\OperatorTok{=} \KeywordTok{new} \BuiltInTok{console}\OperatorTok{.}\FunctionTok{Console}\NormalTok{(out}\OperatorTok{,}\NormalTok{ err)}\OperatorTok{;}
+
+\NormalTok{myConsole}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\StringTok{\textquotesingle{}hello world\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// Prints: hello world, to out}
+\NormalTok{myConsole}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\StringTok{\textquotesingle{}hello \%s\textquotesingle{}}\OperatorTok{,} \StringTok{\textquotesingle{}world\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// Prints: hello world, to out}
+\NormalTok{myConsole}\OperatorTok{.}\FunctionTok{error}\NormalTok{(}\KeywordTok{new} \BuiltInTok{Error}\NormalTok{(}\StringTok{\textquotesingle{}Whoops, something bad happened\textquotesingle{}}\NormalTok{))}\OperatorTok{;}
+\CommentTok{// Prints: [Error: Whoops, something bad happened], to err}
+
+\KeywordTok{const}\NormalTok{ name }\OperatorTok{=} \StringTok{\textquotesingle{}Will Robinson\textquotesingle{}}\OperatorTok{;}
+\NormalTok{myConsole}\OperatorTok{.}\FunctionTok{warn}\NormalTok{(}\VerbatimStringTok{\textasciigrave{}Danger }\SpecialCharTok{$\{}\NormalTok{name}\SpecialCharTok{\}}\VerbatimStringTok{! Danger!\textasciigrave{}}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// Prints: Danger Will Robinson! Danger!, to err}
+\end{Highlighting}
+\end{Shaded}
+
+\subsection{\texorpdfstring{Class:
+\texttt{Console}}{Class: Console}}\label{class-console}
+
+The \texttt{Console} class can be used to create a simple logger with
+configurable output streams and can be accessed using either
+\texttt{require(\textquotesingle{}node:console\textquotesingle{}).Console}
+or \texttt{console.Console} (or their destructured counterparts):
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ \{ }\BuiltInTok{Console}\NormalTok{ \} }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:console\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ \{ }\BuiltInTok{Console}\NormalTok{ \} }\OperatorTok{=} \BuiltInTok{console}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+\subsubsection{\texorpdfstring{\texttt{new\ Console(stdout{[},\ stderr{]}{[},\ ignoreErrors{]})}}{new Console(stdout{[}, stderr{]}{[}, ignoreErrors{]})}}\label{new-consolestdout-stderr-ignoreerrors}
+
+\subsubsection{\texorpdfstring{\texttt{new\ Console(options)}}{new Console(options)}}\label{new-consoleoptions}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{options} \{Object\}
+
+  \begin{itemize}
+  \tightlist
+  \item
+    \texttt{stdout} \{stream.Writable\}
+  \item
+    \texttt{stderr} \{stream.Writable\}
+  \item
+    \texttt{ignoreErrors} \{boolean\} Ignore errors when writing to the
+    underlying streams. \textbf{Default:} \texttt{true}.
+  \item
+    \texttt{colorMode} \{boolean\textbar string\} Set color support for
+    this \texttt{Console} instance. Setting to \texttt{true} enables
+    coloring while inspecting values. Setting to \texttt{false} disables
+    coloring while inspecting values. Setting to
+    \texttt{\textquotesingle{}auto\textquotesingle{}} makes color
+    support depend on the value of the \texttt{isTTY} property and the
+    value returned by \texttt{getColorDepth()} on the respective stream.
+    This option can not be used, if \texttt{inspectOptions.colors} is
+    set as well. \textbf{Default:}
+    \texttt{\textquotesingle{}auto\textquotesingle{}}.
+  \item
+    \texttt{inspectOptions} \{Object\} Specifies options that are passed
+    along to
+    \href{util.md\#utilinspectobject-options}{\texttt{util.inspect()}}.
+  \item
+    \texttt{groupIndentation} \{number\} Set group indentation.
+    \textbf{Default:} \texttt{2}.
+  \end{itemize}
+\end{itemize}
+
+Creates a new \texttt{Console} with one or two writable stream
+instances. \texttt{stdout} is a writable stream to print log or info
+output. \texttt{stderr} is used for warning or error output. If
+\texttt{stderr} is not provided, \texttt{stdout} is used for
+\texttt{stderr}.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ output }\OperatorTok{=}\NormalTok{ fs}\OperatorTok{.}\FunctionTok{createWriteStream}\NormalTok{(}\StringTok{\textquotesingle{}./stdout.log\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\KeywordTok{const}\NormalTok{ errorOutput }\OperatorTok{=}\NormalTok{ fs}\OperatorTok{.}\FunctionTok{createWriteStream}\NormalTok{(}\StringTok{\textquotesingle{}./stderr.log\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// Custom simple logger}
+\KeywordTok{const}\NormalTok{ logger }\OperatorTok{=} \KeywordTok{new} \BuiltInTok{Console}\NormalTok{(\{ }\DataTypeTok{stdout}\OperatorTok{:}\NormalTok{ output}\OperatorTok{,} \DataTypeTok{stderr}\OperatorTok{:}\NormalTok{ errorOutput \})}\OperatorTok{;}
+\CommentTok{// use it like console}
+\KeywordTok{const}\NormalTok{ count }\OperatorTok{=} \DecValTok{5}\OperatorTok{;}
+\NormalTok{logger}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\StringTok{\textquotesingle{}count: \%d\textquotesingle{}}\OperatorTok{,}\NormalTok{ count)}\OperatorTok{;}
+\CommentTok{// In stdout.log: count 5}
+\end{Highlighting}
+\end{Shaded}
+
+The global \texttt{console} is a special \texttt{Console} whose output
+is sent to \href{process.md\#processstdout}{\texttt{process.stdout}} and
+\href{process.md\#processstderr}{\texttt{process.stderr}}. It is
+equivalent to calling:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{new} \BuiltInTok{Console}\NormalTok{(\{ }\DataTypeTok{stdout}\OperatorTok{:} \BuiltInTok{process}\OperatorTok{.}\AttributeTok{stdout}\OperatorTok{,} \DataTypeTok{stderr}\OperatorTok{:} \BuiltInTok{process}\OperatorTok{.}\AttributeTok{stderr}\NormalTok{ \})}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+\subsubsection{\texorpdfstring{\texttt{console.assert(value{[},\ ...message{]})}}{console.assert(value{[}, ...message{]})}}\label{console.assertvalue-...message}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{value} \{any\} The value tested for being truthy.
+\item
+  \texttt{...message} \{any\} All arguments besides \texttt{value} are
+  used as error message.
+\end{itemize}
+
+\texttt{console.assert()} writes a message if \texttt{value} is
+\href{https://developer.mozilla.org/en-US/docs/Glossary/Falsy}{falsy} or
+omitted. It only writes a message and does not otherwise affect
+execution. The output always starts with \texttt{"Assertion\ failed"}.
+If provided, \texttt{message} is formatted using
+\href{util.md\#utilformatformat-args}{\texttt{util.format()}}.
+
+If \texttt{value} is
+\href{https://developer.mozilla.org/en-US/docs/Glossary/Truthy}{truthy},
+nothing happens.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\BuiltInTok{console}\OperatorTok{.}\FunctionTok{assert}\NormalTok{(}\KeywordTok{true}\OperatorTok{,} \StringTok{\textquotesingle{}does nothing\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+
+\BuiltInTok{console}\OperatorTok{.}\FunctionTok{assert}\NormalTok{(}\KeywordTok{false}\OperatorTok{,} \StringTok{\textquotesingle{}Whoops \%s work\textquotesingle{}}\OperatorTok{,} \StringTok{\textquotesingle{}didn}\SpecialCharTok{\textbackslash{}\textquotesingle{}}\StringTok{t\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// Assertion failed: Whoops didn\textquotesingle{}t work}
+
+\BuiltInTok{console}\OperatorTok{.}\FunctionTok{assert}\NormalTok{()}\OperatorTok{;}
+\CommentTok{// Assertion failed}
+\end{Highlighting}
+\end{Shaded}
+
+\subsubsection{\texorpdfstring{\texttt{console.clear()}}{console.clear()}}\label{console.clear}
+
+When \texttt{stdout} is a TTY, calling \texttt{console.clear()} will
+attempt to clear the TTY. When \texttt{stdout} is not a TTY, this method
+does nothing.
+
+The specific operation of \texttt{console.clear()} can vary across
+operating systems and terminal types. For most Linux operating systems,
+\texttt{console.clear()} operates similarly to the \texttt{clear} shell
+command. On Windows, \texttt{console.clear()} will clear only the output
+in the current terminal viewport for the Node.js binary.
+
+\subsubsection{\texorpdfstring{\texttt{console.count({[}label{]})}}{console.count({[}label{]})}}\label{console.countlabel}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{label} \{string\} The display label for the counter.
+  \textbf{Default:}
+  \texttt{\textquotesingle{}default\textquotesingle{}}.
+\end{itemize}
+
+Maintains an internal counter specific to \texttt{label} and outputs to
+\texttt{stdout} the number of times \texttt{console.count()} has been
+called with the given \texttt{label}.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\OperatorTok{\textgreater{}} \BuiltInTok{console}\OperatorTok{.}\FunctionTok{count}\NormalTok{()}
+\ImportTok{default}\OperatorTok{:} \DecValTok{1}
+\KeywordTok{undefined}
+\OperatorTok{\textgreater{}} \BuiltInTok{console}\OperatorTok{.}\FunctionTok{count}\NormalTok{(}\StringTok{\textquotesingle{}default\textquotesingle{}}\NormalTok{)}
+\ImportTok{default}\OperatorTok{:} \DecValTok{2}
+\KeywordTok{undefined}
+\OperatorTok{\textgreater{}} \BuiltInTok{console}\OperatorTok{.}\FunctionTok{count}\NormalTok{(}\StringTok{\textquotesingle{}abc\textquotesingle{}}\NormalTok{)}
+\NormalTok{abc}\OperatorTok{:} \DecValTok{1}
+\KeywordTok{undefined}
+\OperatorTok{\textgreater{}} \BuiltInTok{console}\OperatorTok{.}\FunctionTok{count}\NormalTok{(}\StringTok{\textquotesingle{}xyz\textquotesingle{}}\NormalTok{)}
+\NormalTok{xyz}\OperatorTok{:} \DecValTok{1}
+\KeywordTok{undefined}
+\OperatorTok{\textgreater{}} \BuiltInTok{console}\OperatorTok{.}\FunctionTok{count}\NormalTok{(}\StringTok{\textquotesingle{}abc\textquotesingle{}}\NormalTok{)}
+\NormalTok{abc}\OperatorTok{:} \DecValTok{2}
+\KeywordTok{undefined}
+\OperatorTok{\textgreater{}} \BuiltInTok{console}\OperatorTok{.}\FunctionTok{count}\NormalTok{()}
+\ImportTok{default}\OperatorTok{:} \DecValTok{3}
+\KeywordTok{undefined}
+\OperatorTok{\textgreater{}}
+\end{Highlighting}
+\end{Shaded}
+
+\subsubsection{\texorpdfstring{\texttt{console.countReset({[}label{]})}}{console.countReset({[}label{]})}}\label{console.countresetlabel}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{label} \{string\} The display label for the counter.
+  \textbf{Default:}
+  \texttt{\textquotesingle{}default\textquotesingle{}}.
+\end{itemize}
+
+Resets the internal counter specific to \texttt{label}.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\OperatorTok{\textgreater{}} \BuiltInTok{console}\OperatorTok{.}\FunctionTok{count}\NormalTok{(}\StringTok{\textquotesingle{}abc\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{abc}\OperatorTok{:} \DecValTok{1}
+\KeywordTok{undefined}
+\OperatorTok{\textgreater{}} \BuiltInTok{console}\OperatorTok{.}\FunctionTok{countReset}\NormalTok{(}\StringTok{\textquotesingle{}abc\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\KeywordTok{undefined}
+\OperatorTok{\textgreater{}} \BuiltInTok{console}\OperatorTok{.}\FunctionTok{count}\NormalTok{(}\StringTok{\textquotesingle{}abc\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{abc}\OperatorTok{:} \DecValTok{1}
+\KeywordTok{undefined}
+\OperatorTok{\textgreater{}}
+\end{Highlighting}
+\end{Shaded}
+
+\subsubsection{\texorpdfstring{\texttt{console.debug(data{[},\ ...args{]})}}{console.debug(data{[}, ...args{]})}}\label{console.debugdata-...args}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{data} \{any\}
+\item
+  \texttt{...args} \{any\}
+\end{itemize}
+
+The \texttt{console.debug()} function is an alias for
+\hyperref[consolelogdata-args]{\texttt{console.log()}}.
+
+\subsubsection{\texorpdfstring{\texttt{console.dir(obj{[},\ options{]})}}{console.dir(obj{[}, options{]})}}\label{console.dirobj-options}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{obj} \{any\}
+\item
+  \texttt{options} \{Object\}
+
+  \begin{itemize}
+  \tightlist
+  \item
+    \texttt{showHidden} \{boolean\} If \texttt{true} then the object's
+    non-enumerable and symbol properties will be shown too.
+    \textbf{Default:} \texttt{false}.
+  \item
+    \texttt{depth} \{number\} Tells
+    \href{util.md\#utilinspectobject-options}{\texttt{util.inspect()}}
+    how many times to recurse while formatting the object. This is
+    useful for inspecting large complicated objects. To make it recurse
+    indefinitely, pass \texttt{null}. \textbf{Default:} \texttt{2}.
+  \item
+    \texttt{colors} \{boolean\} If \texttt{true}, then the output will
+    be styled with ANSI color codes. Colors are customizable; see
+    \href{util.md\#customizing-utilinspect-colors}{customizing
+    \texttt{util.inspect()} colors}. \textbf{Default:} \texttt{false}.
+  \end{itemize}
+\end{itemize}
+
+Uses \href{util.md\#utilinspectobject-options}{\texttt{util.inspect()}}
+on \texttt{obj} and prints the resulting string to \texttt{stdout}. This
+function bypasses any custom \texttt{inspect()} function defined on
+\texttt{obj}.
+
+\subsubsection{\texorpdfstring{\texttt{console.dirxml(...data)}}{console.dirxml(...data)}}\label{console.dirxml...data}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{...data} \{any\}
+\end{itemize}
+
+This method calls \texttt{console.log()} passing it the arguments
+received. This method does not produce any XML formatting.
+
+\subsubsection{\texorpdfstring{\texttt{console.error({[}data{]}{[},\ ...args{]})}}{console.error({[}data{]}{[}, ...args{]})}}\label{console.errordata-...args}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{data} \{any\}
+\item
+  \texttt{...args} \{any\}
+\end{itemize}
+
+Prints to \texttt{stderr} with newline. Multiple arguments can be
+passed, with the first used as the primary message and all additional
+used as substitution values similar to printf(3) (the arguments are all
+passed to
+\href{util.md\#utilformatformat-args}{\texttt{util.format()}}).
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ code }\OperatorTok{=} \DecValTok{5}\OperatorTok{;}
+\BuiltInTok{console}\OperatorTok{.}\FunctionTok{error}\NormalTok{(}\StringTok{\textquotesingle{}error \#\%d\textquotesingle{}}\OperatorTok{,}\NormalTok{ code)}\OperatorTok{;}
+\CommentTok{// Prints: error \#5, to stderr}
+\BuiltInTok{console}\OperatorTok{.}\FunctionTok{error}\NormalTok{(}\StringTok{\textquotesingle{}error\textquotesingle{}}\OperatorTok{,}\NormalTok{ code)}\OperatorTok{;}
+\CommentTok{// Prints: error 5, to stderr}
+\end{Highlighting}
+\end{Shaded}
+
+If formatting elements (e.g.~\texttt{\%d}) are not found in the first
+string then
+\href{util.md\#utilinspectobject-options}{\texttt{util.inspect()}} is
+called on each argument and the resulting string values are
+concatenated. See
+\href{util.md\#utilformatformat-args}{\texttt{util.format()}} for more
+information.
+
+\subsubsection{\texorpdfstring{\texttt{console.group({[}...label{]})}}{console.group({[}...label{]})}}\label{console.group...label}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{...label} \{any\}
+\end{itemize}
+
+Increases indentation of subsequent lines by spaces for
+\texttt{groupIndentation} length.
+
+If one or more \texttt{label}s are provided, those are printed first
+without the additional indentation.
+
+\subsubsection{\texorpdfstring{\texttt{console.groupCollapsed()}}{console.groupCollapsed()}}\label{console.groupcollapsed}
+
+An alias for \hyperref[consolegrouplabel]{\texttt{console.group()}}.
+
+\subsubsection{\texorpdfstring{\texttt{console.groupEnd()}}{console.groupEnd()}}\label{console.groupend}
+
+Decreases indentation of subsequent lines by spaces for
+\texttt{groupIndentation} length.
+
+\subsubsection{\texorpdfstring{\texttt{console.info({[}data{]}{[},\ ...args{]})}}{console.info({[}data{]}{[}, ...args{]})}}\label{console.infodata-...args}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{data} \{any\}
+\item
+  \texttt{...args} \{any\}
+\end{itemize}
+
+The \texttt{console.info()} function is an alias for
+\hyperref[consolelogdata-args]{\texttt{console.log()}}.
+
+\subsubsection{\texorpdfstring{\texttt{console.log({[}data{]}{[},\ ...args{]})}}{console.log({[}data{]}{[}, ...args{]})}}\label{console.logdata-...args}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{data} \{any\}
+\item
+  \texttt{...args} \{any\}
+\end{itemize}
+
+Prints to \texttt{stdout} with newline. Multiple arguments can be
+passed, with the first used as the primary message and all additional
+used as substitution values similar to printf(3) (the arguments are all
+passed to
+\href{util.md\#utilformatformat-args}{\texttt{util.format()}}).
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ count }\OperatorTok{=} \DecValTok{5}\OperatorTok{;}
+\BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\StringTok{\textquotesingle{}count: \%d\textquotesingle{}}\OperatorTok{,}\NormalTok{ count)}\OperatorTok{;}
+\CommentTok{// Prints: count: 5, to stdout}
+\BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\StringTok{\textquotesingle{}count:\textquotesingle{}}\OperatorTok{,}\NormalTok{ count)}\OperatorTok{;}
+\CommentTok{// Prints: count: 5, to stdout}
+\end{Highlighting}
+\end{Shaded}
+
+See \href{util.md\#utilformatformat-args}{\texttt{util.format()}} for
+more information.
+
+\subsubsection{\texorpdfstring{\texttt{console.table(tabularData{[},\ properties{]})}}{console.table(tabularData{[}, properties{]})}}\label{console.tabletabulardata-properties}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{tabularData} \{any\}
+\item
+  \texttt{properties} \{string{[}{]}\} Alternate properties for
+  constructing the table.
+\end{itemize}
+
+Try to construct a table with the columns of the properties of
+\texttt{tabularData} (or use \texttt{properties}) and rows of
+\texttt{tabularData} and log it. Falls back to just logging the argument
+if it can't be parsed as tabular.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{// These can\textquotesingle{}t be parsed as tabular data}
+\BuiltInTok{console}\OperatorTok{.}\FunctionTok{table}\NormalTok{(}\BuiltInTok{Symbol}\NormalTok{())}\OperatorTok{;}
+\CommentTok{// Symbol()}
+
+\BuiltInTok{console}\OperatorTok{.}\FunctionTok{table}\NormalTok{(}\KeywordTok{undefined}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// undefined}
+
+\BuiltInTok{console}\OperatorTok{.}\FunctionTok{table}\NormalTok{([\{ }\DataTypeTok{a}\OperatorTok{:} \DecValTok{1}\OperatorTok{,} \DataTypeTok{b}\OperatorTok{:} \StringTok{\textquotesingle{}Y\textquotesingle{}}\NormalTok{ \}}\OperatorTok{,}\NormalTok{ \{ }\DataTypeTok{a}\OperatorTok{:} \StringTok{\textquotesingle{}Z\textquotesingle{}}\OperatorTok{,} \DataTypeTok{b}\OperatorTok{:} \DecValTok{2}\NormalTok{ \}])}\OperatorTok{;}
+\CommentTok{// ┌─────────┬─────┬─────┐}
+\CommentTok{// │ (index) │ a   │ b   │}
+\CommentTok{// ├─────────┼─────┼─────┤}
+\CommentTok{// │ 0       │ 1   │ \textquotesingle{}Y\textquotesingle{} │}
+\CommentTok{// │ 1       │ \textquotesingle{}Z\textquotesingle{} │ 2   │}
+\CommentTok{// └─────────┴─────┴─────┘}
+
+\BuiltInTok{console}\OperatorTok{.}\FunctionTok{table}\NormalTok{([\{ }\DataTypeTok{a}\OperatorTok{:} \DecValTok{1}\OperatorTok{,} \DataTypeTok{b}\OperatorTok{:} \StringTok{\textquotesingle{}Y\textquotesingle{}}\NormalTok{ \}}\OperatorTok{,}\NormalTok{ \{ }\DataTypeTok{a}\OperatorTok{:} \StringTok{\textquotesingle{}Z\textquotesingle{}}\OperatorTok{,} \DataTypeTok{b}\OperatorTok{:} \DecValTok{2}\NormalTok{ \}]}\OperatorTok{,}\NormalTok{ [}\StringTok{\textquotesingle{}a\textquotesingle{}}\NormalTok{])}\OperatorTok{;}
+\CommentTok{// ┌─────────┬─────┐}
+\CommentTok{// │ (index) │ a   │}
+\CommentTok{// ├─────────┼─────┤}
+\CommentTok{// │ 0       │ 1   │}
+\CommentTok{// │ 1       │ \textquotesingle{}Z\textquotesingle{} │}
+\CommentTok{// └─────────┴─────┘}
+\end{Highlighting}
+\end{Shaded}
+
+\subsubsection{\texorpdfstring{\texttt{console.time({[}label{]})}}{console.time({[}label{]})}}\label{console.timelabel}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{label} \{string\} \textbf{Default:}
+  \texttt{\textquotesingle{}default\textquotesingle{}}
+\end{itemize}
+
+Starts a timer that can be used to compute the duration of an operation.
+Timers are identified by a unique \texttt{label}. Use the same
+\texttt{label} when calling
+\hyperref[consoletimeendlabel]{\texttt{console.timeEnd()}} to stop the
+timer and output the elapsed time in suitable time units to
+\texttt{stdout}. For example, if the elapsed time is 3869ms,
+\texttt{console.timeEnd()} displays ``3.869s''.
+
+\subsubsection{\texorpdfstring{\texttt{console.timeEnd({[}label{]})}}{console.timeEnd({[}label{]})}}\label{console.timeendlabel}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{label} \{string\} \textbf{Default:}
+  \texttt{\textquotesingle{}default\textquotesingle{}}
+\end{itemize}
+
+Stops a timer that was previously started by calling
+\hyperref[consoletimelabel]{\texttt{console.time()}} and prints the
+result to \texttt{stdout}:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\BuiltInTok{console}\OperatorTok{.}\FunctionTok{time}\NormalTok{(}\StringTok{\textquotesingle{}bunch{-}of{-}stuff\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// Do a bunch of stuff.}
+\BuiltInTok{console}\OperatorTok{.}\FunctionTok{timeEnd}\NormalTok{(}\StringTok{\textquotesingle{}bunch{-}of{-}stuff\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// Prints: bunch{-}of{-}stuff: 225.438ms}
+\end{Highlighting}
+\end{Shaded}
+
+\subsubsection{\texorpdfstring{\texttt{console.timeLog({[}label{]}{[},\ ...data{]})}}{console.timeLog({[}label{]}{[}, ...data{]})}}\label{console.timeloglabel-...data}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{label} \{string\} \textbf{Default:}
+  \texttt{\textquotesingle{}default\textquotesingle{}}
+\item
+  \texttt{...data} \{any\}
+\end{itemize}
+
+For a timer that was previously started by calling
+\hyperref[consoletimelabel]{\texttt{console.time()}}, prints the elapsed
+time and other \texttt{data} arguments to \texttt{stdout}:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\BuiltInTok{console}\OperatorTok{.}\FunctionTok{time}\NormalTok{(}\StringTok{\textquotesingle{}process\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\KeywordTok{const}\NormalTok{ value }\OperatorTok{=} \FunctionTok{expensiveProcess1}\NormalTok{()}\OperatorTok{;} \CommentTok{// Returns 42}
+\BuiltInTok{console}\OperatorTok{.}\FunctionTok{timeLog}\NormalTok{(}\StringTok{\textquotesingle{}process\textquotesingle{}}\OperatorTok{,}\NormalTok{ value)}\OperatorTok{;}
+\CommentTok{// Prints "process: 365.227ms 42".}
+\FunctionTok{doExpensiveProcess2}\NormalTok{(value)}\OperatorTok{;}
+\BuiltInTok{console}\OperatorTok{.}\FunctionTok{timeEnd}\NormalTok{(}\StringTok{\textquotesingle{}process\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+\subsubsection{\texorpdfstring{\texttt{console.trace({[}message{]}{[},\ ...args{]})}}{console.trace({[}message{]}{[}, ...args{]})}}\label{console.tracemessage-...args}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{message} \{any\}
+\item
+  \texttt{...args} \{any\}
+\end{itemize}
+
+Prints to \texttt{stderr} the string
+\texttt{\textquotesingle{}Trace:\ \textquotesingle{}}, followed by the
+\href{util.md\#utilformatformat-args}{\texttt{util.format()}} formatted
+message and stack trace to the current position in the code.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\BuiltInTok{console}\OperatorTok{.}\FunctionTok{trace}\NormalTok{(}\StringTok{\textquotesingle{}Show me\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// Prints: (stack trace will vary based on where trace is called)}
+\CommentTok{//  Trace: Show me}
+\CommentTok{//    at repl:2:9}
+\CommentTok{//    at REPLServer.defaultEval (repl.js:248:27)}
+\CommentTok{//    at bound (domain.js:287:14)}
+\CommentTok{//    at REPLServer.runBound [as eval] (domain.js:300:12)}
+\CommentTok{//    at REPLServer.\textless{}anonymous\textgreater{} (repl.js:412:12)}
+\CommentTok{//    at emitOne (events.js:82:20)}
+\CommentTok{//    at REPLServer.emit (events.js:169:7)}
+\CommentTok{//    at REPLServer.Interface.\_onLine (readline.js:210:10)}
+\CommentTok{//    at REPLServer.Interface.\_line (readline.js:549:8)}
+\CommentTok{//    at REPLServer.Interface.\_ttyWrite (readline.js:826:14)}
+\end{Highlighting}
+\end{Shaded}
+
+\subsubsection{\texorpdfstring{\texttt{console.warn({[}data{]}{[},\ ...args{]})}}{console.warn({[}data{]}{[}, ...args{]})}}\label{console.warndata-...args}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{data} \{any\}
+\item
+  \texttt{...args} \{any\}
+\end{itemize}
+
+The \texttt{console.warn()} function is an alias for
+\hyperref[consoleerrordata-args]{\texttt{console.error()}}.
+
+\subsection{Inspector only methods}\label{inspector-only-methods}
+
+The following methods are exposed by the V8 engine in the general API
+but do not display anything unless used in conjunction with the
+\href{debugger.md}{inspector} (\texttt{-\/-inspect} flag).
+
+\subsubsection{\texorpdfstring{\texttt{console.profile({[}label{]})}}{console.profile({[}label{]})}}\label{console.profilelabel}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{label} \{string\}
+\end{itemize}
+
+This method does not display anything unless used in the inspector. The
+\texttt{console.profile()} method starts a JavaScript CPU profile with
+an optional label until
+\hyperref[consoleprofileendlabel]{\texttt{console.profileEnd()}} is
+called. The profile is then added to the \textbf{Profile} panel of the
+inspector.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\BuiltInTok{console}\OperatorTok{.}\FunctionTok{profile}\NormalTok{(}\StringTok{\textquotesingle{}MyLabel\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// Some code}
+\BuiltInTok{console}\OperatorTok{.}\FunctionTok{profileEnd}\NormalTok{(}\StringTok{\textquotesingle{}MyLabel\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// Adds the profile \textquotesingle{}MyLabel\textquotesingle{} to the Profiles panel of the inspector.}
+\end{Highlighting}
+\end{Shaded}
+
+\subsubsection{\texorpdfstring{\texttt{console.profileEnd({[}label{]})}}{console.profileEnd({[}label{]})}}\label{console.profileendlabel}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{label} \{string\}
+\end{itemize}
+
+This method does not display anything unless used in the inspector.
+Stops the current JavaScript CPU profiling session if one has been
+started and prints the report to the \textbf{Profiles} panel of the
+inspector. See
+\hyperref[consoleprofilelabel]{\texttt{console.profile()}} for an
+example.
+
+If this method is called without a label, the most recently started
+profile is stopped.
+
+\subsubsection{\texorpdfstring{\texttt{console.timeStamp({[}label{]})}}{console.timeStamp({[}label{]})}}\label{console.timestamplabel}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{label} \{string\}
+\end{itemize}
+
+This method does not display anything unless used in the inspector. The
+\texttt{console.timeStamp()} method adds an event with the label
+\texttt{\textquotesingle{}label\textquotesingle{}} to the
+\textbf{Timeline} panel of the inspector.

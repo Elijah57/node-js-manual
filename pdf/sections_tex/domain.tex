@@ -1,0 +1,543 @@
+\section{Domain}\label{domain}
+
+\begin{quote}
+Stability: 0 - Deprecated
+\end{quote}
+
+\textbf{This module is pending deprecation.} Once a replacement API has
+been finalized, this module will be fully deprecated. Most developers
+should \textbf{not} have cause to use this module. Users who absolutely
+must have the functionality that domains provide may rely on it for the
+time being but should expect to have to migrate to a different solution
+in the future.
+
+Domains provide a way to handle multiple different IO operations as a
+single group. If any of the event emitters or callbacks registered to a
+domain emit an \texttt{\textquotesingle{}error\textquotesingle{}} event,
+or throw an error, then the domain object will be notified, rather than
+losing the context of the error in the
+\texttt{process.on(\textquotesingle{}uncaughtException\textquotesingle{})}
+handler, or causing the program to exit immediately with an error code.
+
+\subsection{Warning: Don't ignore
+errors!}\label{warning-dont-ignore-errors}
+
+Domain error handlers are not a substitute for closing down a process
+when an error occurs.
+
+By the very nature of how
+\href{https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/throw}{\texttt{throw}}
+works in JavaScript, there is almost never any way to safely ``pick up
+where it left off'', without leaking references, or creating some other
+sort of undefined brittle state.
+
+The safest way to respond to a thrown error is to shut down the process.
+Of course, in a normal web server, there may be many open connections,
+and it is not reasonable to abruptly shut those down because an error
+was triggered by someone else.
+
+The better approach is to send an error response to the request that
+triggered the error, while letting the others finish in their normal
+time, and stop listening for new requests in that worker.
+
+In this way, \texttt{domain} usage goes hand-in-hand with the cluster
+module, since the primary process can fork a new worker when a worker
+encounters an error. For Node.js programs that scale to multiple
+machines, the terminating proxy or service registry can take note of the
+failure, and react accordingly.
+
+For example, this is not a good idea:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{// XXX }\AlertTok{WARNING}\CommentTok{! BAD IDEA!}
+
+\KeywordTok{const}\NormalTok{ d }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:domain\textquotesingle{}}\NormalTok{)}\OperatorTok{.}\FunctionTok{create}\NormalTok{()}\OperatorTok{;}
+\NormalTok{d}\OperatorTok{.}\FunctionTok{on}\NormalTok{(}\StringTok{\textquotesingle{}error\textquotesingle{}}\OperatorTok{,}\NormalTok{ (er) }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+  \CommentTok{// The error won\textquotesingle{}t crash the process, but what it does is worse!}
+  \CommentTok{// Though we\textquotesingle{}ve prevented abrupt process restarting, we are leaking}
+  \CommentTok{// a lot of resources if this ever happens.}
+  \CommentTok{// This is no better than process.on(\textquotesingle{}uncaughtException\textquotesingle{})!}
+  \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\VerbatimStringTok{\textasciigrave{}error, but oh well }\SpecialCharTok{$\{}\NormalTok{er}\OperatorTok{.}\AttributeTok{message}\SpecialCharTok{\}}\VerbatimStringTok{\textasciigrave{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{\})}\OperatorTok{;}
+\NormalTok{d}\OperatorTok{.}\FunctionTok{run}\NormalTok{(() }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+  \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:http\textquotesingle{}}\NormalTok{)}\OperatorTok{.}\FunctionTok{createServer}\NormalTok{((req}\OperatorTok{,}\NormalTok{ res) }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+    \FunctionTok{handleRequest}\NormalTok{(req}\OperatorTok{,}\NormalTok{ res)}\OperatorTok{;}
+\NormalTok{  \})}\OperatorTok{.}\FunctionTok{listen}\NormalTok{(PORT)}\OperatorTok{;}
+\NormalTok{\})}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+By using the context of a domain, and the resilience of separating our
+program into multiple worker processes, we can react more appropriately,
+and handle errors with much greater safety.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{// Much better!}
+
+\KeywordTok{const}\NormalTok{ cluster }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:cluster\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\KeywordTok{const}\NormalTok{ PORT }\OperatorTok{=} \OperatorTok{+}\BuiltInTok{process}\OperatorTok{.}\AttributeTok{env}\OperatorTok{.}\AttributeTok{PORT} \OperatorTok{||} \DecValTok{1337}\OperatorTok{;}
+
+\ControlFlowTok{if}\NormalTok{ (cluster}\OperatorTok{.}\AttributeTok{isPrimary}\NormalTok{) \{}
+  \CommentTok{// A more realistic scenario would have more than 2 workers,}
+  \CommentTok{// and perhaps not put the primary and worker in the same file.}
+  \CommentTok{//}
+  \CommentTok{// It is also possible to get a bit fancier about logging, and}
+  \CommentTok{// implement whatever custom logic is needed to prevent DoS}
+  \CommentTok{// attacks and other bad behavior.}
+  \CommentTok{//}
+  \CommentTok{// See the options in the cluster documentation.}
+  \CommentTok{//}
+  \CommentTok{// The important thing is that the primary does very little,}
+  \CommentTok{// increasing our resilience to unexpected errors.}
+
+\NormalTok{  cluster}\OperatorTok{.}\FunctionTok{fork}\NormalTok{()}\OperatorTok{;}
+\NormalTok{  cluster}\OperatorTok{.}\FunctionTok{fork}\NormalTok{()}\OperatorTok{;}
+
+\NormalTok{  cluster}\OperatorTok{.}\FunctionTok{on}\NormalTok{(}\StringTok{\textquotesingle{}disconnect\textquotesingle{}}\OperatorTok{,}\NormalTok{ (worker) }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+    \BuiltInTok{console}\OperatorTok{.}\FunctionTok{error}\NormalTok{(}\StringTok{\textquotesingle{}disconnect!\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{    cluster}\OperatorTok{.}\FunctionTok{fork}\NormalTok{()}\OperatorTok{;}
+\NormalTok{  \})}\OperatorTok{;}
+
+\NormalTok{\} }\ControlFlowTok{else}\NormalTok{ \{}
+  \CommentTok{// the worker}
+  \CommentTok{//}
+  \CommentTok{// This is where we put our bugs!}
+
+  \KeywordTok{const}\NormalTok{ domain }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:domain\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+
+  \CommentTok{// See the cluster documentation for more details about using}
+  \CommentTok{// worker processes to serve requests. How it works, caveats, etc.}
+
+  \KeywordTok{const}\NormalTok{ server }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:http\textquotesingle{}}\NormalTok{)}\OperatorTok{.}\FunctionTok{createServer}\NormalTok{((req}\OperatorTok{,}\NormalTok{ res) }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+    \KeywordTok{const}\NormalTok{ d }\OperatorTok{=}\NormalTok{ domain}\OperatorTok{.}\FunctionTok{create}\NormalTok{()}\OperatorTok{;}
+\NormalTok{    d}\OperatorTok{.}\FunctionTok{on}\NormalTok{(}\StringTok{\textquotesingle{}error\textquotesingle{}}\OperatorTok{,}\NormalTok{ (er) }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+      \BuiltInTok{console}\OperatorTok{.}\FunctionTok{error}\NormalTok{(}\VerbatimStringTok{\textasciigrave{}error }\SpecialCharTok{$\{}\NormalTok{er}\OperatorTok{.}\AttributeTok{stack}\SpecialCharTok{\}}\VerbatimStringTok{\textasciigrave{}}\NormalTok{)}\OperatorTok{;}
+
+      \CommentTok{// We\textquotesingle{}re in dangerous territory!}
+      \CommentTok{// By definition, something unexpected occurred,}
+      \CommentTok{// which we probably didn\textquotesingle{}t want.}
+      \CommentTok{// Anything can happen now! Be very careful!}
+
+      \ControlFlowTok{try}\NormalTok{ \{}
+        \CommentTok{// Make sure we close down within 30 seconds}
+        \KeywordTok{const}\NormalTok{ killtimer }\OperatorTok{=} \PreprocessorTok{setTimeout}\NormalTok{(() }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+          \BuiltInTok{process}\OperatorTok{.}\FunctionTok{exit}\NormalTok{(}\DecValTok{1}\NormalTok{)}\OperatorTok{;}
+\NormalTok{        \}}\OperatorTok{,} \DecValTok{30000}\NormalTok{)}\OperatorTok{;}
+        \CommentTok{// But don\textquotesingle{}t keep the process open just for that!}
+\NormalTok{        killtimer}\OperatorTok{.}\FunctionTok{unref}\NormalTok{()}\OperatorTok{;}
+
+        \CommentTok{// Stop taking new requests.}
+\NormalTok{        server}\OperatorTok{.}\FunctionTok{close}\NormalTok{()}\OperatorTok{;}
+
+        \CommentTok{// Let the primary know we\textquotesingle{}re dead. This will trigger a}
+        \CommentTok{// \textquotesingle{}disconnect\textquotesingle{} in the cluster primary, and then it will fork}
+        \CommentTok{// a new worker.}
+\NormalTok{        cluster}\OperatorTok{.}\AttributeTok{worker}\OperatorTok{.}\FunctionTok{disconnect}\NormalTok{()}\OperatorTok{;}
+
+        \CommentTok{// Try to send an error to the request that triggered the problem}
+\NormalTok{        res}\OperatorTok{.}\AttributeTok{statusCode} \OperatorTok{=} \DecValTok{500}\OperatorTok{;}
+\NormalTok{        res}\OperatorTok{.}\FunctionTok{setHeader}\NormalTok{(}\StringTok{\textquotesingle{}content{-}type\textquotesingle{}}\OperatorTok{,} \StringTok{\textquotesingle{}text/plain\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{        res}\OperatorTok{.}\FunctionTok{end}\NormalTok{(}\StringTok{\textquotesingle{}Oops, there was a problem!}\SpecialCharTok{\textbackslash{}n}\StringTok{\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{      \} }\ControlFlowTok{catch}\NormalTok{ (er2) \{}
+        \CommentTok{// Oh well, not much we can do at this point.}
+        \BuiltInTok{console}\OperatorTok{.}\FunctionTok{error}\NormalTok{(}\VerbatimStringTok{\textasciigrave{}Error sending 500! }\SpecialCharTok{$\{}\NormalTok{er2}\OperatorTok{.}\AttributeTok{stack}\SpecialCharTok{\}}\VerbatimStringTok{\textasciigrave{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{      \}}
+\NormalTok{    \})}\OperatorTok{;}
+
+    \CommentTok{// Because req and res were created before this domain existed,}
+    \CommentTok{// we need to explicitly add them.}
+    \CommentTok{// See the explanation of implicit vs explicit binding below.}
+\NormalTok{    d}\OperatorTok{.}\FunctionTok{add}\NormalTok{(req)}\OperatorTok{;}
+\NormalTok{    d}\OperatorTok{.}\FunctionTok{add}\NormalTok{(res)}\OperatorTok{;}
+
+    \CommentTok{// Now run the handler function in the domain.}
+\NormalTok{    d}\OperatorTok{.}\FunctionTok{run}\NormalTok{(() }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+      \FunctionTok{handleRequest}\NormalTok{(req}\OperatorTok{,}\NormalTok{ res)}\OperatorTok{;}
+\NormalTok{    \})}\OperatorTok{;}
+\NormalTok{  \})}\OperatorTok{;}
+\NormalTok{  server}\OperatorTok{.}\FunctionTok{listen}\NormalTok{(PORT)}\OperatorTok{;}
+\NormalTok{\}}
+
+\CommentTok{// This part is not important. Just an example routing thing.}
+\CommentTok{// Put fancy application logic here.}
+\KeywordTok{function} \FunctionTok{handleRequest}\NormalTok{(req}\OperatorTok{,}\NormalTok{ res) \{}
+  \ControlFlowTok{switch}\NormalTok{ (req}\OperatorTok{.}\AttributeTok{url}\NormalTok{) \{}
+    \ControlFlowTok{case} \StringTok{\textquotesingle{}/error\textquotesingle{}}\OperatorTok{:}
+      \CommentTok{// We do some async stuff, and then...}
+      \PreprocessorTok{setTimeout}\NormalTok{(() }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+        \CommentTok{// Whoops!}
+\NormalTok{        flerb}\OperatorTok{.}\FunctionTok{bark}\NormalTok{()}\OperatorTok{;}
+\NormalTok{      \}}\OperatorTok{,}\NormalTok{ timeout)}\OperatorTok{;}
+      \ControlFlowTok{break}\OperatorTok{;}
+    \ControlFlowTok{default}\OperatorTok{:}
+\NormalTok{      res}\OperatorTok{.}\FunctionTok{end}\NormalTok{(}\StringTok{\textquotesingle{}ok\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{  \}}
+\NormalTok{\}}
+\end{Highlighting}
+\end{Shaded}
+
+\subsection{\texorpdfstring{Additions to \texttt{Error}
+objects}{Additions to Error objects}}\label{additions-to-error-objects}
+
+Any time an \texttt{Error} object is routed through a domain, a few
+extra fields are added to it.
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{error.domain} The domain that first handled the error.
+\item
+  \texttt{error.domainEmitter} The event emitter that emitted an
+  \texttt{\textquotesingle{}error\textquotesingle{}} event with the
+  error object.
+\item
+  \texttt{error.domainBound} The callback function which was bound to
+  the domain, and passed an error as its first argument.
+\item
+  \texttt{error.domainThrown} A boolean indicating whether the error was
+  thrown, emitted, or passed to a bound callback function.
+\end{itemize}
+
+\subsection{Implicit binding}\label{implicit-binding}
+
+If domains are in use, then all \textbf{new} \texttt{EventEmitter}
+objects (including Stream objects, requests, responses, etc.) will be
+implicitly bound to the active domain at the time of their creation.
+
+Additionally, callbacks passed to low-level event loop requests (such as
+to \texttt{fs.open()}, or other callback-taking methods) will
+automatically be bound to the active domain. If they throw, then the
+domain will catch the error.
+
+In order to prevent excessive memory usage, \texttt{Domain} objects
+themselves are not implicitly added as children of the active domain. If
+they were, then it would be too easy to prevent request and response
+objects from being properly garbage collected.
+
+To nest \texttt{Domain} objects as children of a parent \texttt{Domain}
+they must be explicitly added.
+
+Implicit binding routes thrown errors and
+\texttt{\textquotesingle{}error\textquotesingle{}} events to the
+\texttt{Domain}'s \texttt{\textquotesingle{}error\textquotesingle{}}
+event, but does not register the \texttt{EventEmitter} on the
+\texttt{Domain}. Implicit binding only takes care of thrown errors and
+\texttt{\textquotesingle{}error\textquotesingle{}} events.
+
+\subsection{Explicit binding}\label{explicit-binding}
+
+Sometimes, the domain in use is not the one that ought to be used for a
+specific event emitter. Or, the event emitter could have been created in
+the context of one domain, but ought to instead be bound to some other
+domain.
+
+For example, there could be one domain in use for an HTTP server, but
+perhaps we would like to have a separate domain to use for each request.
+
+That is possible via explicit binding.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{// Create a top{-}level domain for the server}
+\KeywordTok{const}\NormalTok{ domain }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:domain\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\KeywordTok{const}\NormalTok{ http }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:http\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\KeywordTok{const}\NormalTok{ serverDomain }\OperatorTok{=}\NormalTok{ domain}\OperatorTok{.}\FunctionTok{create}\NormalTok{()}\OperatorTok{;}
+
+\NormalTok{serverDomain}\OperatorTok{.}\FunctionTok{run}\NormalTok{(() }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+  \CommentTok{// Server is created in the scope of serverDomain}
+\NormalTok{  http}\OperatorTok{.}\FunctionTok{createServer}\NormalTok{((req}\OperatorTok{,}\NormalTok{ res) }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+    \CommentTok{// Req and res are also created in the scope of serverDomain}
+    \CommentTok{// however, we\textquotesingle{}d prefer to have a separate domain for each request.}
+    \CommentTok{// create it first thing, and add req and res to it.}
+    \KeywordTok{const}\NormalTok{ reqd }\OperatorTok{=}\NormalTok{ domain}\OperatorTok{.}\FunctionTok{create}\NormalTok{()}\OperatorTok{;}
+\NormalTok{    reqd}\OperatorTok{.}\FunctionTok{add}\NormalTok{(req)}\OperatorTok{;}
+\NormalTok{    reqd}\OperatorTok{.}\FunctionTok{add}\NormalTok{(res)}\OperatorTok{;}
+\NormalTok{    reqd}\OperatorTok{.}\FunctionTok{on}\NormalTok{(}\StringTok{\textquotesingle{}error\textquotesingle{}}\OperatorTok{,}\NormalTok{ (er) }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+      \BuiltInTok{console}\OperatorTok{.}\FunctionTok{error}\NormalTok{(}\StringTok{\textquotesingle{}Error\textquotesingle{}}\OperatorTok{,}\NormalTok{ er}\OperatorTok{,}\NormalTok{ req}\OperatorTok{.}\AttributeTok{url}\NormalTok{)}\OperatorTok{;}
+      \ControlFlowTok{try}\NormalTok{ \{}
+\NormalTok{        res}\OperatorTok{.}\FunctionTok{writeHead}\NormalTok{(}\DecValTok{500}\NormalTok{)}\OperatorTok{;}
+\NormalTok{        res}\OperatorTok{.}\FunctionTok{end}\NormalTok{(}\StringTok{\textquotesingle{}Error occurred, sorry.\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{      \} }\ControlFlowTok{catch}\NormalTok{ (er2) \{}
+        \BuiltInTok{console}\OperatorTok{.}\FunctionTok{error}\NormalTok{(}\StringTok{\textquotesingle{}Error sending 500\textquotesingle{}}\OperatorTok{,}\NormalTok{ er2}\OperatorTok{,}\NormalTok{ req}\OperatorTok{.}\AttributeTok{url}\NormalTok{)}\OperatorTok{;}
+\NormalTok{      \}}
+\NormalTok{    \})}\OperatorTok{;}
+\NormalTok{  \})}\OperatorTok{.}\FunctionTok{listen}\NormalTok{(}\DecValTok{1337}\NormalTok{)}\OperatorTok{;}
+\NormalTok{\})}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+\subsection{\texorpdfstring{\texttt{domain.create()}}{domain.create()}}\label{domain.create}
+
+\begin{itemize}
+\tightlist
+\item
+  Returns: \{Domain\}
+\end{itemize}
+
+\subsection{\texorpdfstring{Class:
+\texttt{Domain}}{Class: Domain}}\label{class-domain}
+
+\begin{itemize}
+\tightlist
+\item
+  Extends: \{EventEmitter\}
+\end{itemize}
+
+The \texttt{Domain} class encapsulates the functionality of routing
+errors and uncaught exceptions to the active \texttt{Domain} object.
+
+To handle the errors that it catches, listen to its
+\texttt{\textquotesingle{}error\textquotesingle{}} event.
+
+\subsubsection{\texorpdfstring{\texttt{domain.members}}{domain.members}}\label{domain.members}
+
+\begin{itemize}
+\tightlist
+\item
+  \{Array\}
+\end{itemize}
+
+An array of timers and event emitters that have been explicitly added to
+the domain.
+
+\subsubsection{\texorpdfstring{\texttt{domain.add(emitter)}}{domain.add(emitter)}}\label{domain.addemitter}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{emitter} \{EventEmitter\textbar Timer\} emitter or timer to be
+  added to the domain
+\end{itemize}
+
+Explicitly adds an emitter to the domain. If any event handlers called
+by the emitter throw an error, or if the emitter emits an
+\texttt{\textquotesingle{}error\textquotesingle{}} event, it will be
+routed to the domain's
+\texttt{\textquotesingle{}error\textquotesingle{}} event, just like with
+implicit binding.
+
+This also works with timers that are returned from
+\href{timers.md\#setintervalcallback-delay-args}{\texttt{setInterval()}}
+and
+\href{timers.md\#settimeoutcallback-delay-args}{\texttt{setTimeout()}}.
+If their callback function throws, it will be caught by the domain
+\texttt{\textquotesingle{}error\textquotesingle{}} handler.
+
+If the Timer or \texttt{EventEmitter} was already bound to a domain, it
+is removed from that one, and bound to this one instead.
+
+\subsubsection{\texorpdfstring{\texttt{domain.bind(callback)}}{domain.bind(callback)}}\label{domain.bindcallback}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{callback} \{Function\} The callback function
+\item
+  Returns: \{Function\} The bound function
+\end{itemize}
+
+The returned function will be a wrapper around the supplied callback
+function. When the returned function is called, any errors that are
+thrown will be routed to the domain's
+\texttt{\textquotesingle{}error\textquotesingle{}} event.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ d }\OperatorTok{=}\NormalTok{ domain}\OperatorTok{.}\FunctionTok{create}\NormalTok{()}\OperatorTok{;}
+
+\KeywordTok{function} \FunctionTok{readSomeFile}\NormalTok{(filename}\OperatorTok{,}\NormalTok{ cb) \{}
+\NormalTok{  fs}\OperatorTok{.}\FunctionTok{readFile}\NormalTok{(filename}\OperatorTok{,} \StringTok{\textquotesingle{}utf8\textquotesingle{}}\OperatorTok{,}\NormalTok{ d}\OperatorTok{.}\FunctionTok{bind}\NormalTok{((er}\OperatorTok{,}\NormalTok{ data) }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+    \CommentTok{// If this throws, it will also be passed to the domain.}
+    \ControlFlowTok{return} \FunctionTok{cb}\NormalTok{(er}\OperatorTok{,}\NormalTok{ data }\OperatorTok{?} \BuiltInTok{JSON}\OperatorTok{.}\FunctionTok{parse}\NormalTok{(data) }\OperatorTok{:} \KeywordTok{null}\NormalTok{)}\OperatorTok{;}
+\NormalTok{  \}))}\OperatorTok{;}
+\NormalTok{\}}
+
+\NormalTok{d}\OperatorTok{.}\FunctionTok{on}\NormalTok{(}\StringTok{\textquotesingle{}error\textquotesingle{}}\OperatorTok{,}\NormalTok{ (er) }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+  \CommentTok{// An error occurred somewhere. If we throw it now, it will crash the program}
+  \CommentTok{// with the normal line number and stack message.}
+\NormalTok{\})}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+\subsubsection{\texorpdfstring{\texttt{domain.enter()}}{domain.enter()}}\label{domain.enter}
+
+The \texttt{enter()} method is plumbing used by the \texttt{run()},
+\texttt{bind()}, and \texttt{intercept()} methods to set the active
+domain. It sets \texttt{domain.active} and \texttt{process.domain} to
+the domain, and implicitly pushes the domain onto the domain stack
+managed by the domain module (see
+\hyperref[domainexit]{\texttt{domain.exit()}} for details on the domain
+stack). The call to \texttt{enter()} delimits the beginning of a chain
+of asynchronous calls and I/O operations bound to a domain.
+
+Calling \texttt{enter()} changes only the active domain, and does not
+alter the domain itself. \texttt{enter()} and \texttt{exit()} can be
+called an arbitrary number of times on a single domain.
+
+\subsubsection{\texorpdfstring{\texttt{domain.exit()}}{domain.exit()}}\label{domain.exit}
+
+The \texttt{exit()} method exits the current domain, popping it off the
+domain stack. Any time execution is going to switch to the context of a
+different chain of asynchronous calls, it's important to ensure that the
+current domain is exited. The call to \texttt{exit()} delimits either
+the end of or an interruption to the chain of asynchronous calls and I/O
+operations bound to a domain.
+
+If there are multiple, nested domains bound to the current execution
+context, \texttt{exit()} will exit any domains nested within this
+domain.
+
+Calling \texttt{exit()} changes only the active domain, and does not
+alter the domain itself. \texttt{enter()} and \texttt{exit()} can be
+called an arbitrary number of times on a single domain.
+
+\subsubsection{\texorpdfstring{\texttt{domain.intercept(callback)}}{domain.intercept(callback)}}\label{domain.interceptcallback}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{callback} \{Function\} The callback function
+\item
+  Returns: \{Function\} The intercepted function
+\end{itemize}
+
+This method is almost identical to
+\hyperref[domainbindcallback]{\texttt{domain.bind(callback)}}. However,
+in addition to catching thrown errors, it will also intercept
+\href{errors.md\#class-error}{\texttt{Error}} objects sent as the first
+argument to the function.
+
+In this way, the common \texttt{if\ (err)\ return\ callback(err);}
+pattern can be replaced with a single error handler in a single place.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ d }\OperatorTok{=}\NormalTok{ domain}\OperatorTok{.}\FunctionTok{create}\NormalTok{()}\OperatorTok{;}
+
+\KeywordTok{function} \FunctionTok{readSomeFile}\NormalTok{(filename}\OperatorTok{,}\NormalTok{ cb) \{}
+\NormalTok{  fs}\OperatorTok{.}\FunctionTok{readFile}\NormalTok{(filename}\OperatorTok{,} \StringTok{\textquotesingle{}utf8\textquotesingle{}}\OperatorTok{,}\NormalTok{ d}\OperatorTok{.}\FunctionTok{intercept}\NormalTok{((data) }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+    \CommentTok{// Note, the first argument is never passed to the}
+    \CommentTok{// callback since it is assumed to be the \textquotesingle{}Error\textquotesingle{} argument}
+    \CommentTok{// and thus intercepted by the domain.}
+
+    \CommentTok{// If this throws, it will also be passed to the domain}
+    \CommentTok{// so the error{-}handling logic can be moved to the \textquotesingle{}error\textquotesingle{}}
+    \CommentTok{// event on the domain instead of being repeated throughout}
+    \CommentTok{// the program.}
+    \ControlFlowTok{return} \FunctionTok{cb}\NormalTok{(}\KeywordTok{null}\OperatorTok{,} \BuiltInTok{JSON}\OperatorTok{.}\FunctionTok{parse}\NormalTok{(data))}\OperatorTok{;}
+\NormalTok{  \}))}\OperatorTok{;}
+\NormalTok{\}}
+
+\NormalTok{d}\OperatorTok{.}\FunctionTok{on}\NormalTok{(}\StringTok{\textquotesingle{}error\textquotesingle{}}\OperatorTok{,}\NormalTok{ (er) }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+  \CommentTok{// An error occurred somewhere. If we throw it now, it will crash the program}
+  \CommentTok{// with the normal line number and stack message.}
+\NormalTok{\})}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+\subsubsection{\texorpdfstring{\texttt{domain.remove(emitter)}}{domain.remove(emitter)}}\label{domain.removeemitter}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{emitter} \{EventEmitter\textbar Timer\} emitter or timer to be
+  removed from the domain
+\end{itemize}
+
+The opposite of
+\hyperref[domainaddemitter]{\texttt{domain.add(emitter)}}. Removes
+domain handling from the specified emitter.
+
+\subsubsection{\texorpdfstring{\texttt{domain.run(fn{[},\ ...args{]})}}{domain.run(fn{[}, ...args{]})}}\label{domain.runfn-...args}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{fn} \{Function\}
+\item
+  \texttt{...args} \{any\}
+\end{itemize}
+
+Run the supplied function in the context of the domain, implicitly
+binding all event emitters, timers, and low-level requests that are
+created in that context. Optionally, arguments can be passed to the
+function.
+
+This is the most basic way to use a domain.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ domain }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:domain\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\KeywordTok{const}\NormalTok{ fs }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:fs\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\KeywordTok{const}\NormalTok{ d }\OperatorTok{=}\NormalTok{ domain}\OperatorTok{.}\FunctionTok{create}\NormalTok{()}\OperatorTok{;}
+\NormalTok{d}\OperatorTok{.}\FunctionTok{on}\NormalTok{(}\StringTok{\textquotesingle{}error\textquotesingle{}}\OperatorTok{,}\NormalTok{ (er) }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+  \BuiltInTok{console}\OperatorTok{.}\FunctionTok{error}\NormalTok{(}\StringTok{\textquotesingle{}Caught error!\textquotesingle{}}\OperatorTok{,}\NormalTok{ er)}\OperatorTok{;}
+\NormalTok{\})}\OperatorTok{;}
+\NormalTok{d}\OperatorTok{.}\FunctionTok{run}\NormalTok{(() }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+  \BuiltInTok{process}\OperatorTok{.}\FunctionTok{nextTick}\NormalTok{(() }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+    \PreprocessorTok{setTimeout}\NormalTok{(() }\KeywordTok{=\textgreater{}}\NormalTok{ \{ }\CommentTok{// Simulating some various async stuff}
+\NormalTok{      fs}\OperatorTok{.}\FunctionTok{open}\NormalTok{(}\StringTok{\textquotesingle{}non{-}existent file\textquotesingle{}}\OperatorTok{,} \StringTok{\textquotesingle{}r\textquotesingle{}}\OperatorTok{,}\NormalTok{ (er}\OperatorTok{,}\NormalTok{ fd) }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+        \ControlFlowTok{if}\NormalTok{ (er) }\ControlFlowTok{throw}\NormalTok{ er}\OperatorTok{;}
+        \CommentTok{// proceed...}
+\NormalTok{      \})}\OperatorTok{;}
+\NormalTok{    \}}\OperatorTok{,} \DecValTok{100}\NormalTok{)}\OperatorTok{;}
+\NormalTok{  \})}\OperatorTok{;}
+\NormalTok{\})}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+In this example, the
+\texttt{d.on(\textquotesingle{}error\textquotesingle{})} handler will be
+triggered, rather than crashing the program.
+
+\subsection{Domains and promises}\label{domains-and-promises}
+
+As of Node.js 8.0.0, the handlers of promises are run inside the domain
+in which the call to \texttt{.then()} or \texttt{.catch()} itself was
+made:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ d1 }\OperatorTok{=}\NormalTok{ domain}\OperatorTok{.}\FunctionTok{create}\NormalTok{()}\OperatorTok{;}
+\KeywordTok{const}\NormalTok{ d2 }\OperatorTok{=}\NormalTok{ domain}\OperatorTok{.}\FunctionTok{create}\NormalTok{()}\OperatorTok{;}
+
+\KeywordTok{let}\NormalTok{ p}\OperatorTok{;}
+\NormalTok{d1}\OperatorTok{.}\FunctionTok{run}\NormalTok{(() }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+\NormalTok{  p }\OperatorTok{=} \BuiltInTok{Promise}\OperatorTok{.}\FunctionTok{resolve}\NormalTok{(}\DecValTok{42}\NormalTok{)}\OperatorTok{;}
+\NormalTok{\})}\OperatorTok{;}
+
+\NormalTok{d2}\OperatorTok{.}\FunctionTok{run}\NormalTok{(() }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+\NormalTok{  p}\OperatorTok{.}\FunctionTok{then}\NormalTok{((v) }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+    \CommentTok{// running in d2}
+\NormalTok{  \})}\OperatorTok{;}
+\NormalTok{\})}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+A callback may be bound to a specific domain using
+\hyperref[domainbindcallback]{\texttt{domain.bind(callback)}}:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ d1 }\OperatorTok{=}\NormalTok{ domain}\OperatorTok{.}\FunctionTok{create}\NormalTok{()}\OperatorTok{;}
+\KeywordTok{const}\NormalTok{ d2 }\OperatorTok{=}\NormalTok{ domain}\OperatorTok{.}\FunctionTok{create}\NormalTok{()}\OperatorTok{;}
+
+\KeywordTok{let}\NormalTok{ p}\OperatorTok{;}
+\NormalTok{d1}\OperatorTok{.}\FunctionTok{run}\NormalTok{(() }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+\NormalTok{  p }\OperatorTok{=} \BuiltInTok{Promise}\OperatorTok{.}\FunctionTok{resolve}\NormalTok{(}\DecValTok{42}\NormalTok{)}\OperatorTok{;}
+\NormalTok{\})}\OperatorTok{;}
+
+\NormalTok{d2}\OperatorTok{.}\FunctionTok{run}\NormalTok{(() }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+\NormalTok{  p}\OperatorTok{.}\FunctionTok{then}\NormalTok{(p}\OperatorTok{.}\AttributeTok{domain}\OperatorTok{.}\FunctionTok{bind}\NormalTok{((v) }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+    \CommentTok{// running in d1}
+\NormalTok{  \}))}\OperatorTok{;}
+\NormalTok{\})}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+Domains will not interfere with the error handling mechanisms for
+promises. In other words, no
+\texttt{\textquotesingle{}error\textquotesingle{}} event will be emitted
+for unhandled \texttt{Promise} rejections.

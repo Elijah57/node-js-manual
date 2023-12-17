@@ -1,0 +1,1242 @@
+\section{Zlib}\label{zlib}
+
+\begin{quote}
+Stability: 2 - Stable
+\end{quote}
+
+The \texttt{node:zlib} module provides compression functionality
+implemented using Gzip, Deflate/Inflate, and Brotli.
+
+To access it:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ zlib }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:zlib\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+Compression and decompression are built around the Node.js
+\href{stream.md}{Streams API}.
+
+Compressing or decompressing a stream (such as a file) can be
+accomplished by piping the source stream through a \texttt{zlib}
+\texttt{Transform} stream into a destination stream:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ \{ createGzip \} }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:zlib\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\KeywordTok{const}\NormalTok{ \{ pipeline \} }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:stream\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\KeywordTok{const}\NormalTok{ \{}
+\NormalTok{  createReadStream}\OperatorTok{,}
+\NormalTok{  createWriteStream}\OperatorTok{,}
+\NormalTok{\} }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:fs\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+
+\KeywordTok{const}\NormalTok{ gzip }\OperatorTok{=} \FunctionTok{createGzip}\NormalTok{()}\OperatorTok{;}
+\KeywordTok{const}\NormalTok{ source }\OperatorTok{=} \FunctionTok{createReadStream}\NormalTok{(}\StringTok{\textquotesingle{}input.txt\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\KeywordTok{const}\NormalTok{ destination }\OperatorTok{=} \FunctionTok{createWriteStream}\NormalTok{(}\StringTok{\textquotesingle{}input.txt.gz\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+
+\FunctionTok{pipeline}\NormalTok{(source}\OperatorTok{,}\NormalTok{ gzip}\OperatorTok{,}\NormalTok{ destination}\OperatorTok{,}\NormalTok{ (err) }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+  \ControlFlowTok{if}\NormalTok{ (err) \{}
+    \BuiltInTok{console}\OperatorTok{.}\FunctionTok{error}\NormalTok{(}\StringTok{\textquotesingle{}An error occurred:\textquotesingle{}}\OperatorTok{,}\NormalTok{ err)}\OperatorTok{;}
+    \BuiltInTok{process}\OperatorTok{.}\AttributeTok{exitCode} \OperatorTok{=} \DecValTok{1}\OperatorTok{;}
+\NormalTok{  \}}
+\NormalTok{\})}\OperatorTok{;}
+
+\CommentTok{// Or, Promisified}
+
+\KeywordTok{const}\NormalTok{ \{ promisify \} }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:util\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\KeywordTok{const}\NormalTok{ pipe }\OperatorTok{=} \FunctionTok{promisify}\NormalTok{(pipeline)}\OperatorTok{;}
+
+\KeywordTok{async} \KeywordTok{function} \FunctionTok{do\_gzip}\NormalTok{(input}\OperatorTok{,}\NormalTok{ output) \{}
+  \KeywordTok{const}\NormalTok{ gzip }\OperatorTok{=} \FunctionTok{createGzip}\NormalTok{()}\OperatorTok{;}
+  \KeywordTok{const}\NormalTok{ source }\OperatorTok{=} \FunctionTok{createReadStream}\NormalTok{(input)}\OperatorTok{;}
+  \KeywordTok{const}\NormalTok{ destination }\OperatorTok{=} \FunctionTok{createWriteStream}\NormalTok{(output)}\OperatorTok{;}
+  \ControlFlowTok{await} \FunctionTok{pipe}\NormalTok{(source}\OperatorTok{,}\NormalTok{ gzip}\OperatorTok{,}\NormalTok{ destination)}\OperatorTok{;}
+\NormalTok{\}}
+
+\FunctionTok{do\_gzip}\NormalTok{(}\StringTok{\textquotesingle{}input.txt\textquotesingle{}}\OperatorTok{,} \StringTok{\textquotesingle{}input.txt.gz\textquotesingle{}}\NormalTok{)}
+  \OperatorTok{.}\FunctionTok{catch}\NormalTok{((err) }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+    \BuiltInTok{console}\OperatorTok{.}\FunctionTok{error}\NormalTok{(}\StringTok{\textquotesingle{}An error occurred:\textquotesingle{}}\OperatorTok{,}\NormalTok{ err)}\OperatorTok{;}
+    \BuiltInTok{process}\OperatorTok{.}\AttributeTok{exitCode} \OperatorTok{=} \DecValTok{1}\OperatorTok{;}
+\NormalTok{  \})}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+It is also possible to compress or decompress data in a single step:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ \{ deflate}\OperatorTok{,}\NormalTok{ unzip \} }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:zlib\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+
+\KeywordTok{const}\NormalTok{ input }\OperatorTok{=} \StringTok{\textquotesingle{}.................................\textquotesingle{}}\OperatorTok{;}
+\FunctionTok{deflate}\NormalTok{(input}\OperatorTok{,}\NormalTok{ (err}\OperatorTok{,}\NormalTok{ buffer) }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+  \ControlFlowTok{if}\NormalTok{ (err) \{}
+    \BuiltInTok{console}\OperatorTok{.}\FunctionTok{error}\NormalTok{(}\StringTok{\textquotesingle{}An error occurred:\textquotesingle{}}\OperatorTok{,}\NormalTok{ err)}\OperatorTok{;}
+    \BuiltInTok{process}\OperatorTok{.}\AttributeTok{exitCode} \OperatorTok{=} \DecValTok{1}\OperatorTok{;}
+\NormalTok{  \}}
+  \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(buffer}\OperatorTok{.}\FunctionTok{toString}\NormalTok{(}\StringTok{\textquotesingle{}base64\textquotesingle{}}\NormalTok{))}\OperatorTok{;}
+\NormalTok{\})}\OperatorTok{;}
+
+\KeywordTok{const}\NormalTok{ buffer }\OperatorTok{=} \BuiltInTok{Buffer}\OperatorTok{.}\FunctionTok{from}\NormalTok{(}\StringTok{\textquotesingle{}eJzT0yMAAGTvBe8=\textquotesingle{}}\OperatorTok{,} \StringTok{\textquotesingle{}base64\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\FunctionTok{unzip}\NormalTok{(buffer}\OperatorTok{,}\NormalTok{ (err}\OperatorTok{,}\NormalTok{ buffer) }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+  \ControlFlowTok{if}\NormalTok{ (err) \{}
+    \BuiltInTok{console}\OperatorTok{.}\FunctionTok{error}\NormalTok{(}\StringTok{\textquotesingle{}An error occurred:\textquotesingle{}}\OperatorTok{,}\NormalTok{ err)}\OperatorTok{;}
+    \BuiltInTok{process}\OperatorTok{.}\AttributeTok{exitCode} \OperatorTok{=} \DecValTok{1}\OperatorTok{;}
+\NormalTok{  \}}
+  \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(buffer}\OperatorTok{.}\FunctionTok{toString}\NormalTok{())}\OperatorTok{;}
+\NormalTok{\})}\OperatorTok{;}
+
+\CommentTok{// Or, Promisified}
+
+\KeywordTok{const}\NormalTok{ \{ promisify \} }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:util\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\KeywordTok{const}\NormalTok{ do\_unzip }\OperatorTok{=} \FunctionTok{promisify}\NormalTok{(unzip)}\OperatorTok{;}
+
+\FunctionTok{do\_unzip}\NormalTok{(buffer)}
+  \OperatorTok{.}\FunctionTok{then}\NormalTok{((buf) }\KeywordTok{=\textgreater{}} \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(buf}\OperatorTok{.}\FunctionTok{toString}\NormalTok{()))}
+  \OperatorTok{.}\FunctionTok{catch}\NormalTok{((err) }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+    \BuiltInTok{console}\OperatorTok{.}\FunctionTok{error}\NormalTok{(}\StringTok{\textquotesingle{}An error occurred:\textquotesingle{}}\OperatorTok{,}\NormalTok{ err)}\OperatorTok{;}
+    \BuiltInTok{process}\OperatorTok{.}\AttributeTok{exitCode} \OperatorTok{=} \DecValTok{1}\OperatorTok{;}
+\NormalTok{  \})}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+\subsection{Threadpool usage and performance
+considerations}\label{threadpool-usage-and-performance-considerations}
+
+All \texttt{zlib} APIs, except those that are explicitly synchronous,
+use the Node.js internal threadpool. This can lead to surprising effects
+and performance limitations in some applications.
+
+Creating and using a large number of zlib objects simultaneously can
+cause significant memory fragmentation.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ zlib }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:zlib\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+
+\KeywordTok{const}\NormalTok{ payload }\OperatorTok{=} \BuiltInTok{Buffer}\OperatorTok{.}\FunctionTok{from}\NormalTok{(}\StringTok{\textquotesingle{}This is some data\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+
+\CommentTok{// }\AlertTok{WARNING}\CommentTok{: DO NOT DO THIS!}
+\ControlFlowTok{for}\NormalTok{ (}\KeywordTok{let}\NormalTok{ i }\OperatorTok{=} \DecValTok{0}\OperatorTok{;}\NormalTok{ i }\OperatorTok{\textless{}} \DecValTok{30000}\OperatorTok{;} \OperatorTok{++}\NormalTok{i) \{}
+\NormalTok{  zlib}\OperatorTok{.}\FunctionTok{deflate}\NormalTok{(payload}\OperatorTok{,}\NormalTok{ (err}\OperatorTok{,}\NormalTok{ buffer) }\KeywordTok{=\textgreater{}}\NormalTok{ \{\})}\OperatorTok{;}
+\NormalTok{\}}
+\end{Highlighting}
+\end{Shaded}
+
+In the preceding example, 30,000 deflate instances are created
+concurrently. Because of how some operating systems handle memory
+allocation and deallocation, this may lead to significant memory
+fragmentation.
+
+It is strongly recommended that the results of compression operations be
+cached to avoid duplication of effort.
+
+\subsection{Compressing HTTP requests and
+responses}\label{compressing-http-requests-and-responses}
+
+The \texttt{node:zlib} module can be used to implement support for the
+\texttt{gzip}, \texttt{deflate} and \texttt{br} content-encoding
+mechanisms defined by
+\href{https://tools.ietf.org/html/rfc7230\#section-4.2}{HTTP}.
+
+The HTTP
+\href{https://www.w3.org/Protocols/rfc2616/rfc2616-sec14.html\#sec14.3}{\texttt{Accept-Encoding}}
+header is used within an HTTP request to identify the compression
+encodings accepted by the client. The
+\href{https://www.w3.org/Protocols/rfc2616/rfc2616-sec14.html\#sec14.11}{\texttt{Content-Encoding}}
+header is used to identify the compression encodings actually applied to
+a message.
+
+The examples given below are drastically simplified to show the basic
+concept. Using \texttt{zlib} encoding can be expensive, and the results
+ought to be cached. See \hyperref[memory-usage-tuning]{Memory usage
+tuning} for more information on the speed/memory/compression tradeoffs
+involved in \texttt{zlib} usage.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{// Client request example}
+\KeywordTok{const}\NormalTok{ zlib }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:zlib\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\KeywordTok{const}\NormalTok{ http }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:http\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\KeywordTok{const}\NormalTok{ fs }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:fs\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\KeywordTok{const}\NormalTok{ \{ pipeline \} }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:stream\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+
+\KeywordTok{const}\NormalTok{ request }\OperatorTok{=}\NormalTok{ http}\OperatorTok{.}\FunctionTok{get}\NormalTok{(\{ }\DataTypeTok{host}\OperatorTok{:} \StringTok{\textquotesingle{}example.com\textquotesingle{}}\OperatorTok{,}
+                           \DataTypeTok{path}\OperatorTok{:} \StringTok{\textquotesingle{}/\textquotesingle{}}\OperatorTok{,}
+                           \DataTypeTok{port}\OperatorTok{:} \DecValTok{80}\OperatorTok{,}
+                           \DataTypeTok{headers}\OperatorTok{:}\NormalTok{ \{ }\StringTok{\textquotesingle{}Accept{-}Encoding\textquotesingle{}}\OperatorTok{:} \StringTok{\textquotesingle{}br,gzip,deflate\textquotesingle{}}\NormalTok{ \} \})}\OperatorTok{;}
+\NormalTok{request}\OperatorTok{.}\FunctionTok{on}\NormalTok{(}\StringTok{\textquotesingle{}response\textquotesingle{}}\OperatorTok{,}\NormalTok{ (response) }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+  \KeywordTok{const}\NormalTok{ output }\OperatorTok{=}\NormalTok{ fs}\OperatorTok{.}\FunctionTok{createWriteStream}\NormalTok{(}\StringTok{\textquotesingle{}example.com\_index.html\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+
+  \KeywordTok{const}\NormalTok{ onError }\OperatorTok{=}\NormalTok{ (err) }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+    \ControlFlowTok{if}\NormalTok{ (err) \{}
+      \BuiltInTok{console}\OperatorTok{.}\FunctionTok{error}\NormalTok{(}\StringTok{\textquotesingle{}An error occurred:\textquotesingle{}}\OperatorTok{,}\NormalTok{ err)}\OperatorTok{;}
+      \BuiltInTok{process}\OperatorTok{.}\AttributeTok{exitCode} \OperatorTok{=} \DecValTok{1}\OperatorTok{;}
+\NormalTok{    \}}
+\NormalTok{  \}}\OperatorTok{;}
+
+  \ControlFlowTok{switch}\NormalTok{ (response}\OperatorTok{.}\AttributeTok{headers}\NormalTok{[}\StringTok{\textquotesingle{}content{-}encoding\textquotesingle{}}\NormalTok{]) \{}
+    \ControlFlowTok{case} \StringTok{\textquotesingle{}br\textquotesingle{}}\OperatorTok{:}
+      \FunctionTok{pipeline}\NormalTok{(response}\OperatorTok{,}\NormalTok{ zlib}\OperatorTok{.}\FunctionTok{createBrotliDecompress}\NormalTok{()}\OperatorTok{,}\NormalTok{ output}\OperatorTok{,}\NormalTok{ onError)}\OperatorTok{;}
+      \ControlFlowTok{break}\OperatorTok{;}
+    \CommentTok{// Or, just use zlib.createUnzip() to handle both of the following cases:}
+    \ControlFlowTok{case} \StringTok{\textquotesingle{}gzip\textquotesingle{}}\OperatorTok{:}
+      \FunctionTok{pipeline}\NormalTok{(response}\OperatorTok{,}\NormalTok{ zlib}\OperatorTok{.}\FunctionTok{createGunzip}\NormalTok{()}\OperatorTok{,}\NormalTok{ output}\OperatorTok{,}\NormalTok{ onError)}\OperatorTok{;}
+      \ControlFlowTok{break}\OperatorTok{;}
+    \ControlFlowTok{case} \StringTok{\textquotesingle{}deflate\textquotesingle{}}\OperatorTok{:}
+      \FunctionTok{pipeline}\NormalTok{(response}\OperatorTok{,}\NormalTok{ zlib}\OperatorTok{.}\FunctionTok{createInflate}\NormalTok{()}\OperatorTok{,}\NormalTok{ output}\OperatorTok{,}\NormalTok{ onError)}\OperatorTok{;}
+      \ControlFlowTok{break}\OperatorTok{;}
+    \ControlFlowTok{default}\OperatorTok{:}
+      \FunctionTok{pipeline}\NormalTok{(response}\OperatorTok{,}\NormalTok{ output}\OperatorTok{,}\NormalTok{ onError)}\OperatorTok{;}
+      \ControlFlowTok{break}\OperatorTok{;}
+\NormalTok{  \}}
+\NormalTok{\})}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{// server example}
+\CommentTok{// Running a gzip operation on every request is quite expensive.}
+\CommentTok{// It would be much more efficient to cache the compressed buffer.}
+\KeywordTok{const}\NormalTok{ zlib }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:zlib\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\KeywordTok{const}\NormalTok{ http }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:http\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\KeywordTok{const}\NormalTok{ fs }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:fs\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\KeywordTok{const}\NormalTok{ \{ pipeline \} }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:stream\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+
+\NormalTok{http}\OperatorTok{.}\FunctionTok{createServer}\NormalTok{((request}\OperatorTok{,}\NormalTok{ response) }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+  \KeywordTok{const}\NormalTok{ raw }\OperatorTok{=}\NormalTok{ fs}\OperatorTok{.}\FunctionTok{createReadStream}\NormalTok{(}\StringTok{\textquotesingle{}index.html\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+  \CommentTok{// Store both a compressed and an uncompressed version of the resource.}
+\NormalTok{  response}\OperatorTok{.}\FunctionTok{setHeader}\NormalTok{(}\StringTok{\textquotesingle{}Vary\textquotesingle{}}\OperatorTok{,} \StringTok{\textquotesingle{}Accept{-}Encoding\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+  \KeywordTok{let}\NormalTok{ acceptEncoding }\OperatorTok{=}\NormalTok{ request}\OperatorTok{.}\AttributeTok{headers}\NormalTok{[}\StringTok{\textquotesingle{}accept{-}encoding\textquotesingle{}}\NormalTok{]}\OperatorTok{;}
+  \ControlFlowTok{if}\NormalTok{ (}\OperatorTok{!}\NormalTok{acceptEncoding) \{}
+\NormalTok{    acceptEncoding }\OperatorTok{=} \StringTok{\textquotesingle{}\textquotesingle{}}\OperatorTok{;}
+\NormalTok{  \}}
+
+  \KeywordTok{const}\NormalTok{ onError }\OperatorTok{=}\NormalTok{ (err) }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+    \ControlFlowTok{if}\NormalTok{ (err) \{}
+      \CommentTok{// If an error occurs, there\textquotesingle{}s not much we can do because}
+      \CommentTok{// the server has already sent the 200 response code and}
+      \CommentTok{// some amount of data has already been sent to the client.}
+      \CommentTok{// The best we can do is terminate the response immediately}
+      \CommentTok{// and log the error.}
+\NormalTok{      response}\OperatorTok{.}\FunctionTok{end}\NormalTok{()}\OperatorTok{;}
+      \BuiltInTok{console}\OperatorTok{.}\FunctionTok{error}\NormalTok{(}\StringTok{\textquotesingle{}An error occurred:\textquotesingle{}}\OperatorTok{,}\NormalTok{ err)}\OperatorTok{;}
+\NormalTok{    \}}
+\NormalTok{  \}}\OperatorTok{;}
+
+  \CommentTok{// Note: This is not a conformant accept{-}encoding parser.}
+  \CommentTok{// See https://www.w3.org/Protocols/rfc2616/rfc2616{-}sec14.html\#sec14.3}
+  \ControlFlowTok{if}\NormalTok{ (}\SpecialStringTok{/}\SpecialCharTok{\textbackslash{}b}\SpecialStringTok{deflate}\SpecialCharTok{\textbackslash{}b}\SpecialStringTok{/}\OperatorTok{.}\FunctionTok{test}\NormalTok{(acceptEncoding)) \{}
+\NormalTok{    response}\OperatorTok{.}\FunctionTok{writeHead}\NormalTok{(}\DecValTok{200}\OperatorTok{,}\NormalTok{ \{ }\StringTok{\textquotesingle{}Content{-}Encoding\textquotesingle{}}\OperatorTok{:} \StringTok{\textquotesingle{}deflate\textquotesingle{}}\NormalTok{ \})}\OperatorTok{;}
+    \FunctionTok{pipeline}\NormalTok{(raw}\OperatorTok{,}\NormalTok{ zlib}\OperatorTok{.}\FunctionTok{createDeflate}\NormalTok{()}\OperatorTok{,}\NormalTok{ response}\OperatorTok{,}\NormalTok{ onError)}\OperatorTok{;}
+\NormalTok{  \} }\ControlFlowTok{else} \ControlFlowTok{if}\NormalTok{ (}\SpecialStringTok{/}\SpecialCharTok{\textbackslash{}b}\SpecialStringTok{gzip}\SpecialCharTok{\textbackslash{}b}\SpecialStringTok{/}\OperatorTok{.}\FunctionTok{test}\NormalTok{(acceptEncoding)) \{}
+\NormalTok{    response}\OperatorTok{.}\FunctionTok{writeHead}\NormalTok{(}\DecValTok{200}\OperatorTok{,}\NormalTok{ \{ }\StringTok{\textquotesingle{}Content{-}Encoding\textquotesingle{}}\OperatorTok{:} \StringTok{\textquotesingle{}gzip\textquotesingle{}}\NormalTok{ \})}\OperatorTok{;}
+    \FunctionTok{pipeline}\NormalTok{(raw}\OperatorTok{,}\NormalTok{ zlib}\OperatorTok{.}\FunctionTok{createGzip}\NormalTok{()}\OperatorTok{,}\NormalTok{ response}\OperatorTok{,}\NormalTok{ onError)}\OperatorTok{;}
+\NormalTok{  \} }\ControlFlowTok{else} \ControlFlowTok{if}\NormalTok{ (}\SpecialStringTok{/}\SpecialCharTok{\textbackslash{}b}\SpecialStringTok{br}\SpecialCharTok{\textbackslash{}b}\SpecialStringTok{/}\OperatorTok{.}\FunctionTok{test}\NormalTok{(acceptEncoding)) \{}
+\NormalTok{    response}\OperatorTok{.}\FunctionTok{writeHead}\NormalTok{(}\DecValTok{200}\OperatorTok{,}\NormalTok{ \{ }\StringTok{\textquotesingle{}Content{-}Encoding\textquotesingle{}}\OperatorTok{:} \StringTok{\textquotesingle{}br\textquotesingle{}}\NormalTok{ \})}\OperatorTok{;}
+    \FunctionTok{pipeline}\NormalTok{(raw}\OperatorTok{,}\NormalTok{ zlib}\OperatorTok{.}\FunctionTok{createBrotliCompress}\NormalTok{()}\OperatorTok{,}\NormalTok{ response}\OperatorTok{,}\NormalTok{ onError)}\OperatorTok{;}
+\NormalTok{  \} }\ControlFlowTok{else}\NormalTok{ \{}
+\NormalTok{    response}\OperatorTok{.}\FunctionTok{writeHead}\NormalTok{(}\DecValTok{200}\OperatorTok{,}\NormalTok{ \{\})}\OperatorTok{;}
+    \FunctionTok{pipeline}\NormalTok{(raw}\OperatorTok{,}\NormalTok{ response}\OperatorTok{,}\NormalTok{ onError)}\OperatorTok{;}
+\NormalTok{  \}}
+\NormalTok{\})}\OperatorTok{.}\FunctionTok{listen}\NormalTok{(}\DecValTok{1337}\NormalTok{)}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+By default, the \texttt{zlib} methods will throw an error when
+decompressing truncated data. However, if it is known that the data is
+incomplete, or the desire is to inspect only the beginning of a
+compressed file, it is possible to suppress the default error handling
+by changing the flushing method that is used to decompress the last
+chunk of input data:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{// This is a truncated version of the buffer from the above examples}
+\KeywordTok{const}\NormalTok{ buffer }\OperatorTok{=} \BuiltInTok{Buffer}\OperatorTok{.}\FunctionTok{from}\NormalTok{(}\StringTok{\textquotesingle{}eJzT0yMA\textquotesingle{}}\OperatorTok{,} \StringTok{\textquotesingle{}base64\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+
+\NormalTok{zlib}\OperatorTok{.}\FunctionTok{unzip}\NormalTok{(}
+\NormalTok{  buffer}\OperatorTok{,}
+  \CommentTok{// For Brotli, the equivalent is zlib.constants.BROTLI\_OPERATION\_FLUSH.}
+\NormalTok{  \{ }\DataTypeTok{finishFlush}\OperatorTok{:}\NormalTok{ zlib}\OperatorTok{.}\AttributeTok{constants}\OperatorTok{.}\AttributeTok{Z\_SYNC\_FLUSH}\NormalTok{ \}}\OperatorTok{,}
+\NormalTok{  (err}\OperatorTok{,}\NormalTok{ buffer) }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+    \ControlFlowTok{if}\NormalTok{ (err) \{}
+      \BuiltInTok{console}\OperatorTok{.}\FunctionTok{error}\NormalTok{(}\StringTok{\textquotesingle{}An error occurred:\textquotesingle{}}\OperatorTok{,}\NormalTok{ err)}\OperatorTok{;}
+      \BuiltInTok{process}\OperatorTok{.}\AttributeTok{exitCode} \OperatorTok{=} \DecValTok{1}\OperatorTok{;}
+\NormalTok{    \}}
+    \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(buffer}\OperatorTok{.}\FunctionTok{toString}\NormalTok{())}\OperatorTok{;}
+\NormalTok{  \})}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+This will not change the behavior in other error-throwing situations,
+e.g. when the input data has an invalid format. Using this method, it
+will not be possible to determine whether the input ended prematurely or
+lacks the integrity checks, making it necessary to manually check that
+the decompressed result is valid.
+
+\subsection{Memory usage tuning}\label{memory-usage-tuning}
+
+\subsubsection{For zlib-based streams}\label{for-zlib-based-streams}
+
+From \texttt{zlib/zconf.h}, modified for Node.js usage:
+
+The memory requirements for deflate are (in bytes):
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{(}\DecValTok{1} \OperatorTok{\textless{}\textless{}}\NormalTok{ (windowBits }\OperatorTok{+} \DecValTok{2}\NormalTok{)) }\OperatorTok{+}\NormalTok{ (}\DecValTok{1} \OperatorTok{\textless{}\textless{}}\NormalTok{ (memLevel }\OperatorTok{+} \DecValTok{9}\NormalTok{))}
+\end{Highlighting}
+\end{Shaded}
+
+That is: 128K for \texttt{windowBits} = 15 + 128K for \texttt{memLevel}
+= 8 (default values) plus a few kilobytes for small objects.
+
+For example, to reduce the default memory requirements from 256K to
+128K, the options should be set to:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ options }\OperatorTok{=}\NormalTok{ \{ }\DataTypeTok{windowBits}\OperatorTok{:} \DecValTok{14}\OperatorTok{,} \DataTypeTok{memLevel}\OperatorTok{:} \DecValTok{7}\NormalTok{ \}}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+This will, however, generally degrade compression.
+
+The memory requirements for inflate are (in bytes)
+\texttt{1\ \textless{}\textless{}\ windowBits}. That is, 32K for
+\texttt{windowBits} = 15 (default value) plus a few kilobytes for small
+objects.
+
+This is in addition to a single internal output slab buffer of size
+\texttt{chunkSize}, which defaults to 16K.
+
+The speed of \texttt{zlib} compression is affected most dramatically by
+the \texttt{level} setting. A higher level will result in better
+compression, but will take longer to complete. A lower level will result
+in less compression, but will be much faster.
+
+In general, greater memory usage options will mean that Node.js has to
+make fewer calls to \texttt{zlib} because it will be able to process
+more data on each \texttt{write} operation. So, this is another factor
+that affects the speed, at the cost of memory usage.
+
+\subsubsection{For Brotli-based streams}\label{for-brotli-based-streams}
+
+There are equivalents to the zlib options for Brotli-based streams,
+although these options have different ranges than the zlib ones:
+
+\begin{itemize}
+\tightlist
+\item
+  zlib's \texttt{level} option matches Brotli's
+  \texttt{BROTLI\_PARAM\_QUALITY} option.
+\item
+  zlib's \texttt{windowBits} option matches Brotli's
+  \texttt{BROTLI\_PARAM\_LGWIN} option.
+\end{itemize}
+
+See \hyperref[brotli-constants]{below} for more details on
+Brotli-specific options.
+
+\subsection{Flushing}\label{flushing}
+
+Calling \hyperref[zlibflushkind-callback]{\texttt{.flush()}} on a
+compression stream will make \texttt{zlib} return as much output as
+currently possible. This may come at the cost of degraded compression
+quality, but can be useful when data needs to be available as soon as
+possible.
+
+In the following example, \texttt{flush()} is used to write a compressed
+partial HTTP response to the client:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ zlib }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:zlib\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\KeywordTok{const}\NormalTok{ http }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:http\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\KeywordTok{const}\NormalTok{ \{ pipeline \} }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:stream\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+
+\NormalTok{http}\OperatorTok{.}\FunctionTok{createServer}\NormalTok{((request}\OperatorTok{,}\NormalTok{ response) }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+  \CommentTok{// For the sake of simplicity, the Accept{-}Encoding checks are omitted.}
+\NormalTok{  response}\OperatorTok{.}\FunctionTok{writeHead}\NormalTok{(}\DecValTok{200}\OperatorTok{,}\NormalTok{ \{ }\StringTok{\textquotesingle{}content{-}encoding\textquotesingle{}}\OperatorTok{:} \StringTok{\textquotesingle{}gzip\textquotesingle{}}\NormalTok{ \})}\OperatorTok{;}
+  \KeywordTok{const}\NormalTok{ output }\OperatorTok{=}\NormalTok{ zlib}\OperatorTok{.}\FunctionTok{createGzip}\NormalTok{()}\OperatorTok{;}
+  \KeywordTok{let}\NormalTok{ i}\OperatorTok{;}
+
+  \FunctionTok{pipeline}\NormalTok{(output}\OperatorTok{,}\NormalTok{ response}\OperatorTok{,}\NormalTok{ (err) }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+    \ControlFlowTok{if}\NormalTok{ (err) \{}
+      \CommentTok{// If an error occurs, there\textquotesingle{}s not much we can do because}
+      \CommentTok{// the server has already sent the 200 response code and}
+      \CommentTok{// some amount of data has already been sent to the client.}
+      \CommentTok{// The best we can do is terminate the response immediately}
+      \CommentTok{// and log the error.}
+      \PreprocessorTok{clearInterval}\NormalTok{(i)}\OperatorTok{;}
+\NormalTok{      response}\OperatorTok{.}\FunctionTok{end}\NormalTok{()}\OperatorTok{;}
+      \BuiltInTok{console}\OperatorTok{.}\FunctionTok{error}\NormalTok{(}\StringTok{\textquotesingle{}An error occurred:\textquotesingle{}}\OperatorTok{,}\NormalTok{ err)}\OperatorTok{;}
+\NormalTok{    \}}
+\NormalTok{  \})}\OperatorTok{;}
+
+\NormalTok{  i }\OperatorTok{=} \PreprocessorTok{setInterval}\NormalTok{(() }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+\NormalTok{    output}\OperatorTok{.}\FunctionTok{write}\NormalTok{(}\VerbatimStringTok{\textasciigrave{}The current time is }\SpecialCharTok{$\{}\BuiltInTok{Date}\NormalTok{()}\SpecialCharTok{\}\textbackslash{}n}\VerbatimStringTok{\textasciigrave{}}\OperatorTok{,}\NormalTok{ () }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+      \CommentTok{// The data has been passed to zlib, but the compression algorithm may}
+      \CommentTok{// have decided to buffer the data for more efficient compression.}
+      \CommentTok{// Calling .flush() will make the data available as soon as the client}
+      \CommentTok{// is ready to receive it.}
+\NormalTok{      output}\OperatorTok{.}\FunctionTok{flush}\NormalTok{()}\OperatorTok{;}
+\NormalTok{    \})}\OperatorTok{;}
+\NormalTok{  \}}\OperatorTok{,} \DecValTok{1000}\NormalTok{)}\OperatorTok{;}
+\NormalTok{\})}\OperatorTok{.}\FunctionTok{listen}\NormalTok{(}\DecValTok{1337}\NormalTok{)}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+\subsection{Constants}\label{constants}
+
+\subsubsection{zlib constants}\label{zlib-constants}
+
+All of the constants defined in \texttt{zlib.h} are also defined on
+\texttt{require(\textquotesingle{}node:zlib\textquotesingle{}).constants}.
+In the normal course of operations, it will not be necessary to use
+these constants. They are documented so that their presence is not
+surprising. This section is taken almost directly from the
+\href{https://zlib.net/manual.html\#Constants}{zlib documentation}.
+
+Previously, the constants were available directly from
+\texttt{require(\textquotesingle{}node:zlib\textquotesingle{})}, for
+instance \texttt{zlib.Z\_NO\_FLUSH}. Accessing the constants directly
+from the module is currently still possible but is deprecated.
+
+Allowed flush values.
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{zlib.constants.Z\_NO\_FLUSH}
+\item
+  \texttt{zlib.constants.Z\_PARTIAL\_FLUSH}
+\item
+  \texttt{zlib.constants.Z\_SYNC\_FLUSH}
+\item
+  \texttt{zlib.constants.Z\_FULL\_FLUSH}
+\item
+  \texttt{zlib.constants.Z\_FINISH}
+\item
+  \texttt{zlib.constants.Z\_BLOCK}
+\item
+  \texttt{zlib.constants.Z\_TREES}
+\end{itemize}
+
+Return codes for the compression/decompression functions. Negative
+values are errors, positive values are used for special but normal
+events.
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{zlib.constants.Z\_OK}
+\item
+  \texttt{zlib.constants.Z\_STREAM\_END}
+\item
+  \texttt{zlib.constants.Z\_NEED\_DICT}
+\item
+  \texttt{zlib.constants.Z\_ERRNO}
+\item
+  \texttt{zlib.constants.Z\_STREAM\_ERROR}
+\item
+  \texttt{zlib.constants.Z\_DATA\_ERROR}
+\item
+  \texttt{zlib.constants.Z\_MEM\_ERROR}
+\item
+  \texttt{zlib.constants.Z\_BUF\_ERROR}
+\item
+  \texttt{zlib.constants.Z\_VERSION\_ERROR}
+\end{itemize}
+
+Compression levels.
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{zlib.constants.Z\_NO\_COMPRESSION}
+\item
+  \texttt{zlib.constants.Z\_BEST\_SPEED}
+\item
+  \texttt{zlib.constants.Z\_BEST\_COMPRESSION}
+\item
+  \texttt{zlib.constants.Z\_DEFAULT\_COMPRESSION}
+\end{itemize}
+
+Compression strategy.
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{zlib.constants.Z\_FILTERED}
+\item
+  \texttt{zlib.constants.Z\_HUFFMAN\_ONLY}
+\item
+  \texttt{zlib.constants.Z\_RLE}
+\item
+  \texttt{zlib.constants.Z\_FIXED}
+\item
+  \texttt{zlib.constants.Z\_DEFAULT\_STRATEGY}
+\end{itemize}
+
+\subsubsection{Brotli constants}\label{brotli-constants}
+
+There are several options and other constants available for Brotli-based
+streams:
+
+\paragraph{Flush operations}\label{flush-operations}
+
+The following values are valid flush operations for Brotli-based
+streams:
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{zlib.constants.BROTLI\_OPERATION\_PROCESS} (default for all
+  operations)
+\item
+  \texttt{zlib.constants.BROTLI\_OPERATION\_FLUSH} (default when calling
+  \texttt{.flush()})
+\item
+  \texttt{zlib.constants.BROTLI\_OPERATION\_FINISH} (default for the
+  last chunk)
+\item
+  \texttt{zlib.constants.BROTLI\_OPERATION\_EMIT\_METADATA}
+
+  \begin{itemize}
+  \tightlist
+  \item
+    This particular operation may be hard to use in a Node.js context,
+    as the streaming layer makes it hard to know which data will end up
+    in this frame. Also, there is currently no way to consume this data
+    through the Node.js API.
+  \end{itemize}
+\end{itemize}
+
+\paragraph{Compressor options}\label{compressor-options}
+
+There are several options that can be set on Brotli encoders, affecting
+compression efficiency and speed. Both the keys and the values can be
+accessed as properties of the \texttt{zlib.constants} object.
+
+The most important options are:
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{BROTLI\_PARAM\_MODE}
+
+  \begin{itemize}
+  \tightlist
+  \item
+    \texttt{BROTLI\_MODE\_GENERIC} (default)
+  \item
+    \texttt{BROTLI\_MODE\_TEXT}, adjusted for UTF-8 text
+  \item
+    \texttt{BROTLI\_MODE\_FONT}, adjusted for WOFF 2.0 fonts
+  \end{itemize}
+\item
+  \texttt{BROTLI\_PARAM\_QUALITY}
+
+  \begin{itemize}
+  \tightlist
+  \item
+    Ranges from \texttt{BROTLI\_MIN\_QUALITY} to
+    \texttt{BROTLI\_MAX\_QUALITY}, with a default of
+    \texttt{BROTLI\_DEFAULT\_QUALITY}.
+  \end{itemize}
+\item
+  \texttt{BROTLI\_PARAM\_SIZE\_HINT}
+
+  \begin{itemize}
+  \tightlist
+  \item
+    Integer value representing the expected input size; defaults to
+    \texttt{0} for an unknown input size.
+  \end{itemize}
+\end{itemize}
+
+The following flags can be set for advanced control over the compression
+algorithm and memory usage tuning:
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{BROTLI\_PARAM\_LGWIN}
+
+  \begin{itemize}
+  \tightlist
+  \item
+    Ranges from \texttt{BROTLI\_MIN\_WINDOW\_BITS} to
+    \texttt{BROTLI\_MAX\_WINDOW\_BITS}, with a default of
+    \texttt{BROTLI\_DEFAULT\_WINDOW}, or up to
+    \texttt{BROTLI\_LARGE\_MAX\_WINDOW\_BITS} if the
+    \texttt{BROTLI\_PARAM\_LARGE\_WINDOW} flag is set.
+  \end{itemize}
+\item
+  \texttt{BROTLI\_PARAM\_LGBLOCK}
+
+  \begin{itemize}
+  \tightlist
+  \item
+    Ranges from \texttt{BROTLI\_MIN\_INPUT\_BLOCK\_BITS} to
+    \texttt{BROTLI\_MAX\_INPUT\_BLOCK\_BITS}.
+  \end{itemize}
+\item
+  \texttt{BROTLI\_PARAM\_DISABLE\_LITERAL\_CONTEXT\_MODELING}
+
+  \begin{itemize}
+  \tightlist
+  \item
+    Boolean flag that decreases compression ratio in favour of
+    decompression speed.
+  \end{itemize}
+\item
+  \texttt{BROTLI\_PARAM\_LARGE\_WINDOW}
+
+  \begin{itemize}
+  \tightlist
+  \item
+    Boolean flag enabling ``Large Window Brotli'' mode (not compatible
+    with the Brotli format as standardized in
+    \href{https://www.rfc-editor.org/rfc/rfc7932.txt}{RFC 7932}).
+  \end{itemize}
+\item
+  \texttt{BROTLI\_PARAM\_NPOSTFIX}
+
+  \begin{itemize}
+  \tightlist
+  \item
+    Ranges from \texttt{0} to \texttt{BROTLI\_MAX\_NPOSTFIX}.
+  \end{itemize}
+\item
+  \texttt{BROTLI\_PARAM\_NDIRECT}
+
+  \begin{itemize}
+  \tightlist
+  \item
+    Ranges from \texttt{0} to
+    \texttt{15\ \textless{}\textless{}\ NPOSTFIX} in steps of
+    \texttt{1\ \textless{}\textless{}\ NPOSTFIX}.
+  \end{itemize}
+\end{itemize}
+
+\paragraph{Decompressor options}\label{decompressor-options}
+
+These advanced options are available for controlling decompression:
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{BROTLI\_DECODER\_PARAM\_DISABLE\_RING\_BUFFER\_REALLOCATION}
+
+  \begin{itemize}
+  \tightlist
+  \item
+    Boolean flag that affects internal memory allocation patterns.
+  \end{itemize}
+\item
+  \texttt{BROTLI\_DECODER\_PARAM\_LARGE\_WINDOW}
+
+  \begin{itemize}
+  \tightlist
+  \item
+    Boolean flag enabling ``Large Window Brotli'' mode (not compatible
+    with the Brotli format as standardized in
+    \href{https://www.rfc-editor.org/rfc/rfc7932.txt}{RFC 7932}).
+  \end{itemize}
+\end{itemize}
+
+\subsection{\texorpdfstring{Class:
+\texttt{Options}}{Class: Options}}\label{class-options}
+
+Each zlib-based class takes an \texttt{options} object. No options are
+required.
+
+Some options are only relevant when compressing and are ignored by the
+decompression classes.
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{flush} \{integer\} \textbf{Default:}
+  \texttt{zlib.constants.Z\_NO\_FLUSH}
+\item
+  \texttt{finishFlush} \{integer\} \textbf{Default:}
+  \texttt{zlib.constants.Z\_FINISH}
+\item
+  \texttt{chunkSize} \{integer\} \textbf{Default:} \texttt{16\ *\ 1024}
+\item
+  \texttt{windowBits} \{integer\}
+\item
+  \texttt{level} \{integer\} (compression only)
+\item
+  \texttt{memLevel} \{integer\} (compression only)
+\item
+  \texttt{strategy} \{integer\} (compression only)
+\item
+  \texttt{dictionary}
+  \{Buffer\textbar TypedArray\textbar DataView\textbar ArrayBuffer\}
+  (deflate/inflate only, empty dictionary by default)
+\item
+  \texttt{info} \{boolean\} (If \texttt{true}, returns an object with
+  \texttt{buffer} and \texttt{engine}.)
+\item
+  \texttt{maxOutputLength} \{integer\} Limits output size when using
+  \hyperref[convenience-methods]{convenience methods}. \textbf{Default:}
+  \href{buffer.md\#bufferkmaxlength}{\texttt{buffer.kMaxLength}}
+\end{itemize}
+
+See the
+\href{https://zlib.net/manual.html\#Advanced}{\texttt{deflateInit2} and
+\texttt{inflateInit2}} documentation for more information.
+
+\subsection{\texorpdfstring{Class:
+\texttt{BrotliOptions}}{Class: BrotliOptions}}\label{class-brotlioptions}
+
+Each Brotli-based class takes an \texttt{options} object. All options
+are optional.
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{flush} \{integer\} \textbf{Default:}
+  \texttt{zlib.constants.BROTLI\_OPERATION\_PROCESS}
+\item
+  \texttt{finishFlush} \{integer\} \textbf{Default:}
+  \texttt{zlib.constants.BROTLI\_OPERATION\_FINISH}
+\item
+  \texttt{chunkSize} \{integer\} \textbf{Default:} \texttt{16\ *\ 1024}
+\item
+  \texttt{params} \{Object\} Key-value object containing indexed
+  \hyperref[brotli-constants]{Brotli parameters}.
+\item
+  \texttt{maxOutputLength} \{integer\} Limits output size when using
+  \hyperref[convenience-methods]{convenience methods}. \textbf{Default:}
+  \href{buffer.md\#bufferkmaxlength}{\texttt{buffer.kMaxLength}}
+\end{itemize}
+
+For example:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ stream }\OperatorTok{=}\NormalTok{ zlib}\OperatorTok{.}\FunctionTok{createBrotliCompress}\NormalTok{(\{}
+  \DataTypeTok{chunkSize}\OperatorTok{:} \DecValTok{32} \OperatorTok{*} \DecValTok{1024}\OperatorTok{,}
+  \DataTypeTok{params}\OperatorTok{:}\NormalTok{ \{}
+\NormalTok{    [zlib}\OperatorTok{.}\AttributeTok{constants}\OperatorTok{.}\AttributeTok{BROTLI\_PARAM\_MODE}\NormalTok{]}\OperatorTok{:}\NormalTok{ zlib}\OperatorTok{.}\AttributeTok{constants}\OperatorTok{.}\AttributeTok{BROTLI\_MODE\_TEXT}\OperatorTok{,}
+\NormalTok{    [zlib}\OperatorTok{.}\AttributeTok{constants}\OperatorTok{.}\AttributeTok{BROTLI\_PARAM\_QUALITY}\NormalTok{]}\OperatorTok{:} \DecValTok{4}\OperatorTok{,}
+\NormalTok{    [zlib}\OperatorTok{.}\AttributeTok{constants}\OperatorTok{.}\AttributeTok{BROTLI\_PARAM\_SIZE\_HINT}\NormalTok{]}\OperatorTok{:}\NormalTok{ fs}\OperatorTok{.}\FunctionTok{statSync}\NormalTok{(inputFile)}\OperatorTok{.}\AttributeTok{size}\OperatorTok{,}
+\NormalTok{  \}}\OperatorTok{,}
+\NormalTok{\})}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+\subsection{\texorpdfstring{Class:
+\texttt{zlib.BrotliCompress}}{Class: zlib.BrotliCompress}}\label{class-zlib.brotlicompress}
+
+Compress data using the Brotli algorithm.
+
+\subsection{\texorpdfstring{Class:
+\texttt{zlib.BrotliDecompress}}{Class: zlib.BrotliDecompress}}\label{class-zlib.brotlidecompress}
+
+Decompress data using the Brotli algorithm.
+
+\subsection{\texorpdfstring{Class:
+\texttt{zlib.Deflate}}{Class: zlib.Deflate}}\label{class-zlib.deflate}
+
+Compress data using deflate.
+
+\subsection{\texorpdfstring{Class:
+\texttt{zlib.DeflateRaw}}{Class: zlib.DeflateRaw}}\label{class-zlib.deflateraw}
+
+Compress data using deflate, and do not append a \texttt{zlib} header.
+
+\subsection{\texorpdfstring{Class:
+\texttt{zlib.Gunzip}}{Class: zlib.Gunzip}}\label{class-zlib.gunzip}
+
+Decompress a gzip stream.
+
+\subsection{\texorpdfstring{Class:
+\texttt{zlib.Gzip}}{Class: zlib.Gzip}}\label{class-zlib.gzip}
+
+Compress data using gzip.
+
+\subsection{\texorpdfstring{Class:
+\texttt{zlib.Inflate}}{Class: zlib.Inflate}}\label{class-zlib.inflate}
+
+Decompress a deflate stream.
+
+\subsection{\texorpdfstring{Class:
+\texttt{zlib.InflateRaw}}{Class: zlib.InflateRaw}}\label{class-zlib.inflateraw}
+
+Decompress a raw deflate stream.
+
+\subsection{\texorpdfstring{Class:
+\texttt{zlib.Unzip}}{Class: zlib.Unzip}}\label{class-zlib.unzip}
+
+Decompress either a Gzip- or Deflate-compressed stream by auto-detecting
+the header.
+
+\subsection{\texorpdfstring{Class:
+\texttt{zlib.ZlibBase}}{Class: zlib.ZlibBase}}\label{class-zlib.zlibbase}
+
+Not exported by the \texttt{node:zlib} module. It is documented here
+because it is the base class of the compressor/decompressor classes.
+
+This class inherits from
+\href{stream.md\#class-streamtransform}{\texttt{stream.Transform}},
+allowing \texttt{node:zlib} objects to be used in pipes and similar
+stream operations.
+
+\subsubsection{\texorpdfstring{\texttt{zlib.bytesRead}}{zlib.bytesRead}}\label{zlib.bytesread}
+
+\begin{quote}
+Stability: 0 - Deprecated: Use
+\hyperref[zlibbyteswritten]{\texttt{zlib.bytesWritten}} instead.
+\end{quote}
+
+\begin{itemize}
+\tightlist
+\item
+  \{number\}
+\end{itemize}
+
+Deprecated alias for
+\hyperref[zlibbyteswritten]{\texttt{zlib.bytesWritten}}. This original
+name was chosen because it also made sense to interpret the value as the
+number of bytes read by the engine, but is inconsistent with other
+streams in Node.js that expose values under these names.
+
+\subsubsection{\texorpdfstring{\texttt{zlib.bytesWritten}}{zlib.bytesWritten}}\label{zlib.byteswritten}
+
+\begin{itemize}
+\tightlist
+\item
+  \{number\}
+\end{itemize}
+
+The \texttt{zlib.bytesWritten} property specifies the number of bytes
+written to the engine, before the bytes are processed (compressed or
+decompressed, as appropriate for the derived class).
+
+\subsubsection{\texorpdfstring{\texttt{zlib.close({[}callback{]})}}{zlib.close({[}callback{]})}}\label{zlib.closecallback}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{callback} \{Function\}
+\end{itemize}
+
+Close the underlying handle.
+
+\subsubsection{\texorpdfstring{\texttt{zlib.flush({[}kind,\ {]}callback)}}{zlib.flush({[}kind, {]}callback)}}\label{zlib.flushkind-callback}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{kind} \textbf{Default:} \texttt{zlib.constants.Z\_FULL\_FLUSH}
+  for zlib-based streams,
+  \texttt{zlib.constants.BROTLI\_OPERATION\_FLUSH} for Brotli-based
+  streams.
+\item
+  \texttt{callback} \{Function\}
+\end{itemize}
+
+Flush pending data. Don't call this frivolously, premature flushes
+negatively impact the effectiveness of the compression algorithm.
+
+Calling this only flushes data from the internal \texttt{zlib} state,
+and does not perform flushing of any kind on the streams level. Rather,
+it behaves like a normal call to \texttt{.write()}, i.e.~it will be
+queued up behind other pending writes and will only produce output when
+data is being read from the stream.
+
+\subsubsection{\texorpdfstring{\texttt{zlib.params(level,\ strategy,\ callback)}}{zlib.params(level, strategy, callback)}}\label{zlib.paramslevel-strategy-callback}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{level} \{integer\}
+\item
+  \texttt{strategy} \{integer\}
+\item
+  \texttt{callback} \{Function\}
+\end{itemize}
+
+This function is only available for zlib-based streams, i.e.~not Brotli.
+
+Dynamically update the compression level and compression strategy. Only
+applicable to deflate algorithm.
+
+\subsubsection{\texorpdfstring{\texttt{zlib.reset()}}{zlib.reset()}}\label{zlib.reset}
+
+Reset the compressor/decompressor to factory defaults. Only applicable
+to the inflate and deflate algorithms.
+
+\subsection{\texorpdfstring{\texttt{zlib.constants}}{zlib.constants}}\label{zlib.constants}
+
+Provides an object enumerating Zlib-related constants.
+
+\subsection{\texorpdfstring{\texttt{zlib.createBrotliCompress({[}options{]})}}{zlib.createBrotliCompress({[}options{]})}}\label{zlib.createbrotlicompressoptions}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{options} \{brotli options\}
+\end{itemize}
+
+Creates and returns a new
+\hyperref[class-zlibbrotlicompress]{\texttt{BrotliCompress}} object.
+
+\subsection{\texorpdfstring{\texttt{zlib.createBrotliDecompress({[}options{]})}}{zlib.createBrotliDecompress({[}options{]})}}\label{zlib.createbrotlidecompressoptions}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{options} \{brotli options\}
+\end{itemize}
+
+Creates and returns a new
+\hyperref[class-zlibbrotlidecompress]{\texttt{BrotliDecompress}} object.
+
+\subsection{\texorpdfstring{\texttt{zlib.createDeflate({[}options{]})}}{zlib.createDeflate({[}options{]})}}\label{zlib.createdeflateoptions}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{options} \{zlib options\}
+\end{itemize}
+
+Creates and returns a new \hyperref[class-zlibdeflate]{\texttt{Deflate}}
+object.
+
+\subsection{\texorpdfstring{\texttt{zlib.createDeflateRaw({[}options{]})}}{zlib.createDeflateRaw({[}options{]})}}\label{zlib.createdeflaterawoptions}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{options} \{zlib options\}
+\end{itemize}
+
+Creates and returns a new
+\hyperref[class-zlibdeflateraw]{\texttt{DeflateRaw}} object.
+
+An upgrade of zlib from 1.2.8 to 1.2.11 changed behavior when
+\texttt{windowBits} is set to 8 for raw deflate streams. zlib would
+automatically set \texttt{windowBits} to 9 if was initially set to 8.
+Newer versions of zlib will throw an exception, so Node.js restored the
+original behavior of upgrading a value of 8 to 9, since passing
+\texttt{windowBits\ =\ 9} to zlib actually results in a compressed
+stream that effectively uses an 8-bit window only.
+
+\subsection{\texorpdfstring{\texttt{zlib.createGunzip({[}options{]})}}{zlib.createGunzip({[}options{]})}}\label{zlib.creategunzipoptions}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{options} \{zlib options\}
+\end{itemize}
+
+Creates and returns a new \hyperref[class-zlibgunzip]{\texttt{Gunzip}}
+object.
+
+\subsection{\texorpdfstring{\texttt{zlib.createGzip({[}options{]})}}{zlib.createGzip({[}options{]})}}\label{zlib.creategzipoptions}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{options} \{zlib options\}
+\end{itemize}
+
+Creates and returns a new \hyperref[class-zlibgzip]{\texttt{Gzip}}
+object. See \hyperref[zlib]{example}.
+
+\subsection{\texorpdfstring{\texttt{zlib.createInflate({[}options{]})}}{zlib.createInflate({[}options{]})}}\label{zlib.createinflateoptions}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{options} \{zlib options\}
+\end{itemize}
+
+Creates and returns a new \hyperref[class-zlibinflate]{\texttt{Inflate}}
+object.
+
+\subsection{\texorpdfstring{\texttt{zlib.createInflateRaw({[}options{]})}}{zlib.createInflateRaw({[}options{]})}}\label{zlib.createinflaterawoptions}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{options} \{zlib options\}
+\end{itemize}
+
+Creates and returns a new
+\hyperref[class-zlibinflateraw]{\texttt{InflateRaw}} object.
+
+\subsection{\texorpdfstring{\texttt{zlib.createUnzip({[}options{]})}}{zlib.createUnzip({[}options{]})}}\label{zlib.createunzipoptions}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{options} \{zlib options\}
+\end{itemize}
+
+Creates and returns a new \hyperref[class-zlibunzip]{\texttt{Unzip}}
+object.
+
+\subsection{Convenience methods}\label{convenience-methods}
+
+All of these take a \href{buffer.md\#class-buffer}{\texttt{Buffer}},
+\href{https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/TypedArray}{\texttt{TypedArray}},
+\href{https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/DataView}{\texttt{DataView}},
+\href{https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/ArrayBuffer}{\texttt{ArrayBuffer}}
+or string as the first argument, an optional second argument to supply
+options to the \texttt{zlib} classes and will call the supplied callback
+with \texttt{callback(error,\ result)}.
+
+Every method has a \texttt{*Sync} counterpart, which accept the same
+arguments, but without a callback.
+
+\subsubsection{\texorpdfstring{\texttt{zlib.brotliCompress(buffer{[},\ options{]},\ callback)}}{zlib.brotliCompress(buffer{[}, options{]}, callback)}}\label{zlib.brotlicompressbuffer-options-callback}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{buffer}
+  \{Buffer\textbar TypedArray\textbar DataView\textbar ArrayBuffer\textbar string\}
+\item
+  \texttt{options} \{brotli options\}
+\item
+  \texttt{callback} \{Function\}
+\end{itemize}
+
+\subsubsection{\texorpdfstring{\texttt{zlib.brotliCompressSync(buffer{[},\ options{]})}}{zlib.brotliCompressSync(buffer{[}, options{]})}}\label{zlib.brotlicompresssyncbuffer-options}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{buffer}
+  \{Buffer\textbar TypedArray\textbar DataView\textbar ArrayBuffer\textbar string\}
+\item
+  \texttt{options} \{brotli options\}
+\end{itemize}
+
+Compress a chunk of data with
+\hyperref[class-zlibbrotlicompress]{\texttt{BrotliCompress}}.
+
+\subsubsection{\texorpdfstring{\texttt{zlib.brotliDecompress(buffer{[},\ options{]},\ callback)}}{zlib.brotliDecompress(buffer{[}, options{]}, callback)}}\label{zlib.brotlidecompressbuffer-options-callback}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{buffer}
+  \{Buffer\textbar TypedArray\textbar DataView\textbar ArrayBuffer\textbar string\}
+\item
+  \texttt{options} \{brotli options\}
+\item
+  \texttt{callback} \{Function\}
+\end{itemize}
+
+\subsubsection{\texorpdfstring{\texttt{zlib.brotliDecompressSync(buffer{[},\ options{]})}}{zlib.brotliDecompressSync(buffer{[}, options{]})}}\label{zlib.brotlidecompresssyncbuffer-options}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{buffer}
+  \{Buffer\textbar TypedArray\textbar DataView\textbar ArrayBuffer\textbar string\}
+\item
+  \texttt{options} \{brotli options\}
+\end{itemize}
+
+Decompress a chunk of data with
+\hyperref[class-zlibbrotlidecompress]{\texttt{BrotliDecompress}}.
+
+\subsubsection{\texorpdfstring{\texttt{zlib.deflate(buffer{[},\ options{]},\ callback)}}{zlib.deflate(buffer{[}, options{]}, callback)}}\label{zlib.deflatebuffer-options-callback}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{buffer}
+  \{Buffer\textbar TypedArray\textbar DataView\textbar ArrayBuffer\textbar string\}
+\item
+  \texttt{options} \{zlib options\}
+\item
+  \texttt{callback} \{Function\}
+\end{itemize}
+
+\subsubsection{\texorpdfstring{\texttt{zlib.deflateSync(buffer{[},\ options{]})}}{zlib.deflateSync(buffer{[}, options{]})}}\label{zlib.deflatesyncbuffer-options}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{buffer}
+  \{Buffer\textbar TypedArray\textbar DataView\textbar ArrayBuffer\textbar string\}
+\item
+  \texttt{options} \{zlib options\}
+\end{itemize}
+
+Compress a chunk of data with
+\hyperref[class-zlibdeflate]{\texttt{Deflate}}.
+
+\subsubsection{\texorpdfstring{\texttt{zlib.deflateRaw(buffer{[},\ options{]},\ callback)}}{zlib.deflateRaw(buffer{[}, options{]}, callback)}}\label{zlib.deflaterawbuffer-options-callback}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{buffer}
+  \{Buffer\textbar TypedArray\textbar DataView\textbar ArrayBuffer\textbar string\}
+\item
+  \texttt{options} \{zlib options\}
+\item
+  \texttt{callback} \{Function\}
+\end{itemize}
+
+\subsubsection{\texorpdfstring{\texttt{zlib.deflateRawSync(buffer{[},\ options{]})}}{zlib.deflateRawSync(buffer{[}, options{]})}}\label{zlib.deflaterawsyncbuffer-options}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{buffer}
+  \{Buffer\textbar TypedArray\textbar DataView\textbar ArrayBuffer\textbar string\}
+\item
+  \texttt{options} \{zlib options\}
+\end{itemize}
+
+Compress a chunk of data with
+\hyperref[class-zlibdeflateraw]{\texttt{DeflateRaw}}.
+
+\subsubsection{\texorpdfstring{\texttt{zlib.gunzip(buffer{[},\ options{]},\ callback)}}{zlib.gunzip(buffer{[}, options{]}, callback)}}\label{zlib.gunzipbuffer-options-callback}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{buffer}
+  \{Buffer\textbar TypedArray\textbar DataView\textbar ArrayBuffer\textbar string\}
+\item
+  \texttt{options} \{zlib options\}
+\item
+  \texttt{callback} \{Function\}
+\end{itemize}
+
+\subsubsection{\texorpdfstring{\texttt{zlib.gunzipSync(buffer{[},\ options{]})}}{zlib.gunzipSync(buffer{[}, options{]})}}\label{zlib.gunzipsyncbuffer-options}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{buffer}
+  \{Buffer\textbar TypedArray\textbar DataView\textbar ArrayBuffer\textbar string\}
+\item
+  \texttt{options} \{zlib options\}
+\end{itemize}
+
+Decompress a chunk of data with
+\hyperref[class-zlibgunzip]{\texttt{Gunzip}}.
+
+\subsubsection{\texorpdfstring{\texttt{zlib.gzip(buffer{[},\ options{]},\ callback)}}{zlib.gzip(buffer{[}, options{]}, callback)}}\label{zlib.gzipbuffer-options-callback}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{buffer}
+  \{Buffer\textbar TypedArray\textbar DataView\textbar ArrayBuffer\textbar string\}
+\item
+  \texttt{options} \{zlib options\}
+\item
+  \texttt{callback} \{Function\}
+\end{itemize}
+
+\subsubsection{\texorpdfstring{\texttt{zlib.gzipSync(buffer{[},\ options{]})}}{zlib.gzipSync(buffer{[}, options{]})}}\label{zlib.gzipsyncbuffer-options}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{buffer}
+  \{Buffer\textbar TypedArray\textbar DataView\textbar ArrayBuffer\textbar string\}
+\item
+  \texttt{options} \{zlib options\}
+\end{itemize}
+
+Compress a chunk of data with \hyperref[class-zlibgzip]{\texttt{Gzip}}.
+
+\subsubsection{\texorpdfstring{\texttt{zlib.inflate(buffer{[},\ options{]},\ callback)}}{zlib.inflate(buffer{[}, options{]}, callback)}}\label{zlib.inflatebuffer-options-callback}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{buffer}
+  \{Buffer\textbar TypedArray\textbar DataView\textbar ArrayBuffer\textbar string\}
+\item
+  \texttt{options} \{zlib options\}
+\item
+  \texttt{callback} \{Function\}
+\end{itemize}
+
+\subsubsection{\texorpdfstring{\texttt{zlib.inflateSync(buffer{[},\ options{]})}}{zlib.inflateSync(buffer{[}, options{]})}}\label{zlib.inflatesyncbuffer-options}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{buffer}
+  \{Buffer\textbar TypedArray\textbar DataView\textbar ArrayBuffer\textbar string\}
+\item
+  \texttt{options} \{zlib options\}
+\end{itemize}
+
+Decompress a chunk of data with
+\hyperref[class-zlibinflate]{\texttt{Inflate}}.
+
+\subsubsection{\texorpdfstring{\texttt{zlib.inflateRaw(buffer{[},\ options{]},\ callback)}}{zlib.inflateRaw(buffer{[}, options{]}, callback)}}\label{zlib.inflaterawbuffer-options-callback}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{buffer}
+  \{Buffer\textbar TypedArray\textbar DataView\textbar ArrayBuffer\textbar string\}
+\item
+  \texttt{options} \{zlib options\}
+\item
+  \texttt{callback} \{Function\}
+\end{itemize}
+
+\subsubsection{\texorpdfstring{\texttt{zlib.inflateRawSync(buffer{[},\ options{]})}}{zlib.inflateRawSync(buffer{[}, options{]})}}\label{zlib.inflaterawsyncbuffer-options}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{buffer}
+  \{Buffer\textbar TypedArray\textbar DataView\textbar ArrayBuffer\textbar string\}
+\item
+  \texttt{options} \{zlib options\}
+\end{itemize}
+
+Decompress a chunk of data with
+\hyperref[class-zlibinflateraw]{\texttt{InflateRaw}}.
+
+\subsubsection{\texorpdfstring{\texttt{zlib.unzip(buffer{[},\ options{]},\ callback)}}{zlib.unzip(buffer{[}, options{]}, callback)}}\label{zlib.unzipbuffer-options-callback}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{buffer}
+  \{Buffer\textbar TypedArray\textbar DataView\textbar ArrayBuffer\textbar string\}
+\item
+  \texttt{options} \{zlib options\}
+\item
+  \texttt{callback} \{Function\}
+\end{itemize}
+
+\subsubsection{\texorpdfstring{\texttt{zlib.unzipSync(buffer{[},\ options{]})}}{zlib.unzipSync(buffer{[}, options{]})}}\label{zlib.unzipsyncbuffer-options}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{buffer}
+  \{Buffer\textbar TypedArray\textbar DataView\textbar ArrayBuffer\textbar string\}
+\item
+  \texttt{options} \{zlib options\}
+\end{itemize}
+
+Decompress a chunk of data with
+\hyperref[class-zlibunzip]{\texttt{Unzip}}.

@@ -1,0 +1,1108 @@
+\section{UDP/datagram sockets}\label{udpdatagram-sockets}
+
+\begin{quote}
+Stability: 2 - Stable
+\end{quote}
+
+The \texttt{node:dgram} module provides an implementation of UDP
+datagram sockets.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\ImportTok{import}\NormalTok{ dgram }\ImportTok{from} \StringTok{\textquotesingle{}node:dgram\textquotesingle{}}\OperatorTok{;}
+
+\KeywordTok{const}\NormalTok{ server }\OperatorTok{=}\NormalTok{ dgram}\OperatorTok{.}\FunctionTok{createSocket}\NormalTok{(}\StringTok{\textquotesingle{}udp4\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+
+\NormalTok{server}\OperatorTok{.}\FunctionTok{on}\NormalTok{(}\StringTok{\textquotesingle{}error\textquotesingle{}}\OperatorTok{,}\NormalTok{ (err) }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+  \BuiltInTok{console}\OperatorTok{.}\FunctionTok{error}\NormalTok{(}\VerbatimStringTok{\textasciigrave{}server error:}\SpecialCharTok{\textbackslash{}n$\{}\NormalTok{err}\OperatorTok{.}\AttributeTok{stack}\SpecialCharTok{\}}\VerbatimStringTok{\textasciigrave{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{  server}\OperatorTok{.}\FunctionTok{close}\NormalTok{()}\OperatorTok{;}
+\NormalTok{\})}\OperatorTok{;}
+
+\NormalTok{server}\OperatorTok{.}\FunctionTok{on}\NormalTok{(}\StringTok{\textquotesingle{}message\textquotesingle{}}\OperatorTok{,}\NormalTok{ (msg}\OperatorTok{,}\NormalTok{ rinfo) }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+  \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\VerbatimStringTok{\textasciigrave{}server got: }\SpecialCharTok{$\{}\NormalTok{msg}\SpecialCharTok{\}}\VerbatimStringTok{ from }\SpecialCharTok{$\{}\NormalTok{rinfo}\OperatorTok{.}\AttributeTok{address}\SpecialCharTok{\}}\VerbatimStringTok{:}\SpecialCharTok{$\{}\NormalTok{rinfo}\OperatorTok{.}\AttributeTok{port}\SpecialCharTok{\}}\VerbatimStringTok{\textasciigrave{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{\})}\OperatorTok{;}
+
+\NormalTok{server}\OperatorTok{.}\FunctionTok{on}\NormalTok{(}\StringTok{\textquotesingle{}listening\textquotesingle{}}\OperatorTok{,}\NormalTok{ () }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+  \KeywordTok{const}\NormalTok{ address }\OperatorTok{=}\NormalTok{ server}\OperatorTok{.}\FunctionTok{address}\NormalTok{()}\OperatorTok{;}
+  \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\VerbatimStringTok{\textasciigrave{}server listening }\SpecialCharTok{$\{}\NormalTok{address}\OperatorTok{.}\AttributeTok{address}\SpecialCharTok{\}}\VerbatimStringTok{:}\SpecialCharTok{$\{}\NormalTok{address}\OperatorTok{.}\AttributeTok{port}\SpecialCharTok{\}}\VerbatimStringTok{\textasciigrave{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{\})}\OperatorTok{;}
+
+\NormalTok{server}\OperatorTok{.}\FunctionTok{bind}\NormalTok{(}\DecValTok{41234}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// Prints: server listening 0.0.0.0:41234}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ dgram }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:dgram\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\KeywordTok{const}\NormalTok{ server }\OperatorTok{=}\NormalTok{ dgram}\OperatorTok{.}\FunctionTok{createSocket}\NormalTok{(}\StringTok{\textquotesingle{}udp4\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+
+\NormalTok{server}\OperatorTok{.}\FunctionTok{on}\NormalTok{(}\StringTok{\textquotesingle{}error\textquotesingle{}}\OperatorTok{,}\NormalTok{ (err) }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+  \BuiltInTok{console}\OperatorTok{.}\FunctionTok{error}\NormalTok{(}\VerbatimStringTok{\textasciigrave{}server error:}\SpecialCharTok{\textbackslash{}n$\{}\NormalTok{err}\OperatorTok{.}\AttributeTok{stack}\SpecialCharTok{\}}\VerbatimStringTok{\textasciigrave{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{  server}\OperatorTok{.}\FunctionTok{close}\NormalTok{()}\OperatorTok{;}
+\NormalTok{\})}\OperatorTok{;}
+
+\NormalTok{server}\OperatorTok{.}\FunctionTok{on}\NormalTok{(}\StringTok{\textquotesingle{}message\textquotesingle{}}\OperatorTok{,}\NormalTok{ (msg}\OperatorTok{,}\NormalTok{ rinfo) }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+  \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\VerbatimStringTok{\textasciigrave{}server got: }\SpecialCharTok{$\{}\NormalTok{msg}\SpecialCharTok{\}}\VerbatimStringTok{ from }\SpecialCharTok{$\{}\NormalTok{rinfo}\OperatorTok{.}\AttributeTok{address}\SpecialCharTok{\}}\VerbatimStringTok{:}\SpecialCharTok{$\{}\NormalTok{rinfo}\OperatorTok{.}\AttributeTok{port}\SpecialCharTok{\}}\VerbatimStringTok{\textasciigrave{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{\})}\OperatorTok{;}
+
+\NormalTok{server}\OperatorTok{.}\FunctionTok{on}\NormalTok{(}\StringTok{\textquotesingle{}listening\textquotesingle{}}\OperatorTok{,}\NormalTok{ () }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+  \KeywordTok{const}\NormalTok{ address }\OperatorTok{=}\NormalTok{ server}\OperatorTok{.}\FunctionTok{address}\NormalTok{()}\OperatorTok{;}
+  \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\VerbatimStringTok{\textasciigrave{}server listening }\SpecialCharTok{$\{}\NormalTok{address}\OperatorTok{.}\AttributeTok{address}\SpecialCharTok{\}}\VerbatimStringTok{:}\SpecialCharTok{$\{}\NormalTok{address}\OperatorTok{.}\AttributeTok{port}\SpecialCharTok{\}}\VerbatimStringTok{\textasciigrave{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{\})}\OperatorTok{;}
+
+\NormalTok{server}\OperatorTok{.}\FunctionTok{bind}\NormalTok{(}\DecValTok{41234}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// Prints: server listening 0.0.0.0:41234}
+\end{Highlighting}
+\end{Shaded}
+
+\subsection{\texorpdfstring{Class:
+\texttt{dgram.Socket}}{Class: dgram.Socket}}\label{class-dgram.socket}
+
+\begin{itemize}
+\tightlist
+\item
+  Extends: \{EventEmitter\}
+\end{itemize}
+
+Encapsulates the datagram functionality.
+
+New instances of \texttt{dgram.Socket} are created using
+\hyperref[dgramcreatesocketoptions-callback]{\texttt{dgram.createSocket()}}.
+The \texttt{new} keyword is not to be used to create
+\texttt{dgram.Socket} instances.
+
+\subsubsection{\texorpdfstring{Event:
+\texttt{\textquotesingle{}close\textquotesingle{}}}{Event: \textquotesingle close\textquotesingle{}}}\label{event-close}
+
+The \texttt{\textquotesingle{}close\textquotesingle{}} event is emitted
+after a socket is closed with
+\hyperref[socketclosecallback]{\texttt{close()}}. Once triggered, no new
+\texttt{\textquotesingle{}message\textquotesingle{}} events will be
+emitted on this socket.
+
+\subsubsection{\texorpdfstring{Event:
+\texttt{\textquotesingle{}connect\textquotesingle{}}}{Event: \textquotesingle connect\textquotesingle{}}}\label{event-connect}
+
+The \texttt{\textquotesingle{}connect\textquotesingle{}} event is
+emitted after a socket is associated to a remote address as a result of
+a successful
+\hyperref[socketconnectport-address-callback]{\texttt{connect()}} call.
+
+\subsubsection{\texorpdfstring{Event:
+\texttt{\textquotesingle{}error\textquotesingle{}}}{Event: \textquotesingle error\textquotesingle{}}}\label{event-error}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{exception} \{Error\}
+\end{itemize}
+
+The \texttt{\textquotesingle{}error\textquotesingle{}} event is emitted
+whenever any error occurs. The event handler function is passed a single
+\texttt{Error} object.
+
+\subsubsection{\texorpdfstring{Event:
+\texttt{\textquotesingle{}listening\textquotesingle{}}}{Event: \textquotesingle listening\textquotesingle{}}}\label{event-listening}
+
+The \texttt{\textquotesingle{}listening\textquotesingle{}} event is
+emitted once the \texttt{dgram.Socket} is addressable and can receive
+data. This happens either explicitly with \texttt{socket.bind()} or
+implicitly the first time data is sent using \texttt{socket.send()}.
+Until the \texttt{dgram.Socket} is listening, the underlying system
+resources do not exist and calls such as \texttt{socket.address()} and
+\texttt{socket.setTTL()} will fail.
+
+\subsubsection{\texorpdfstring{Event:
+\texttt{\textquotesingle{}message\textquotesingle{}}}{Event: \textquotesingle message\textquotesingle{}}}\label{event-message}
+
+The \texttt{\textquotesingle{}message\textquotesingle{}} event is
+emitted when a new datagram is available on a socket. The event handler
+function is passed two arguments: \texttt{msg} and \texttt{rinfo}.
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{msg} \{Buffer\} The message.
+\item
+  \texttt{rinfo} \{Object\} Remote address information.
+
+  \begin{itemize}
+  \tightlist
+  \item
+    \texttt{address} \{string\} The sender address.
+  \item
+    \texttt{family} \{string\} The address family
+    (\texttt{\textquotesingle{}IPv4\textquotesingle{}} or
+    \texttt{\textquotesingle{}IPv6\textquotesingle{}}).
+  \item
+    \texttt{port} \{number\} The sender port.
+  \item
+    \texttt{size} \{number\} The message size.
+  \end{itemize}
+\end{itemize}
+
+If the source address of the incoming packet is an IPv6 link-local
+address, the interface name is added to the \texttt{address}. For
+example, a packet received on the \texttt{en0} interface might have the
+address field set to
+\texttt{\textquotesingle{}fe80::2618:1234:ab11:3b9c\%en0\textquotesingle{}},
+where \texttt{\textquotesingle{}\%en0\textquotesingle{}} is the
+interface name as a zone ID suffix.
+
+\subsubsection{\texorpdfstring{\texttt{socket.addMembership(multicastAddress{[},\ multicastInterface{]})}}{socket.addMembership(multicastAddress{[}, multicastInterface{]})}}\label{socket.addmembershipmulticastaddress-multicastinterface}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{multicastAddress} \{string\}
+\item
+  \texttt{multicastInterface} \{string\}
+\end{itemize}
+
+Tells the kernel to join a multicast group at the given
+\texttt{multicastAddress} and \texttt{multicastInterface} using the
+\texttt{IP\_ADD\_MEMBERSHIP} socket option. If the
+\texttt{multicastInterface} argument is not specified, the operating
+system will choose one interface and will add membership to it. To add
+membership to every available interface, call \texttt{addMembership}
+multiple times, once per interface.
+
+When called on an unbound socket, this method will implicitly bind to a
+random port, listening on all interfaces.
+
+When sharing a UDP socket across multiple \texttt{cluster} workers, the
+\texttt{socket.addMembership()} function must be called only once or an
+\texttt{EADDRINUSE} error will occur:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\ImportTok{import}\NormalTok{ cluster }\ImportTok{from} \StringTok{\textquotesingle{}node:cluster\textquotesingle{}}\OperatorTok{;}
+\ImportTok{import}\NormalTok{ dgram }\ImportTok{from} \StringTok{\textquotesingle{}node:dgram\textquotesingle{}}\OperatorTok{;}
+
+\ControlFlowTok{if}\NormalTok{ (cluster}\OperatorTok{.}\AttributeTok{isPrimary}\NormalTok{) \{}
+\NormalTok{  cluster}\OperatorTok{.}\FunctionTok{fork}\NormalTok{()}\OperatorTok{;} \CommentTok{// Works ok.}
+\NormalTok{  cluster}\OperatorTok{.}\FunctionTok{fork}\NormalTok{()}\OperatorTok{;} \CommentTok{// Fails with EADDRINUSE.}
+\NormalTok{\} }\ControlFlowTok{else}\NormalTok{ \{}
+  \KeywordTok{const}\NormalTok{ s }\OperatorTok{=}\NormalTok{ dgram}\OperatorTok{.}\FunctionTok{createSocket}\NormalTok{(}\StringTok{\textquotesingle{}udp4\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{  s}\OperatorTok{.}\FunctionTok{bind}\NormalTok{(}\DecValTok{1234}\OperatorTok{,}\NormalTok{ () }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+\NormalTok{    s}\OperatorTok{.}\FunctionTok{addMembership}\NormalTok{(}\StringTok{\textquotesingle{}224.0.0.114\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{  \})}\OperatorTok{;}
+\NormalTok{\}}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ cluster }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:cluster\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\KeywordTok{const}\NormalTok{ dgram }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:dgram\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+
+\ControlFlowTok{if}\NormalTok{ (cluster}\OperatorTok{.}\AttributeTok{isPrimary}\NormalTok{) \{}
+\NormalTok{  cluster}\OperatorTok{.}\FunctionTok{fork}\NormalTok{()}\OperatorTok{;} \CommentTok{// Works ok.}
+\NormalTok{  cluster}\OperatorTok{.}\FunctionTok{fork}\NormalTok{()}\OperatorTok{;} \CommentTok{// Fails with EADDRINUSE.}
+\NormalTok{\} }\ControlFlowTok{else}\NormalTok{ \{}
+  \KeywordTok{const}\NormalTok{ s }\OperatorTok{=}\NormalTok{ dgram}\OperatorTok{.}\FunctionTok{createSocket}\NormalTok{(}\StringTok{\textquotesingle{}udp4\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{  s}\OperatorTok{.}\FunctionTok{bind}\NormalTok{(}\DecValTok{1234}\OperatorTok{,}\NormalTok{ () }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+\NormalTok{    s}\OperatorTok{.}\FunctionTok{addMembership}\NormalTok{(}\StringTok{\textquotesingle{}224.0.0.114\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{  \})}\OperatorTok{;}
+\NormalTok{\}}
+\end{Highlighting}
+\end{Shaded}
+
+\subsubsection{\texorpdfstring{\texttt{socket.addSourceSpecificMembership(sourceAddress,\ groupAddress{[},\ multicastInterface{]})}}{socket.addSourceSpecificMembership(sourceAddress, groupAddress{[}, multicastInterface{]})}}\label{socket.addsourcespecificmembershipsourceaddress-groupaddress-multicastinterface}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{sourceAddress} \{string\}
+\item
+  \texttt{groupAddress} \{string\}
+\item
+  \texttt{multicastInterface} \{string\}
+\end{itemize}
+
+Tells the kernel to join a source-specific multicast channel at the
+given \texttt{sourceAddress} and \texttt{groupAddress}, using the
+\texttt{multicastInterface} with the
+\texttt{IP\_ADD\_SOURCE\_MEMBERSHIP} socket option. If the
+\texttt{multicastInterface} argument is not specified, the operating
+system will choose one interface and will add membership to it. To add
+membership to every available interface, call
+\texttt{socket.addSourceSpecificMembership()} multiple times, once per
+interface.
+
+When called on an unbound socket, this method will implicitly bind to a
+random port, listening on all interfaces.
+
+\subsubsection{\texorpdfstring{\texttt{socket.address()}}{socket.address()}}\label{socket.address}
+
+\begin{itemize}
+\tightlist
+\item
+  Returns: \{Object\}
+\end{itemize}
+
+Returns an object containing the address information for a socket. For
+UDP sockets, this object will contain \texttt{address}, \texttt{family},
+and \texttt{port} properties.
+
+This method throws \texttt{EBADF} if called on an unbound socket.
+
+\subsubsection{\texorpdfstring{\texttt{socket.bind({[}port{]}{[},\ address{]}{[},\ callback{]})}}{socket.bind({[}port{]}{[}, address{]}{[}, callback{]})}}\label{socket.bindport-address-callback}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{port} \{integer\}
+\item
+  \texttt{address} \{string\}
+\item
+  \texttt{callback} \{Function\} with no parameters. Called when binding
+  is complete.
+\end{itemize}
+
+For UDP sockets, causes the \texttt{dgram.Socket} to listen for datagram
+messages on a named \texttt{port} and optional \texttt{address}. If
+\texttt{port} is not specified or is \texttt{0}, the operating system
+will attempt to bind to a random port. If \texttt{address} is not
+specified, the operating system will attempt to listen on all addresses.
+Once binding is complete, a
+\texttt{\textquotesingle{}listening\textquotesingle{}} event is emitted
+and the optional \texttt{callback} function is called.
+
+Specifying both a \texttt{\textquotesingle{}listening\textquotesingle{}}
+event listener and passing a \texttt{callback} to the
+\texttt{socket.bind()} method is not harmful but not very useful.
+
+A bound datagram socket keeps the Node.js process running to receive
+datagram messages.
+
+If binding fails, an \texttt{\textquotesingle{}error\textquotesingle{}}
+event is generated. In rare case (e.g. attempting to bind with a closed
+socket), an \href{errors.md\#class-error}{\texttt{Error}} may be thrown.
+
+Example of a UDP server listening on port 41234:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\ImportTok{import}\NormalTok{ dgram }\ImportTok{from} \StringTok{\textquotesingle{}node:dgram\textquotesingle{}}\OperatorTok{;}
+
+\KeywordTok{const}\NormalTok{ server }\OperatorTok{=}\NormalTok{ dgram}\OperatorTok{.}\FunctionTok{createSocket}\NormalTok{(}\StringTok{\textquotesingle{}udp4\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+
+\NormalTok{server}\OperatorTok{.}\FunctionTok{on}\NormalTok{(}\StringTok{\textquotesingle{}error\textquotesingle{}}\OperatorTok{,}\NormalTok{ (err) }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+  \BuiltInTok{console}\OperatorTok{.}\FunctionTok{error}\NormalTok{(}\VerbatimStringTok{\textasciigrave{}server error:}\SpecialCharTok{\textbackslash{}n$\{}\NormalTok{err}\OperatorTok{.}\AttributeTok{stack}\SpecialCharTok{\}}\VerbatimStringTok{\textasciigrave{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{  server}\OperatorTok{.}\FunctionTok{close}\NormalTok{()}\OperatorTok{;}
+\NormalTok{\})}\OperatorTok{;}
+
+\NormalTok{server}\OperatorTok{.}\FunctionTok{on}\NormalTok{(}\StringTok{\textquotesingle{}message\textquotesingle{}}\OperatorTok{,}\NormalTok{ (msg}\OperatorTok{,}\NormalTok{ rinfo) }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+  \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\VerbatimStringTok{\textasciigrave{}server got: }\SpecialCharTok{$\{}\NormalTok{msg}\SpecialCharTok{\}}\VerbatimStringTok{ from }\SpecialCharTok{$\{}\NormalTok{rinfo}\OperatorTok{.}\AttributeTok{address}\SpecialCharTok{\}}\VerbatimStringTok{:}\SpecialCharTok{$\{}\NormalTok{rinfo}\OperatorTok{.}\AttributeTok{port}\SpecialCharTok{\}}\VerbatimStringTok{\textasciigrave{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{\})}\OperatorTok{;}
+
+\NormalTok{server}\OperatorTok{.}\FunctionTok{on}\NormalTok{(}\StringTok{\textquotesingle{}listening\textquotesingle{}}\OperatorTok{,}\NormalTok{ () }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+  \KeywordTok{const}\NormalTok{ address }\OperatorTok{=}\NormalTok{ server}\OperatorTok{.}\FunctionTok{address}\NormalTok{()}\OperatorTok{;}
+  \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\VerbatimStringTok{\textasciigrave{}server listening }\SpecialCharTok{$\{}\NormalTok{address}\OperatorTok{.}\AttributeTok{address}\SpecialCharTok{\}}\VerbatimStringTok{:}\SpecialCharTok{$\{}\NormalTok{address}\OperatorTok{.}\AttributeTok{port}\SpecialCharTok{\}}\VerbatimStringTok{\textasciigrave{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{\})}\OperatorTok{;}
+
+\NormalTok{server}\OperatorTok{.}\FunctionTok{bind}\NormalTok{(}\DecValTok{41234}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// Prints: server listening 0.0.0.0:41234}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ dgram }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:dgram\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\KeywordTok{const}\NormalTok{ server }\OperatorTok{=}\NormalTok{ dgram}\OperatorTok{.}\FunctionTok{createSocket}\NormalTok{(}\StringTok{\textquotesingle{}udp4\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+
+\NormalTok{server}\OperatorTok{.}\FunctionTok{on}\NormalTok{(}\StringTok{\textquotesingle{}error\textquotesingle{}}\OperatorTok{,}\NormalTok{ (err) }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+  \BuiltInTok{console}\OperatorTok{.}\FunctionTok{error}\NormalTok{(}\VerbatimStringTok{\textasciigrave{}server error:}\SpecialCharTok{\textbackslash{}n$\{}\NormalTok{err}\OperatorTok{.}\AttributeTok{stack}\SpecialCharTok{\}}\VerbatimStringTok{\textasciigrave{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{  server}\OperatorTok{.}\FunctionTok{close}\NormalTok{()}\OperatorTok{;}
+\NormalTok{\})}\OperatorTok{;}
+
+\NormalTok{server}\OperatorTok{.}\FunctionTok{on}\NormalTok{(}\StringTok{\textquotesingle{}message\textquotesingle{}}\OperatorTok{,}\NormalTok{ (msg}\OperatorTok{,}\NormalTok{ rinfo) }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+  \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\VerbatimStringTok{\textasciigrave{}server got: }\SpecialCharTok{$\{}\NormalTok{msg}\SpecialCharTok{\}}\VerbatimStringTok{ from }\SpecialCharTok{$\{}\NormalTok{rinfo}\OperatorTok{.}\AttributeTok{address}\SpecialCharTok{\}}\VerbatimStringTok{:}\SpecialCharTok{$\{}\NormalTok{rinfo}\OperatorTok{.}\AttributeTok{port}\SpecialCharTok{\}}\VerbatimStringTok{\textasciigrave{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{\})}\OperatorTok{;}
+
+\NormalTok{server}\OperatorTok{.}\FunctionTok{on}\NormalTok{(}\StringTok{\textquotesingle{}listening\textquotesingle{}}\OperatorTok{,}\NormalTok{ () }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+  \KeywordTok{const}\NormalTok{ address }\OperatorTok{=}\NormalTok{ server}\OperatorTok{.}\FunctionTok{address}\NormalTok{()}\OperatorTok{;}
+  \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\VerbatimStringTok{\textasciigrave{}server listening }\SpecialCharTok{$\{}\NormalTok{address}\OperatorTok{.}\AttributeTok{address}\SpecialCharTok{\}}\VerbatimStringTok{:}\SpecialCharTok{$\{}\NormalTok{address}\OperatorTok{.}\AttributeTok{port}\SpecialCharTok{\}}\VerbatimStringTok{\textasciigrave{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{\})}\OperatorTok{;}
+
+\NormalTok{server}\OperatorTok{.}\FunctionTok{bind}\NormalTok{(}\DecValTok{41234}\NormalTok{)}\OperatorTok{;}
+\CommentTok{// Prints: server listening 0.0.0.0:41234}
+\end{Highlighting}
+\end{Shaded}
+
+\subsubsection{\texorpdfstring{\texttt{socket.bind(options{[},\ callback{]})}}{socket.bind(options{[}, callback{]})}}\label{socket.bindoptions-callback}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{options} \{Object\} Required. Supports the following
+  properties:
+
+  \begin{itemize}
+  \tightlist
+  \item
+    \texttt{port} \{integer\}
+  \item
+    \texttt{address} \{string\}
+  \item
+    \texttt{exclusive} \{boolean\}
+  \item
+    \texttt{fd} \{integer\}
+  \end{itemize}
+\item
+  \texttt{callback} \{Function\}
+\end{itemize}
+
+For UDP sockets, causes the \texttt{dgram.Socket} to listen for datagram
+messages on a named \texttt{port} and optional \texttt{address} that are
+passed as properties of an \texttt{options} object passed as the first
+argument. If \texttt{port} is not specified or is \texttt{0}, the
+operating system will attempt to bind to a random port. If
+\texttt{address} is not specified, the operating system will attempt to
+listen on all addresses. Once binding is complete, a
+\texttt{\textquotesingle{}listening\textquotesingle{}} event is emitted
+and the optional \texttt{callback} function is called.
+
+The \texttt{options} object may contain a \texttt{fd} property. When a
+\texttt{fd} greater than \texttt{0} is set, it will wrap around an
+existing socket with the given file descriptor. In this case, the
+properties of \texttt{port} and \texttt{address} will be ignored.
+
+Specifying both a \texttt{\textquotesingle{}listening\textquotesingle{}}
+event listener and passing a \texttt{callback} to the
+\texttt{socket.bind()} method is not harmful but not very useful.
+
+The \texttt{options} object may contain an additional \texttt{exclusive}
+property that is used when using \texttt{dgram.Socket} objects with the
+\href{cluster.md}{\texttt{cluster}} module. When \texttt{exclusive} is
+set to \texttt{false} (the default), cluster workers will use the same
+underlying socket handle allowing connection handling duties to be
+shared. When \texttt{exclusive} is \texttt{true}, however, the handle is
+not shared and attempted port sharing results in an error.
+
+A bound datagram socket keeps the Node.js process running to receive
+datagram messages.
+
+If binding fails, an \texttt{\textquotesingle{}error\textquotesingle{}}
+event is generated. In rare case (e.g. attempting to bind with a closed
+socket), an \href{errors.md\#class-error}{\texttt{Error}} may be thrown.
+
+An example socket listening on an exclusive port is shown below.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{socket}\OperatorTok{.}\FunctionTok{bind}\NormalTok{(\{}
+  \DataTypeTok{address}\OperatorTok{:} \StringTok{\textquotesingle{}localhost\textquotesingle{}}\OperatorTok{,}
+  \DataTypeTok{port}\OperatorTok{:} \DecValTok{8000}\OperatorTok{,}
+  \DataTypeTok{exclusive}\OperatorTok{:} \KeywordTok{true}\OperatorTok{,}
+\NormalTok{\})}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+\subsubsection{\texorpdfstring{\texttt{socket.close({[}callback{]})}}{socket.close({[}callback{]})}}\label{socket.closecallback}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{callback} \{Function\} Called when the socket has been closed.
+\end{itemize}
+
+Close the underlying socket and stop listening for data on it. If a
+callback is provided, it is added as a listener for the
+\hyperref[event-close]{\texttt{\textquotesingle{}close\textquotesingle{}}}
+event.
+
+\subsubsection{\texorpdfstring{\texttt{socket{[}Symbol.asyncDispose{]}()}}{socket{[}Symbol.asyncDispose{]}()}}\label{socketsymbol.asyncdispose}
+
+\begin{quote}
+Stability: 1 - Experimental
+\end{quote}
+
+Calls \hyperref[socketclosecallback]{\texttt{socket.close()}} and
+returns a promise that fulfills when the socket has closed.
+
+\subsubsection{\texorpdfstring{\texttt{socket.connect(port{[},\ address{]}{[},\ callback{]})}}{socket.connect(port{[}, address{]}{[}, callback{]})}}\label{socket.connectport-address-callback}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{port} \{integer\}
+\item
+  \texttt{address} \{string\}
+\item
+  \texttt{callback} \{Function\} Called when the connection is completed
+  or on error.
+\end{itemize}
+
+Associates the \texttt{dgram.Socket} to a remote address and port. Every
+message sent by this handle is automatically sent to that destination.
+Also, the socket will only receive messages from that remote peer.
+Trying to call \texttt{connect()} on an already connected socket will
+result in an
+\href{errors.md\#err_socket_dgram_is_connected}{\texttt{ERR\_SOCKET\_DGRAM\_IS\_CONNECTED}}
+exception. If \texttt{address} is not provided,
+\texttt{\textquotesingle{}127.0.0.1\textquotesingle{}} (for
+\texttt{udp4} sockets) or
+\texttt{\textquotesingle{}::1\textquotesingle{}} (for \texttt{udp6}
+sockets) will be used by default. Once the connection is complete, a
+\texttt{\textquotesingle{}connect\textquotesingle{}} event is emitted
+and the optional \texttt{callback} function is called. In case of
+failure, the \texttt{callback} is called or, failing this, an
+\texttt{\textquotesingle{}error\textquotesingle{}} event is emitted.
+
+\subsubsection{\texorpdfstring{\texttt{socket.disconnect()}}{socket.disconnect()}}\label{socket.disconnect}
+
+A synchronous function that disassociates a connected
+\texttt{dgram.Socket} from its remote address. Trying to call
+\texttt{disconnect()} on an unbound or already disconnected socket will
+result in an
+\href{errors.md\#err_socket_dgram_not_connected}{\texttt{ERR\_SOCKET\_DGRAM\_NOT\_CONNECTED}}
+exception.
+
+\subsubsection{\texorpdfstring{\texttt{socket.dropMembership(multicastAddress{[},\ multicastInterface{]})}}{socket.dropMembership(multicastAddress{[}, multicastInterface{]})}}\label{socket.dropmembershipmulticastaddress-multicastinterface}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{multicastAddress} \{string\}
+\item
+  \texttt{multicastInterface} \{string\}
+\end{itemize}
+
+Instructs the kernel to leave a multicast group at
+\texttt{multicastAddress} using the \texttt{IP\_DROP\_MEMBERSHIP} socket
+option. This method is automatically called by the kernel when the
+socket is closed or the process terminates, so most apps will never have
+reason to call this.
+
+If \texttt{multicastInterface} is not specified, the operating system
+will attempt to drop membership on all valid interfaces.
+
+\subsubsection{\texorpdfstring{\texttt{socket.dropSourceSpecificMembership(sourceAddress,\ groupAddress{[},\ multicastInterface{]})}}{socket.dropSourceSpecificMembership(sourceAddress, groupAddress{[}, multicastInterface{]})}}\label{socket.dropsourcespecificmembershipsourceaddress-groupaddress-multicastinterface}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{sourceAddress} \{string\}
+\item
+  \texttt{groupAddress} \{string\}
+\item
+  \texttt{multicastInterface} \{string\}
+\end{itemize}
+
+Instructs the kernel to leave a source-specific multicast channel at the
+given \texttt{sourceAddress} and \texttt{groupAddress} using the
+\texttt{IP\_DROP\_SOURCE\_MEMBERSHIP} socket option. This method is
+automatically called by the kernel when the socket is closed or the
+process terminates, so most apps will never have reason to call this.
+
+If \texttt{multicastInterface} is not specified, the operating system
+will attempt to drop membership on all valid interfaces.
+
+\subsubsection{\texorpdfstring{\texttt{socket.getRecvBufferSize()}}{socket.getRecvBufferSize()}}\label{socket.getrecvbuffersize}
+
+\begin{itemize}
+\tightlist
+\item
+  Returns: \{number\} the \texttt{SO\_RCVBUF} socket receive buffer size
+  in bytes.
+\end{itemize}
+
+This method throws
+\href{errors.md\#err_socket_buffer_size}{\texttt{ERR\_SOCKET\_BUFFER\_SIZE}}
+if called on an unbound socket.
+
+\subsubsection{\texorpdfstring{\texttt{socket.getSendBufferSize()}}{socket.getSendBufferSize()}}\label{socket.getsendbuffersize}
+
+\begin{itemize}
+\tightlist
+\item
+  Returns: \{number\} the \texttt{SO\_SNDBUF} socket send buffer size in
+  bytes.
+\end{itemize}
+
+This method throws
+\href{errors.md\#err_socket_buffer_size}{\texttt{ERR\_SOCKET\_BUFFER\_SIZE}}
+if called on an unbound socket.
+
+\subsubsection{\texorpdfstring{\texttt{socket.getSendQueueSize()}}{socket.getSendQueueSize()}}\label{socket.getsendqueuesize}
+
+\begin{itemize}
+\tightlist
+\item
+  Returns: \{number\} Number of bytes queued for sending.
+\end{itemize}
+
+\subsubsection{\texorpdfstring{\texttt{socket.getSendQueueCount()}}{socket.getSendQueueCount()}}\label{socket.getsendqueuecount}
+
+\begin{itemize}
+\tightlist
+\item
+  Returns: \{number\} Number of send requests currently in the queue
+  awaiting to be processed.
+\end{itemize}
+
+\subsubsection{\texorpdfstring{\texttt{socket.ref()}}{socket.ref()}}\label{socket.ref}
+
+\begin{itemize}
+\tightlist
+\item
+  Returns: \{dgram.Socket\}
+\end{itemize}
+
+By default, binding a socket will cause it to block the Node.js process
+from exiting as long as the socket is open. The \texttt{socket.unref()}
+method can be used to exclude the socket from the reference counting
+that keeps the Node.js process active. The \texttt{socket.ref()} method
+adds the socket back to the reference counting and restores the default
+behavior.
+
+Calling \texttt{socket.ref()} multiples times will have no additional
+effect.
+
+The \texttt{socket.ref()} method returns a reference to the socket so
+calls can be chained.
+
+\subsubsection{\texorpdfstring{\texttt{socket.remoteAddress()}}{socket.remoteAddress()}}\label{socket.remoteaddress}
+
+\begin{itemize}
+\tightlist
+\item
+  Returns: \{Object\}
+\end{itemize}
+
+Returns an object containing the \texttt{address}, \texttt{family}, and
+\texttt{port} of the remote endpoint. This method throws an
+\href{errors.md\#err_socket_dgram_not_connected}{\texttt{ERR\_SOCKET\_DGRAM\_NOT\_CONNECTED}}
+exception if the socket is not connected.
+
+\subsubsection{\texorpdfstring{\texttt{socket.send(msg{[},\ offset,\ length{]}{[},\ port{]}{[},\ address{]}{[},\ callback{]})}}{socket.send(msg{[}, offset, length{]}{[}, port{]}{[}, address{]}{[}, callback{]})}}\label{socket.sendmsg-offset-length-port-address-callback}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{msg}
+  \{Buffer\textbar TypedArray\textbar DataView\textbar string\textbar Array\}
+  Message to be sent.
+\item
+  \texttt{offset} \{integer\} Offset in the buffer where the message
+  starts.
+\item
+  \texttt{length} \{integer\} Number of bytes in the message.
+\item
+  \texttt{port} \{integer\} Destination port.
+\item
+  \texttt{address} \{string\} Destination host name or IP address.
+\item
+  \texttt{callback} \{Function\} Called when the message has been sent.
+\end{itemize}
+
+Broadcasts a datagram on the socket. For connectionless sockets, the
+destination \texttt{port} and \texttt{address} must be specified.
+Connected sockets, on the other hand, will use their associated remote
+endpoint, so the \texttt{port} and \texttt{address} arguments must not
+be set.
+
+The \texttt{msg} argument contains the message to be sent. Depending on
+its type, different behavior can apply. If \texttt{msg} is a
+\texttt{Buffer}, any \texttt{TypedArray} or a \texttt{DataView}, the
+\texttt{offset} and \texttt{length} specify the offset within the
+\texttt{Buffer} where the message begins and the number of bytes in the
+message, respectively. If \texttt{msg} is a \texttt{String}, then it is
+automatically converted to a \texttt{Buffer} with
+\texttt{\textquotesingle{}utf8\textquotesingle{}} encoding. With
+messages that contain multi-byte characters, \texttt{offset} and
+\texttt{length} will be calculated with respect to
+\href{buffer.md\#static-method-bufferbytelengthstring-encoding}{byte
+length} and not the character position. If \texttt{msg} is an array,
+\texttt{offset} and \texttt{length} must not be specified.
+
+The \texttt{address} argument is a string. If the value of
+\texttt{address} is a host name, DNS will be used to resolve the address
+of the host. If \texttt{address} is not provided or otherwise nullish,
+\texttt{\textquotesingle{}127.0.0.1\textquotesingle{}} (for
+\texttt{udp4} sockets) or
+\texttt{\textquotesingle{}::1\textquotesingle{}} (for \texttt{udp6}
+sockets) will be used by default.
+
+If the socket has not been previously bound with a call to
+\texttt{bind}, the socket is assigned a random port number and is bound
+to the ``all interfaces'' address
+(\texttt{\textquotesingle{}0.0.0.0\textquotesingle{}} for \texttt{udp4}
+sockets, \texttt{\textquotesingle{}::0\textquotesingle{}} for
+\texttt{udp6} sockets.)
+
+An optional \texttt{callback} function may be specified to as a way of
+reporting DNS errors or for determining when it is safe to reuse the
+\texttt{buf} object. DNS lookups delay the time to send for at least one
+tick of the Node.js event loop.
+
+The only way to know for sure that the datagram has been sent is by
+using a \texttt{callback}. If an error occurs and a \texttt{callback} is
+given, the error will be passed as the first argument to the
+\texttt{callback}. If a \texttt{callback} is not given, the error is
+emitted as an \texttt{\textquotesingle{}error\textquotesingle{}} event
+on the \texttt{socket} object.
+
+Offset and length are optional but both \emph{must} be set if either are
+used. They are supported only when the first argument is a
+\texttt{Buffer}, a \texttt{TypedArray}, or a \texttt{DataView}.
+
+This method throws
+\href{errors.md\#err_socket_bad_port}{\texttt{ERR\_SOCKET\_BAD\_PORT}}
+if called on an unbound socket.
+
+Example of sending a UDP packet to a port on \texttt{localhost};
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\ImportTok{import}\NormalTok{ dgram }\ImportTok{from} \StringTok{\textquotesingle{}node:dgram\textquotesingle{}}\OperatorTok{;}
+\ImportTok{import}\NormalTok{ \{ }\BuiltInTok{Buffer}\NormalTok{ \} }\ImportTok{from} \StringTok{\textquotesingle{}node:buffer\textquotesingle{}}\OperatorTok{;}
+
+\KeywordTok{const}\NormalTok{ message }\OperatorTok{=} \BuiltInTok{Buffer}\OperatorTok{.}\FunctionTok{from}\NormalTok{(}\StringTok{\textquotesingle{}Some bytes\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\KeywordTok{const}\NormalTok{ client }\OperatorTok{=}\NormalTok{ dgram}\OperatorTok{.}\FunctionTok{createSocket}\NormalTok{(}\StringTok{\textquotesingle{}udp4\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{client}\OperatorTok{.}\FunctionTok{send}\NormalTok{(message}\OperatorTok{,} \DecValTok{41234}\OperatorTok{,} \StringTok{\textquotesingle{}localhost\textquotesingle{}}\OperatorTok{,}\NormalTok{ (err) }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+\NormalTok{  client}\OperatorTok{.}\FunctionTok{close}\NormalTok{()}\OperatorTok{;}
+\NormalTok{\})}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ dgram }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:dgram\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\KeywordTok{const}\NormalTok{ \{ }\BuiltInTok{Buffer}\NormalTok{ \} }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:buffer\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+
+\KeywordTok{const}\NormalTok{ message }\OperatorTok{=} \BuiltInTok{Buffer}\OperatorTok{.}\FunctionTok{from}\NormalTok{(}\StringTok{\textquotesingle{}Some bytes\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\KeywordTok{const}\NormalTok{ client }\OperatorTok{=}\NormalTok{ dgram}\OperatorTok{.}\FunctionTok{createSocket}\NormalTok{(}\StringTok{\textquotesingle{}udp4\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{client}\OperatorTok{.}\FunctionTok{send}\NormalTok{(message}\OperatorTok{,} \DecValTok{41234}\OperatorTok{,} \StringTok{\textquotesingle{}localhost\textquotesingle{}}\OperatorTok{,}\NormalTok{ (err) }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+\NormalTok{  client}\OperatorTok{.}\FunctionTok{close}\NormalTok{()}\OperatorTok{;}
+\NormalTok{\})}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+Example of sending a UDP packet composed of multiple buffers to a port
+on \texttt{127.0.0.1};
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\ImportTok{import}\NormalTok{ dgram }\ImportTok{from} \StringTok{\textquotesingle{}node:dgram\textquotesingle{}}\OperatorTok{;}
+\ImportTok{import}\NormalTok{ \{ }\BuiltInTok{Buffer}\NormalTok{ \} }\ImportTok{from} \StringTok{\textquotesingle{}node:buffer\textquotesingle{}}\OperatorTok{;}
+
+\KeywordTok{const}\NormalTok{ buf1 }\OperatorTok{=} \BuiltInTok{Buffer}\OperatorTok{.}\FunctionTok{from}\NormalTok{(}\StringTok{\textquotesingle{}Some \textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\KeywordTok{const}\NormalTok{ buf2 }\OperatorTok{=} \BuiltInTok{Buffer}\OperatorTok{.}\FunctionTok{from}\NormalTok{(}\StringTok{\textquotesingle{}bytes\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\KeywordTok{const}\NormalTok{ client }\OperatorTok{=}\NormalTok{ dgram}\OperatorTok{.}\FunctionTok{createSocket}\NormalTok{(}\StringTok{\textquotesingle{}udp4\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{client}\OperatorTok{.}\FunctionTok{send}\NormalTok{([buf1}\OperatorTok{,}\NormalTok{ buf2]}\OperatorTok{,} \DecValTok{41234}\OperatorTok{,}\NormalTok{ (err) }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+\NormalTok{  client}\OperatorTok{.}\FunctionTok{close}\NormalTok{()}\OperatorTok{;}
+\NormalTok{\})}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ dgram }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:dgram\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\KeywordTok{const}\NormalTok{ \{ }\BuiltInTok{Buffer}\NormalTok{ \} }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:buffer\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+
+\KeywordTok{const}\NormalTok{ buf1 }\OperatorTok{=} \BuiltInTok{Buffer}\OperatorTok{.}\FunctionTok{from}\NormalTok{(}\StringTok{\textquotesingle{}Some \textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\KeywordTok{const}\NormalTok{ buf2 }\OperatorTok{=} \BuiltInTok{Buffer}\OperatorTok{.}\FunctionTok{from}\NormalTok{(}\StringTok{\textquotesingle{}bytes\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\KeywordTok{const}\NormalTok{ client }\OperatorTok{=}\NormalTok{ dgram}\OperatorTok{.}\FunctionTok{createSocket}\NormalTok{(}\StringTok{\textquotesingle{}udp4\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{client}\OperatorTok{.}\FunctionTok{send}\NormalTok{([buf1}\OperatorTok{,}\NormalTok{ buf2]}\OperatorTok{,} \DecValTok{41234}\OperatorTok{,}\NormalTok{ (err) }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+\NormalTok{  client}\OperatorTok{.}\FunctionTok{close}\NormalTok{()}\OperatorTok{;}
+\NormalTok{\})}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+Sending multiple buffers might be faster or slower depending on the
+application and operating system. Run benchmarks to determine the
+optimal strategy on a case-by-case basis. Generally speaking, however,
+sending multiple buffers is faster.
+
+Example of sending a UDP packet using a socket connected to a port on
+\texttt{localhost}:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\ImportTok{import}\NormalTok{ dgram }\ImportTok{from} \StringTok{\textquotesingle{}node:dgram\textquotesingle{}}\OperatorTok{;}
+\ImportTok{import}\NormalTok{ \{ }\BuiltInTok{Buffer}\NormalTok{ \} }\ImportTok{from} \StringTok{\textquotesingle{}node:buffer\textquotesingle{}}\OperatorTok{;}
+
+\KeywordTok{const}\NormalTok{ message }\OperatorTok{=} \BuiltInTok{Buffer}\OperatorTok{.}\FunctionTok{from}\NormalTok{(}\StringTok{\textquotesingle{}Some bytes\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\KeywordTok{const}\NormalTok{ client }\OperatorTok{=}\NormalTok{ dgram}\OperatorTok{.}\FunctionTok{createSocket}\NormalTok{(}\StringTok{\textquotesingle{}udp4\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{client}\OperatorTok{.}\FunctionTok{connect}\NormalTok{(}\DecValTok{41234}\OperatorTok{,} \StringTok{\textquotesingle{}localhost\textquotesingle{}}\OperatorTok{,}\NormalTok{ (err) }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+\NormalTok{  client}\OperatorTok{.}\FunctionTok{send}\NormalTok{(message}\OperatorTok{,}\NormalTok{ (err) }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+\NormalTok{    client}\OperatorTok{.}\FunctionTok{close}\NormalTok{()}\OperatorTok{;}
+\NormalTok{  \})}\OperatorTok{;}
+\NormalTok{\})}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ dgram }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:dgram\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\KeywordTok{const}\NormalTok{ \{ }\BuiltInTok{Buffer}\NormalTok{ \} }\OperatorTok{=} \PreprocessorTok{require}\NormalTok{(}\StringTok{\textquotesingle{}node:buffer\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+
+\KeywordTok{const}\NormalTok{ message }\OperatorTok{=} \BuiltInTok{Buffer}\OperatorTok{.}\FunctionTok{from}\NormalTok{(}\StringTok{\textquotesingle{}Some bytes\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\KeywordTok{const}\NormalTok{ client }\OperatorTok{=}\NormalTok{ dgram}\OperatorTok{.}\FunctionTok{createSocket}\NormalTok{(}\StringTok{\textquotesingle{}udp4\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{client}\OperatorTok{.}\FunctionTok{connect}\NormalTok{(}\DecValTok{41234}\OperatorTok{,} \StringTok{\textquotesingle{}localhost\textquotesingle{}}\OperatorTok{,}\NormalTok{ (err) }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+\NormalTok{  client}\OperatorTok{.}\FunctionTok{send}\NormalTok{(message}\OperatorTok{,}\NormalTok{ (err) }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+\NormalTok{    client}\OperatorTok{.}\FunctionTok{close}\NormalTok{()}\OperatorTok{;}
+\NormalTok{  \})}\OperatorTok{;}
+\NormalTok{\})}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+\paragraph{Note about UDP datagram
+size}\label{note-about-udp-datagram-size}
+
+The maximum size of an IPv4/v6 datagram depends on the \texttt{MTU}
+(Maximum Transmission Unit) and on the \texttt{Payload\ Length} field
+size.
+
+\begin{itemize}
+\item
+  The \texttt{Payload\ Length} field is 16 bits wide, which means that a
+  normal payload cannot exceed 64K octets including the internet header
+  and data (65,507 bytes = 65,535 − 8 bytes UDP header − 20 bytes IP
+  header); this is generally true for loopback interfaces, but such long
+  datagram messages are impractical for most hosts and networks.
+\item
+  The \texttt{MTU} is the largest size a given link layer technology can
+  support for datagram messages. For any link, IPv4 mandates a minimum
+  \texttt{MTU} of 68 octets, while the recommended \texttt{MTU} for IPv4
+  is 576 (typically recommended as the \texttt{MTU} for dial-up type
+  applications), whether they arrive whole or in fragments.
+
+  For IPv6, the minimum \texttt{MTU} is 1280 octets. However, the
+  mandatory minimum fragment reassembly buffer size is 1500 octets. The
+  value of 68 octets is very small, since most current link layer
+  technologies, like Ethernet, have a minimum \texttt{MTU} of 1500.
+\end{itemize}
+
+It is impossible to know in advance the MTU of each link through which a
+packet might travel. Sending a datagram greater than the receiver
+\texttt{MTU} will not work because the packet will get silently dropped
+without informing the source that the data did not reach its intended
+recipient.
+
+\subsubsection{\texorpdfstring{\texttt{socket.setBroadcast(flag)}}{socket.setBroadcast(flag)}}\label{socket.setbroadcastflag}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{flag} \{boolean\}
+\end{itemize}
+
+Sets or clears the \texttt{SO\_BROADCAST} socket option. When set to
+\texttt{true}, UDP packets may be sent to a local interface's broadcast
+address.
+
+This method throws \texttt{EBADF} if called on an unbound socket.
+
+\subsubsection{\texorpdfstring{\texttt{socket.setMulticastInterface(multicastInterface)}}{socket.setMulticastInterface(multicastInterface)}}\label{socket.setmulticastinterfacemulticastinterface}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{multicastInterface} \{string\}
+\end{itemize}
+
+\emph{All references to scope in this section are referring to
+\href{https://en.wikipedia.org/wiki/IPv6_address\#Scoped_literal_IPv6_addresses}{IPv6
+Zone Indices}, which are defined by
+\href{https://tools.ietf.org/html/rfc4007}{RFC 4007}. In string form, an
+IP with a scope index is written as
+\texttt{\textquotesingle{}IP\%scope\textquotesingle{}} where scope is an
+interface name or interface number.}
+
+Sets the default outgoing multicast interface of the socket to a chosen
+interface or back to system interface selection. The
+\texttt{multicastInterface} must be a valid string representation of an
+IP from the socket's family.
+
+For IPv4 sockets, this should be the IP configured for the desired
+physical interface. All packets sent to multicast on the socket will be
+sent on the interface determined by the most recent successful use of
+this call.
+
+For IPv6 sockets, \texttt{multicastInterface} should include a scope to
+indicate the interface as in the examples that follow. In IPv6,
+individual \texttt{send} calls can also use explicit scope in addresses,
+so only packets sent to a multicast address without specifying an
+explicit scope are affected by the most recent successful use of this
+call.
+
+This method throws \texttt{EBADF} if called on an unbound socket.
+
+\paragraph{Example: IPv6 outgoing multicast
+interface}\label{example-ipv6-outgoing-multicast-interface}
+
+On most systems, where scope format uses the interface name:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ socket }\OperatorTok{=}\NormalTok{ dgram}\OperatorTok{.}\FunctionTok{createSocket}\NormalTok{(}\StringTok{\textquotesingle{}udp6\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+
+\NormalTok{socket}\OperatorTok{.}\FunctionTok{bind}\NormalTok{(}\DecValTok{1234}\OperatorTok{,}\NormalTok{ () }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+\NormalTok{  socket}\OperatorTok{.}\FunctionTok{setMulticastInterface}\NormalTok{(}\StringTok{\textquotesingle{}::\%eth1\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{\})}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+On Windows, where scope format uses an interface number:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ socket }\OperatorTok{=}\NormalTok{ dgram}\OperatorTok{.}\FunctionTok{createSocket}\NormalTok{(}\StringTok{\textquotesingle{}udp6\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+
+\NormalTok{socket}\OperatorTok{.}\FunctionTok{bind}\NormalTok{(}\DecValTok{1234}\OperatorTok{,}\NormalTok{ () }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+\NormalTok{  socket}\OperatorTok{.}\FunctionTok{setMulticastInterface}\NormalTok{(}\StringTok{\textquotesingle{}::\%2\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{\})}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+\paragraph{Example: IPv4 outgoing multicast
+interface}\label{example-ipv4-outgoing-multicast-interface}
+
+All systems use an IP of the host on the desired physical interface:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ socket }\OperatorTok{=}\NormalTok{ dgram}\OperatorTok{.}\FunctionTok{createSocket}\NormalTok{(}\StringTok{\textquotesingle{}udp4\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+
+\NormalTok{socket}\OperatorTok{.}\FunctionTok{bind}\NormalTok{(}\DecValTok{1234}\OperatorTok{,}\NormalTok{ () }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+\NormalTok{  socket}\OperatorTok{.}\FunctionTok{setMulticastInterface}\NormalTok{(}\StringTok{\textquotesingle{}10.0.0.2\textquotesingle{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{\})}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+\paragraph{Call results}\label{call-results}
+
+A call on a socket that is not ready to send or no longer open may throw
+a \emph{Not running} \href{errors.md\#class-error}{\texttt{Error}}.
+
+If \texttt{multicastInterface} can not be parsed into an IP then an
+\emph{EINVAL}
+\href{errors.md\#class-systemerror}{\texttt{System\ Error}} is thrown.
+
+On IPv4, if \texttt{multicastInterface} is a valid address but does not
+match any interface, or if the address does not match the family then a
+\href{errors.md\#class-systemerror}{\texttt{System\ Error}} such as
+\texttt{EADDRNOTAVAIL} or \texttt{EPROTONOSUP} is thrown.
+
+On IPv6, most errors with specifying or omitting scope will result in
+the socket continuing to use (or returning to) the system's default
+interface selection.
+
+A socket's address family's ANY address (IPv4
+\texttt{\textquotesingle{}0.0.0.0\textquotesingle{}} or IPv6
+\texttt{\textquotesingle{}::\textquotesingle{}}) can be used to return
+control of the sockets default outgoing interface to the system for
+future multicast packets.
+
+\subsubsection{\texorpdfstring{\texttt{socket.setMulticastLoopback(flag)}}{socket.setMulticastLoopback(flag)}}\label{socket.setmulticastloopbackflag}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{flag} \{boolean\}
+\end{itemize}
+
+Sets or clears the \texttt{IP\_MULTICAST\_LOOP} socket option. When set
+to \texttt{true}, multicast packets will also be received on the local
+interface.
+
+This method throws \texttt{EBADF} if called on an unbound socket.
+
+\subsubsection{\texorpdfstring{\texttt{socket.setMulticastTTL(ttl)}}{socket.setMulticastTTL(ttl)}}\label{socket.setmulticastttlttl}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{ttl} \{integer\}
+\end{itemize}
+
+Sets the \texttt{IP\_MULTICAST\_TTL} socket option. While TTL generally
+stands for ``Time to Live'', in this context it specifies the number of
+IP hops that a packet is allowed to travel through, specifically for
+multicast traffic. Each router or gateway that forwards a packet
+decrements the TTL. If the TTL is decremented to 0 by a router, it will
+not be forwarded.
+
+The \texttt{ttl} argument may be between 0 and 255. The default on most
+systems is \texttt{1}.
+
+This method throws \texttt{EBADF} if called on an unbound socket.
+
+\subsubsection{\texorpdfstring{\texttt{socket.setRecvBufferSize(size)}}{socket.setRecvBufferSize(size)}}\label{socket.setrecvbuffersizesize}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{size} \{integer\}
+\end{itemize}
+
+Sets the \texttt{SO\_RCVBUF} socket option. Sets the maximum socket
+receive buffer in bytes.
+
+This method throws
+\href{errors.md\#err_socket_buffer_size}{\texttt{ERR\_SOCKET\_BUFFER\_SIZE}}
+if called on an unbound socket.
+
+\subsubsection{\texorpdfstring{\texttt{socket.setSendBufferSize(size)}}{socket.setSendBufferSize(size)}}\label{socket.setsendbuffersizesize}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{size} \{integer\}
+\end{itemize}
+
+Sets the \texttt{SO\_SNDBUF} socket option. Sets the maximum socket send
+buffer in bytes.
+
+This method throws
+\href{errors.md\#err_socket_buffer_size}{\texttt{ERR\_SOCKET\_BUFFER\_SIZE}}
+if called on an unbound socket.
+
+\subsubsection{\texorpdfstring{\texttt{socket.setTTL(ttl)}}{socket.setTTL(ttl)}}\label{socket.setttlttl}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{ttl} \{integer\}
+\end{itemize}
+
+Sets the \texttt{IP\_TTL} socket option. While TTL generally stands for
+``Time to Live'', in this context it specifies the number of IP hops
+that a packet is allowed to travel through. Each router or gateway that
+forwards a packet decrements the TTL. If the TTL is decremented to 0 by
+a router, it will not be forwarded. Changing TTL values is typically
+done for network probes or when multicasting.
+
+The \texttt{ttl} argument may be between 1 and 255. The default on most
+systems is 64.
+
+This method throws \texttt{EBADF} if called on an unbound socket.
+
+\subsubsection{\texorpdfstring{\texttt{socket.unref()}}{socket.unref()}}\label{socket.unref}
+
+\begin{itemize}
+\tightlist
+\item
+  Returns: \{dgram.Socket\}
+\end{itemize}
+
+By default, binding a socket will cause it to block the Node.js process
+from exiting as long as the socket is open. The \texttt{socket.unref()}
+method can be used to exclude the socket from the reference counting
+that keeps the Node.js process active, allowing the process to exit even
+if the socket is still listening.
+
+Calling \texttt{socket.unref()} multiple times will have no additional
+effect.
+
+The \texttt{socket.unref()} method returns a reference to the socket so
+calls can be chained.
+
+\subsection{\texorpdfstring{\texttt{node:dgram} module
+functions}{node:dgram module functions}}\label{nodedgram-module-functions}
+
+\subsubsection{\texorpdfstring{\texttt{dgram.createSocket(options{[},\ callback{]})}}{dgram.createSocket(options{[}, callback{]})}}\label{dgram.createsocketoptions-callback}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{options} \{Object\} Available options are:
+
+  \begin{itemize}
+  \tightlist
+  \item
+    \texttt{type} \{string\} The family of socket. Must be either
+    \texttt{\textquotesingle{}udp4\textquotesingle{}} or
+    \texttt{\textquotesingle{}udp6\textquotesingle{}}. Required.
+  \item
+    \texttt{reuseAddr} \{boolean\} When \texttt{true}
+    \hyperref[socketbindport-address-callback]{\texttt{socket.bind()}}
+    will reuse the address, even if another process has already bound a
+    socket on it. \textbf{Default:} \texttt{false}.
+  \item
+    \texttt{ipv6Only} \{boolean\} Setting \texttt{ipv6Only} to
+    \texttt{true} will disable dual-stack support, i.e., binding to
+    address \texttt{::} won't make \texttt{0.0.0.0} be bound.
+    \textbf{Default:} \texttt{false}.
+  \item
+    \texttt{recvBufferSize} \{number\} Sets the \texttt{SO\_RCVBUF}
+    socket value.
+  \item
+    \texttt{sendBufferSize} \{number\} Sets the \texttt{SO\_SNDBUF}
+    socket value.
+  \item
+    \texttt{lookup} \{Function\} Custom lookup function.
+    \textbf{Default:}
+    \href{dns.md\#dnslookuphostname-options-callback}{\texttt{dns.lookup()}}.
+  \item
+    \texttt{signal} \{AbortSignal\} An AbortSignal that may be used to
+    close a socket.
+  \end{itemize}
+\item
+  \texttt{callback} \{Function\} Attached as a listener for
+  \texttt{\textquotesingle{}message\textquotesingle{}} events. Optional.
+\item
+  Returns: \{dgram.Socket\}
+\end{itemize}
+
+Creates a \texttt{dgram.Socket} object. Once the socket is created,
+calling
+\hyperref[socketbindport-address-callback]{\texttt{socket.bind()}} will
+instruct the socket to begin listening for datagram messages. When
+\texttt{address} and \texttt{port} are not passed to
+\hyperref[socketbindport-address-callback]{\texttt{socket.bind()}} the
+method will bind the socket to the ``all interfaces'' address on a
+random port (it does the right thing for both \texttt{udp4} and
+\texttt{udp6} sockets). The bound address and port can be retrieved
+using \hyperref[socketaddress]{\texttt{socket.address().address}} and
+\hyperref[socketaddress]{\texttt{socket.address().port}}.
+
+If the \texttt{signal} option is enabled, calling \texttt{.abort()} on
+the corresponding \texttt{AbortController} is similar to calling
+\texttt{.close()} on the socket:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{const}\NormalTok{ controller }\OperatorTok{=} \KeywordTok{new} \FunctionTok{AbortController}\NormalTok{()}\OperatorTok{;}
+\KeywordTok{const}\NormalTok{ \{ signal \} }\OperatorTok{=}\NormalTok{ controller}\OperatorTok{;}
+\KeywordTok{const}\NormalTok{ server }\OperatorTok{=}\NormalTok{ dgram}\OperatorTok{.}\FunctionTok{createSocket}\NormalTok{(\{ }\DataTypeTok{type}\OperatorTok{:} \StringTok{\textquotesingle{}udp4\textquotesingle{}}\OperatorTok{,}\NormalTok{ signal \})}\OperatorTok{;}
+\NormalTok{server}\OperatorTok{.}\FunctionTok{on}\NormalTok{(}\StringTok{\textquotesingle{}message\textquotesingle{}}\OperatorTok{,}\NormalTok{ (msg}\OperatorTok{,}\NormalTok{ rinfo) }\KeywordTok{=\textgreater{}}\NormalTok{ \{}
+  \BuiltInTok{console}\OperatorTok{.}\FunctionTok{log}\NormalTok{(}\VerbatimStringTok{\textasciigrave{}server got: }\SpecialCharTok{$\{}\NormalTok{msg}\SpecialCharTok{\}}\VerbatimStringTok{ from }\SpecialCharTok{$\{}\NormalTok{rinfo}\OperatorTok{.}\AttributeTok{address}\SpecialCharTok{\}}\VerbatimStringTok{:}\SpecialCharTok{$\{}\NormalTok{rinfo}\OperatorTok{.}\AttributeTok{port}\SpecialCharTok{\}}\VerbatimStringTok{\textasciigrave{}}\NormalTok{)}\OperatorTok{;}
+\NormalTok{\})}\OperatorTok{;}
+\CommentTok{// Later, when you want to close the server.}
+\NormalTok{controller}\OperatorTok{.}\FunctionTok{abort}\NormalTok{()}\OperatorTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+\subsubsection{\texorpdfstring{\texttt{dgram.createSocket(type{[},\ callback{]})}}{dgram.createSocket(type{[}, callback{]})}}\label{dgram.createsockettype-callback}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{type} \{string\} Either
+  \texttt{\textquotesingle{}udp4\textquotesingle{}} or
+  \texttt{\textquotesingle{}udp6\textquotesingle{}}.
+\item
+  \texttt{callback} \{Function\} Attached as a listener to
+  \texttt{\textquotesingle{}message\textquotesingle{}} events.
+\item
+  Returns: \{dgram.Socket\}
+\end{itemize}
+
+Creates a \texttt{dgram.Socket} object of the specified \texttt{type}.
+
+Once the socket is created, calling
+\hyperref[socketbindport-address-callback]{\texttt{socket.bind()}} will
+instruct the socket to begin listening for datagram messages. When
+\texttt{address} and \texttt{port} are not passed to
+\hyperref[socketbindport-address-callback]{\texttt{socket.bind()}} the
+method will bind the socket to the ``all interfaces'' address on a
+random port (it does the right thing for both \texttt{udp4} and
+\texttt{udp6} sockets). The bound address and port can be retrieved
+using \hyperref[socketaddress]{\texttt{socket.address().address}} and
+\hyperref[socketaddress]{\texttt{socket.address().port}}.
